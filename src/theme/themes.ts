@@ -24,7 +24,7 @@ export const THEMES: Record<string, ThemeColors> = {
 
 export type ThemeName = keyof typeof THEMES
 
-export const DEFAULT_THEME: ThemeName = 'original'
+export const DEFAULT_THEME: ThemeName = 'midnight'
 
 /** Tema do xterm derivado dos tokens, para o terminal acompanhar a troca. */
 export function xtermTheme(c: ThemeColors) {

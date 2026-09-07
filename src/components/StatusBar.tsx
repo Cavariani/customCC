@@ -3,12 +3,17 @@ import { useWorkspace } from '../lib/workspace'
 import { useNow } from '../lib/useNow'
 import { formatDuration, formatTokens, msUntilReset, windowRatio } from '../lib/format'
 import { WindowBars } from './WindowBars'
+import { Delta } from './Delta'
+import { useScramble } from '../lib/useScramble'
 
-export function StatusBar() {
+export function StatusBar({ animations }: { animations: boolean }) {
   const { accounts, activeAccountId, git, changes, tabs, info } = useWorkspace()
   const now = useNow()
   const active = accounts.find((a) => a.id === activeAccountId)
   const remaining = active ? msUntilReset(active, now) : null
+  const label = useScramble(active ? `conta ${active.id} · ${active.label}` : '', {
+    enabled: animations,
+  })
 
   return (
     <footer className="status">
@@ -20,8 +25,7 @@ export function StatusBar() {
       )}
       {changes && changes.files.length > 0 && (
         <span className="status__item">
-          <span className="stat stat--add">+{changes.totals.added}</span>
-          <span className="stat stat--del">-{changes.totals.removed}</span>
+          <Delta added={changes.totals.added} removed={changes.totals.removed} />
         </span>
       )}
       <span className="status__item status__item--muted">
@@ -40,7 +44,7 @@ export function StatusBar() {
         <>
           <span className="status__item">
             <Cpu size={11} strokeWidth={2} style={{ color: 'var(--red)' }} />
-            conta {active.id} · {active.label}
+            {label}
           </span>
           <span className="status__item status__spark">
             <WindowBars

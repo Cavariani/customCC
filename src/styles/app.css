@@ -310,7 +310,9 @@
 .bay__bracket--br { right: -1px; bottom: -1px; border-left: none; border-top: none; }
 .bay--active .bay__bracket { border-color: var(--red); }
 
-/* Varredura horizontal lenta sobre a baia ativa, como um scanner. */
+/* Barramento na borda superior da baia ativa: um pulso curto percorrendo a
+   linha sem parar, que le como equipamento ligado em vez de varredura. O
+   fundo respira junto, devagar. */
 .bay__sweep {
   position: absolute;
   inset: 0;
@@ -319,24 +321,39 @@
   pointer-events: none;
 }
 
+.bay__sweep::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--red) 22%, transparent);
+}
+
 .bay__sweep::after {
   content: '';
   position: absolute;
   top: 0;
-  bottom: 0;
-  width: 38%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--red) 9%, transparent),
-    transparent
-  );
-  animation: scan 5.5s var(--ease) infinite;
+  left: 0;
+  width: 22%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+  box-shadow: 0 0 10px 0 var(--red);
+  animation: bus 2.6s linear infinite;
 }
 
-@keyframes scan {
-  0% { transform: translateX(-120%); }
-  55%, 100% { transform: translateX(360%); }
+.bay--active { animation: bay-in 0.5s var(--ease) backwards, breathe 4.5s ease-in-out infinite; }
+
+@keyframes bus {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(560%); }
+}
+
+@keyframes breathe {
+  0%, 100% { box-shadow: inset 0 0 24px -12px color-mix(in srgb, var(--red) 55%, transparent); }
+  50% { box-shadow: inset 0 0 34px -8px color-mix(in srgb, var(--red) 75%, transparent); }
 }
 
 /* ── Cabecalho da baia ───────────────────────────────────────────────── */
@@ -674,6 +691,44 @@
 }
 
 .filerow__dir { color: var(--color-muted); }
+
+/* ── Linhas adicionadas e removidas ──────────────────────────────────── */
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.delta__add, .delta__del {
+  padding: 1px 5px;
+  border-radius: 3px;
+  line-height: 1.5;
+}
+
+.delta__add { color: var(--green); background: color-mix(in srgb, var(--green) 15%, transparent); }
+.delta__del { color: var(--red); background: color-mix(in srgb, var(--red) 15%, transparent); }
+
+.delta--sm { font-size: 10px; }
+.delta--md { font-size: 12px; }
+.delta--lg { font-size: 20px; letter-spacing: -0.02em; }
+.delta--lg .delta__add, .delta--lg .delta__del { padding: 2px 8px; border-radius: 4px; }
+
+.delta__bar {
+  display: flex;
+  width: 46px;
+  height: 4px;
+  gap: 1px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.delta__bar-add { background: var(--green); animation: grow 0.6s var(--ease); }
+.delta__bar-del { background: var(--red); animation: grow 0.6s var(--ease); }
+
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .filerow__stat { display: inline-flex; gap: 5px; font-size: 10px; font-variant-numeric: tabular-nums; }
 .stat--add { color: var(--green); }
@@ -1432,3 +1487,149 @@
 :root[data-density='compacta'] .view { gap: 10px; padding: 10px; }
 :root[data-density='compacta'] .readout__value { font-size: 30px; }
 :root[data-density='compacta'] .projectbar { padding: 4px 10px; }
+
+/* ── Cabecalho das telas ─────────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fg) 5%, transparent), transparent 70%);
+  animation: bay-in 0.4s var(--ease) backwards;
+}
+
+.hero__bracket {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid color-mix(in srgb, var(--fg) 34%, transparent);
+  pointer-events: none;
+}
+
+.hero__bracket--tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.hero__bracket--br { right: -1px; bottom: -1px; border-left: none; border-top: none; }
+
+.hero__main { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+
+.hero__value {
+  font-family: var(--font-readout);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero__unit {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.hero__side { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+
+.hero__sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Grupos e linhas de arquivo ──────────────────────────────────────── */
+
+.group__title { display: flex; align-items: center; gap: 7px; }
+
+.group__tick {
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--color-muted);
+}
+
+.group__title--green .group__tick { background: var(--green); }
+.group__title--warn .group__tick { background: var(--warn); }
+
+.filerow { animation: bay-in 0.32s var(--ease) backwards; }
+
+.filerow__tag {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ── Peso do arquivo na lista de mudancas ────────────────────────────── */
+
+.dfile__id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.dfile__weight {
+  display: block;
+  height: 2px;
+  margin: 0 8px 7px;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dfile__weight span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--warn), color-mix(in srgb, var(--warn) 30%, transparent));
+  transform-origin: left;
+  animation: grow 0.7s var(--ease);
+}
+
+.dfile { animation: bay-in 0.34s var(--ease) backwards; }
+
+.tool--file-history { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+
+/* ── Troca de conta ──────────────────────────────────────────────────── */
+
+/* Enquanto a troca acontece, as baias recuam de leve e o dado esmaece: o
+   painel inteiro comunica que o estado esta sendo remontado, em vez de os
+   numeros piscarem de um valor para outro. */
+.bay.is-switching { border-color: color-mix(in srgb, var(--fg) 18%, var(--border)); }
+
+.bay.is-switching .readout__value,
+.bay.is-switching .reset__clock,
+.bay.is-switching .stat-cell dd {
+  opacity: 0.35;
+  filter: blur(1px);
+  transition: opacity 0.2s var(--ease), filter 0.2s var(--ease);
+}
+
+.bay.is-switching .bars__fill { opacity: 0.3; }
+
+.readout__value,
+.reset__clock,
+.stat-cell dd {
+  transition: opacity 0.35s var(--ease), filter 0.35s var(--ease), color 0.3s var(--ease);
+}
+
+/* A baia que acabou de assumir passa o barramento uma vez, mais rapido. */
+.bay--active .bay__sweep::after { animation: bus 2.6s linear infinite; }
+.bay--active.is-switching .bay__sweep::after { animation-duration: 0.9s; }
+
+/* O texto embaralhado nao pode empurrar o layout enquanto assenta. */
+.bay__label, .status__item { font-variant-ligatures: none; }
+
+/* Os numeros de linha nunca encolhem; quem cede largura e o caminho. */
+.delta { flex: none; }
+.hero { flex-wrap: wrap; }
+.hero__main { flex: 1 1 auto; }
+.hero__side { flex: none; }
+.delta--lg { font-size: 17px; }
+.filerow, .dfile__head { min-width: 0; }
+.dock__body { overflow-x: hidden; }

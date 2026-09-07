@@ -27,7 +27,16 @@ export default function App() {
   const { theme, setTheme } = useTheme()
   const { prefs, set, toggleDock } = usePrefs()
   const { tabs, activeTabId, notice, git, changes, accounts, setTabStatus } = useWorkspace()
-  const [view, setView] = useState<ViewName>('accounts')
+  // A secao aberta vive no hash: recarregar a pagina volta para onde estava,
+  // e da para deixar o painel de git como bookmark.
+  const [view, setView] = useState<ViewName>(() => {
+    const hash = location.hash.replace('#', '')
+    return (hash in VIEW_TITLE ? hash : 'accounts') as ViewName
+  })
+
+  useEffect(() => {
+    if (location.hash.replace('#', '') !== view) history.replaceState(null, '', `#${view}`)
+  }, [view])
 
   const anyLimited = accounts.some((a) => a.rateLimited)
 
@@ -98,7 +107,7 @@ export default function App() {
             <DockRail onExpand={toggleDock} />
           ) : (
             <>
-              {view === 'accounts' && <AccountsView />}
+              {view === 'accounts' && <AccountsView animations={prefs.animations} />}
               {view === 'git' && <GitView />}
               {view === 'diff' && <DiffView />}
               {view === 'settings' && (
@@ -109,7 +118,7 @@ export default function App() {
         </div>
       </aside>
 
-      <StatusBar />
+      <StatusBar animations={prefs.animations} />
       <LimitToast />
     </div>
   )

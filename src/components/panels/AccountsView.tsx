@@ -2,6 +2,7 @@ import { AlertTriangle, KeyRound, Radio, Zap } from 'lucide-react'
 import { useWorkspace } from '../../lib/workspace'
 import { useNow } from '../../lib/useNow'
 import { useCountUp } from '../../lib/useCountUp'
+import { useScramble } from '../../lib/useScramble'
 import { WindowBars } from '../WindowBars'
 import {
   STATUS_LABEL,
@@ -20,7 +21,7 @@ const TOKEN_ISSUE: Record<string, string> = {
   truncated: 'token curto demais, provavelmente cortado ao colar',
 }
 
-export function AccountsView() {
+export function AccountsView({ animations }: { animations: boolean }) {
   const { accounts, switching, switchAccount } = useWorkspace()
   const now = useNow()
 
@@ -37,6 +38,7 @@ export function AccountsView() {
           now={now}
           index={i}
           switching={switching}
+          animations={animations}
           onSwitch={() => switchAccount(account.id)}
         />
       ))}
@@ -64,15 +66,18 @@ interface BayProps {
   now: number
   index: number
   switching: boolean
+  animations: boolean
   onSwitch: () => void
 }
 
-function AccountBay({ account, now, index, switching, onSwitch }: BayProps) {
+function AccountBay({ account, now, index, switching, animations, onSwitch }: BayProps) {
   const status = getStatus(account, now)
   const remaining = msUntilReset(account, now)
   const elapsed = windowRatio(account, now)
   const tokens = useCountUp(account.tokensUsed)
   const isActive = account.active
+  // O nome se remonta a cada troca: o card mostra que acabou de assumir.
+  const label = useScramble(account.label, { enabled: animations, trigger: isActive })
 
   // Uma serie por card: a cor carrega estado, nao identidade. O ativo e o
   // destaque; os outros recuam para cinza em vez de disputarem atencao.
@@ -81,7 +86,7 @@ function AccountBay({ account, now, index, switching, onSwitch }: BayProps) {
 
   return (
     <article
-      className={`bay bay--${status}`}
+      className={`bay bay--${status}${switching ? ' is-switching' : ''}`}
       style={{ animationDelay: `${index * 90}ms` }}
     >
       <span className="bay__bracket bay__bracket--tl" aria-hidden="true" />
@@ -92,7 +97,7 @@ function AccountBay({ account, now, index, switching, onSwitch }: BayProps) {
         <span className="bay__n">{String(account.id).padStart(2, '0')}</span>
 
         <div className="bay__id">
-          <h3 className="bay__label">{account.label}</h3>
+          <h3 className="bay__label">{label}</h3>
           <p className="bay__email" title={account.email ?? undefined}>
             {account.email ?? 'email nao informado'}
           </p>
