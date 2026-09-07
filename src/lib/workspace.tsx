@@ -59,7 +59,7 @@ interface Workspace {
   activeTabId: string
   activeTab: TerminalTab
   setActiveTabId: (id: string) => void
-  openTab: () => void
+  openTab: (cwd?: string) => void
   closeTab: (id: string) => void
   renameTab: (id: string, title: string) => void
 
@@ -108,23 +108,49 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setNotice({ tabId, text, seq: seqRef.current })
   }, [])
 
-  // O cwd real de cada aba vem do servidor, nao de um caminho chutado no front.
+  // Na abertura, adota as sessoes que ja estao vivas no servidor. Sem isso o
+  // reload mostrava uma aba so, e os outros processos `claude` seguiam
+  // rodando invisiveis, gastando quota e sem jeito de voltar neles.
   useEffect(() => {
     let alive = true
-    fetch('/api/info')
-      .then((r) => r.json())
-      .then((data: ServerInfo) => {
+
+    Promise.all([
+      fetch('/api/info').then((r) => r.json() as Promise<ServerInfo>),
+      fetch('/api/sessions')
+        .then((r) => r.json() as Promise<{ sessions: { id: string; cwd: string; exited: boolean }[] }>)
+        .catch(() => ({ sessions: [] })),
+    ])
+      .then(([data, live]) => {
         if (!alive) return
         setInfo(data)
-        const name = data.defaultCwd.split(/[/\\]/).filter(Boolean).pop() ?? 'terminal'
         const titles = storedTitles()
-        setTabs((prev) =>
-          prev.map((t) =>
-            t.cwd ? t : { ...t, cwd: data.defaultCwd, title: titles[t.id] ?? name },
-          ),
-        )
+        const nameOf = (cwd: string) => cwd.split(/[/\\]/).filter(Boolean).pop() ?? 'terminal'
+
+        const restored = live.sessions
+          .filter((s) => !s.exited)
+          .map((s) => ({ id: s.id, cwd: s.cwd, title: titles[s.id] ?? nameOf(s.cwd) }))
+
+        if (restored.length > 0) {
+          setTabs(restored)
+          setActiveTabId((current) =>
+            restored.some((t) => t.id === current) ? current : restored[0].id,
+          )
+          // Continua a numeracao acima do maior id vivo, senao uma aba nova
+          // reusaria o id de uma sessao existente e cairia dentro dela.
+          tabSeqRef.current = restored.reduce((max, t) => {
+            const n = Number(t.id.replace('tab-', ''))
+            return Number.isFinite(n) ? Math.max(max, n) : max
+          }, 0)
+        } else {
+          setTabs((prev) =>
+            prev.map((t) =>
+              t.cwd ? t : { ...t, cwd: data.defaultCwd, title: titles[t.id] ?? nameOf(data.defaultCwd) },
+            ),
+          )
+        }
       })
       .catch(() => {})
+
     return () => {
       alive = false
     }
@@ -170,15 +196,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [accountsPoll],
   )
 
-  const openTab = useCallback(() => {
-    tabSeqRef.current += 1
-    const id = `tab-${tabSeqRef.current}`
-    setTabs((prev) => [
-      ...prev,
-      { id, title: `terminal ${tabSeqRef.current}`, cwd: info?.defaultCwd ?? '' },
-    ])
-    setActiveTabId(id)
-  }, [info])
+  const openTab = useCallback(
+    (cwd?: string) => {
+      tabSeqRef.current += 1
+      const id = `tab-${tabSeqRef.current}`
+      const folder = cwd ?? info?.defaultCwd ?? ''
+      const name = folder.split(/[/\\]/).filter(Boolean).pop() ?? `terminal ${tabSeqRef.current}`
+      setTabs((prev) => [...prev, { id, title: name, cwd: folder }])
+      setActiveTabId(id)
+    },
+    [info],
+  )
 
   const renameTab = useCallback((id: string, title: string) => {
     const clean = title.trim().slice(0, 40)

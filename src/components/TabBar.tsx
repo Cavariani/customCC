@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, TerminalSquare, X } from 'lucide-react'
+import { FolderOpen, Plus, TerminalSquare, X } from 'lucide-react'
 import { useWorkspace } from '../lib/workspace'
+import { FolderPicker } from './FolderPicker'
 
 export function TabBar() {
   const { tabs, activeTabId, setActiveTabId, openTab, closeTab, renameTab, tabStatus } =
     useWorkspace()
   const [editing, setEditing] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
 
   return (
     <div className="tabbar" role="tablist" aria-label="Terminais">
@@ -54,11 +56,37 @@ export function TabBar() {
         </div>
       ))}
 
-      <button type="button" className="tabbar__add" onClick={openTab} aria-label="Nova aba">
+      <button
+        type="button"
+        className="tabbar__add"
+        onClick={() => openTab()}
+        aria-label="Nova aba na mesma pasta"
+        title="nova aba na mesma pasta"
+      >
         <Plus size={14} strokeWidth={2} />
       </button>
 
+      <button
+        type="button"
+        className="tabbar__add"
+        onClick={() => setPicking(true)}
+        aria-label="Abrir outra pasta"
+        title="abrir outra pasta"
+      >
+        <FolderOpen size={14} strokeWidth={1.9} />
+      </button>
+
       <span className="tabbar__hint">duplo clique renomeia</span>
+
+      {picking && (
+        <FolderPicker
+          onClose={() => setPicking(false)}
+          onPick={(cwd) => {
+            setPicking(false)
+            openTab(cwd)
+          }}
+        />
+      )}
     </div>
   )
 }

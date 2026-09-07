@@ -1,4 +1,7 @@
 import express from 'express'
+import { existsSync, statSync } from 'node:fs'
+import { dirname, join, resolve as resolvePath } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createServer } from 'node:http'
 import { execFileSync } from 'node:child_process'
 import { WebSocketServer, type WebSocket } from 'ws'
@@ -16,6 +19,7 @@ import {
   type AccountId,
 } from './accounts.js'
 import { resolveNow, startDiscovery, stopDiscovery } from './discovery.js'
+import { listRecentProjects } from './projects.js'
 import { onLimitEvent, watchSession } from './watcher.js'
 import {
   getSession,
@@ -46,6 +50,24 @@ app.get('/api/info', (_req, res) => {
 
 app.get('/api/sessions', (_req, res) => {
   res.json({ sessions: listSessions() })
+})
+
+app.get('/api/projects', async (_req, res) => {
+  try {
+    res.json({ projects: await listRecentProjects() })
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+// Valida um caminho digitado a mao antes de abrir uma aba nele.
+app.get('/api/resolve-path', (req, res) => {
+  const raw = typeof req.query.path === 'string' ? req.query.path.trim() : ''
+  if (!raw) return res.status(400).json({ error: 'caminho vazio' })
+  const cwd = expandHome(raw)
+  if (!existsSync(cwd)) return res.json({ ok: false, cwd, reason: 'nao existe' })
+  if (!statSync(cwd).isDirectory()) return res.json({ ok: false, cwd, reason: 'nao e uma pasta' })
+  res.json({ ok: true, cwd, name: cwd.split(/[/\\]/).filter(Boolean).pop() ?? cwd })
 })
 
 app.get('/api/git', async (req, res) => {
@@ -150,6 +172,15 @@ app.delete('/api/sessions/:id', (req, res) => {
   res.json({ ok: true })
 })
 
+// Em producao o proprio servidor entrega o frontend buildado, para o uso
+// diario nao depender do Vite rodando numa janela de terminal.
+const here = dirname(fileURLToPath(import.meta.url))
+const DIST = resolvePath(here, '..', 'dist')
+if (existsSync(DIST)) {
+  app.use(express.static(DIST))
+  app.get(/^(?!\/api|\/pty).*/, (_req, res) => res.sendFile(join(DIST, 'index.html')))
+}
+
 const server = createServer(app)
 const wss = new WebSocketServer({ server, path: '/pty' })
 
@@ -218,8 +249,11 @@ wss.on('connection', async (socket: WebSocket, request) => {
   })
 })
 
-server.listen(PORT, () => {
-  console.log(`[customcc] servidor em http://localhost:${PORT}`)
+// So no loopback. Sem o host explicito o Node escuta em todas as
+// interfaces, e qualquer um na mesma rede abriria um terminal com o Claude
+// Code rodando nas contas do Pedro, sem senha nenhuma.
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`[customcc] servidor em http://localhost:${PORT} (apenas loopback)`)
   console.log(`[customcc] claude ${claudeVersion} em ${claudeBin}`)
   console.log(`[customcc] cwd padrao ${DEFAULT_CWD}`)
 })
