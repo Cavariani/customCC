@@ -270,7 +270,11 @@ app.post('/api/accounts/:id/clear-limit', async (req, res) => {
   res.json({ accounts: await summarizeAccounts() })
 })
 
-/** Move uma aba para outra pasta: o processo daquela sessao recomeca la. */
+/**
+ * Move uma aba para outra pasta. Esta rota apenas encerra a sessao atual:
+ * quem sobe o processo novo, ja na pasta nova, e a reconexao do WebSocket
+ * do navegador. Chamar isto sozinho, de fora da UI, so mata a sessao.
+ */
 app.post('/api/sessions/:id/cwd', async (req, res) => {
   let cwd: string
   try {

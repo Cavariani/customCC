@@ -140,6 +140,15 @@ async function historyChanges(base: string): Promise<ChangedFile[]> {
 /* ── Fonte 2: git, que enxerga qualquer mudanca em disco ────────────────── */
 
 async function gitChanges(base: string): Promise<ChangedFile[]> {
+  // Perguntar antes se ha repo separa "nao ha o que diffar" de "o git
+  // falhou". Sem essa pergunta, toda falha vira lista vazia e o painel
+  // mente dizendo que nada mudou.
+  try {
+    await run('git', ['rev-parse', '--is-inside-work-tree'], { cwd: base })
+  } catch {
+    return []
+  }
+
   let patchText: string
   try {
     const { stdout } = await run(
@@ -148,8 +157,12 @@ async function gitChanges(base: string): Promise<ChangedFile[]> {
       { cwd: base, maxBuffer: 64 * 1024 * 1024 },
     )
     patchText = stdout
-  } catch {
-    // Repo sem commit nenhum ainda, ou diretorio fora de repo.
+  } catch (error) {
+    // Repo ainda sem commit nenhum: nao ha HEAD para comparar, e isso e
+    // normal. Qualquer outra falha precisa subir, porque engolir aqui fazia
+    // o painel dizer "nenhum arquivo alterado" com o projeto cheio de
+    // mudanca na tela ao lado.
+    if (!isExpectedGitAbsence(error)) throw error
     patchText = ''
   }
 
@@ -185,6 +198,20 @@ async function gitChanges(base: string): Promise<ChangedFile[]> {
   return files
 }
 
+/** Falhas que significam "nao ha o que diffar", nao "o git quebrou". */
+function isExpectedGitAbsence(error: unknown): boolean {
+  const text = String((error as { stderr?: string; message?: string })?.stderr ?? (error as Error)?.message ?? '')
+  return (
+    /not a git repository/i.test(text) ||
+    /could not access 'HEAD'/i.test(text) ||
+    /bad revision 'HEAD'/i.test(text) ||
+    /unknown revision or path/i.test(text) ||
+    /ambiguous argument 'HEAD'/i.test(text) ||
+    /does not have any commits yet/i.test(text) ||
+    /ENOENT/.test(text)
+  )
+}
+
 /** Arquivo novo nao aparece no `git diff`, entao entra inteiro como adicao. */
 async function untrackedChanges(base: string): Promise<ChangedFile[]> {
   let out: string
@@ -195,7 +222,8 @@ async function untrackedChanges(base: string): Promise<ChangedFile[]> {
       { cwd: base, maxBuffer: 64 * 1024 * 1024 },
     )
     out = stdout
-  } catch {
+  } catch (error) {
+    if (!isExpectedGitAbsence(error)) throw error
     return []
   }
 

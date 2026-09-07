@@ -72,6 +72,13 @@ export function getSession(id: string): Session | undefined {
   return sessions.get(id)
 }
 
+/** Dimensao de terminal utilizavel, com o padrao quando vem lixo. */
+function sane(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 1
+    ? Math.min(Math.floor(value), 1000)
+    : fallback
+}
+
 export function startSession(opts: SessionOptions): Session {
   const existing = sessions.get(opts.id)
   if (existing && !existing.exited) return existing
@@ -90,8 +97,10 @@ export function startSession(opts: SessionOptions): Session {
   const proc = pty.spawn(bin, args, {
     // No Windows o node-pty usa ConPTY; useConpty fica no default do modulo.
     name: IS_WINDOWS ? 'xterm-color' : 'xterm-256color',
-    cols: opts.cols ?? 100,
-    rows: opts.rows ?? 30,
+    // Mesma guarda que o resize aplica: dimensao zerada ou negativa chega
+    // aqui quando o navegador conecta com a aba ainda escondida.
+    cols: sane(opts.cols, 100),
+    rows: sane(opts.rows, 30),
     cwd,
     env: env as { [key: string]: string },
   })
@@ -161,7 +170,7 @@ export function resize(id: string, cols: number, rows: number): void {
   if (!session || session.exited) return
   // O pty rejeita dimensoes zeradas, que acontecem quando a aba esta oculta.
   if (cols < 1 || rows < 1) return
-  session.proc.resize(cols, rows)
+  session.proc.resize(sane(cols, 100), sane(rows, 30))
 }
 
 export function killSession(id: string): void {

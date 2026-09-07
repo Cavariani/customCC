@@ -24,7 +24,9 @@ export function getStatus(account: Account, at: number): AccountStatus {
 export const STATUS_LABEL: Record<AccountStatus, string> = {
   active: 'ativa',
   limited: 'limite atingido',
-  ready: 'janela cheia',
+  // "janela cheia" lia como quota esgotada, que e o oposto do que o estado
+  // significa: a conta tem as 5h inteiras pela frente.
+  ready: 'disponivel',
   cooling: 'janela em uso',
 }
 

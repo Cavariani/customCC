@@ -1657,3 +1657,13 @@
 }
 
 .offline__retry:hover { background: color-mix(in srgb, var(--color-error) 16%, transparent); }
+
+/* Sombra que so aparece quando ha conteudo fora da vista: sem ela, uma
+   janela baixa fazia a tela de ajustes parecer que acabava no meio. */
+.dock__body {
+  background:
+    linear-gradient(var(--panel) 30%, transparent) top / 100% 22px no-repeat local,
+    linear-gradient(transparent, var(--panel) 70%) bottom / 100% 22px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.45), transparent) top / 100% 11px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.45), transparent) bottom / 100% 11px no-repeat scroll;
+}
