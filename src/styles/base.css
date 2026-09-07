@@ -1,0 +1,108 @@
+/* Tokens portados do Odysseus. Os cinco primeiros sao trocados em runtime
+   pelo seletor de tema; o resto e derivado deles ou fixo por semantica. */
+:root {
+  --bg: #282c34;
+  --fg: #9cdef2;
+  --panel: #111111;
+  --border: #355a66;
+  --red: #e06c75;
+
+  --green: #50fa7b;
+  --warn: #f0ad4e;
+  --color-success: #4caf50;
+  --color-error: #ff4444;
+  --color-muted: #828997;
+  --color-muted-alt: #6b7280;
+  --color-accent: #00aaff;
+
+  --hl-keyword: #c678dd;
+  --hl-string: #e5c07b;
+  --hl-comment: #828997;
+  --hl-function: #61afef;
+  --hl-number: #d19a66;
+
+  --font-mono: 'Fira Code', ui-monospace, Menlo, monospace;
+  --rail-w: 46px;
+  --dock-w: 320px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--panel); }
+::-webkit-scrollbar-thumb {
+  background-color: var(--red);
+  border-radius: 4px;
+  border: 2px solid var(--panel);
+}
+
+/* ── Animacoes ───────────────────────────────────────────────────────── */
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+
+@keyframes limit-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-error) 45%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-error) 0%, transparent); }
+}
+
+@keyframes row-flash {
+  from { background: color-mix(in srgb, var(--warn) 24%, transparent); }
+  to { background: transparent; }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateX(6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bar-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
