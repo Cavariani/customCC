@@ -10,6 +10,7 @@ import '@xterm/xterm/css/xterm.css'
 interface Props {
   tab: TerminalTab
   visible: boolean
+  fontSize: number
   theme: ThemeName
   notice: TerminalMessage | null
   onStatus: (tabId: string, status: PtyStatus) => void
@@ -20,7 +21,7 @@ interface Props {
  * nunca desmonta ao trocar de aba, so fica escondido, senao o scrollback se
  * perde. O processo `claude` vive no backend e sobrevive a reloads.
  */
-export function TerminalPane({ tab, visible, theme, notice, onStatus }: Props) {
+export function TerminalPane({ tab, visible, fontSize, theme, notice, onStatus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -45,7 +46,7 @@ export function TerminalPane({ tab, visible, theme, notice, onStatus }: Props) {
 
     const term = new Terminal({
       fontFamily: "'Fira Code', ui-monospace, Menlo, monospace",
-      fontSize: 12.5,
+      fontSize,
       lineHeight: 1.45,
       cursorBlink: true,
       scrollback: 10_000,
@@ -75,6 +76,14 @@ export function TerminalPane({ tab, visible, theme, notice, onStatus }: Props) {
     // O terminal e criado uma vez por aba; tema e avisos vem nos efeitos abaixo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Corpo da fonte mudou: refaz o calculo de colunas com o novo tamanho.
+  useEffect(() => {
+    const term = termRef.current
+    if (!term || term.options.fontSize === fontSize) return
+    term.options.fontSize = fontSize
+    fitRef.current?.fit()
+  }, [fontSize])
 
   // Tema trocado: repinta sem recriar o terminal, preservando o scrollback.
   useEffect(() => {

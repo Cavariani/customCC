@@ -2,7 +2,7 @@ import { Cpu, GitBranch, TerminalSquare } from 'lucide-react'
 import { useWorkspace } from '../lib/workspace'
 import { useNow } from '../lib/useNow'
 import { formatDuration, formatTokens, msUntilReset, windowRatio } from '../lib/format'
-import { Sparkline } from './Sparkline'
+import { WindowBars } from './WindowBars'
 
 export function StatusBar() {
   const { accounts, activeAccountId, git, changes, tabs, info } = useWorkspace()
@@ -43,11 +43,11 @@ export function StatusBar() {
             conta {active.id} · {active.label}
           </span>
           <span className="status__item status__spark">
-            <Sparkline
+            <WindowBars
               series={active.series}
               progress={windowRatio(active, now)}
               accent="var(--red)"
-              height={12}
+              height={11}
             />
           </span>
           <span className="status__item">{formatTokens(active.tokensUsed)} tokens</span>

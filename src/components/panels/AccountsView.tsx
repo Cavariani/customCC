@@ -2,8 +2,7 @@ import { AlertTriangle, KeyRound, Radio, Zap } from 'lucide-react'
 import { useWorkspace } from '../../lib/workspace'
 import { useNow } from '../../lib/useNow'
 import { useCountUp } from '../../lib/useCountUp'
-import { Sparkline } from '../Sparkline'
-import { ArcGauge } from '../ArcGauge'
+import { WindowBars } from '../WindowBars'
 import {
   STATUS_LABEL,
   formatAgo,
@@ -43,6 +42,11 @@ export function AccountsView() {
       ))}
     </div>
   )
+}
+
+/** Horario local no formato 24h, que e como o Pedro le a hora. */
+function clockOf(at: number): string {
+  return new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
 /** Numero pequeno com rotulo, alinhados em coluna para varrer com o olho. */
@@ -107,13 +111,22 @@ function AccountBay({ account, now, index, switching, onSwitch }: BayProps) {
           <span className="readout__unit">tokens na janela</span>
         </div>
 
-        <ArcGauge
-          progress={elapsed}
-          accent={accent}
-          live={isActive}
-          value={remaining === null ? '5h' : formatDuration(remaining)}
-          caption={remaining === null ? 'livre' : 'reset'}
-        />
+        <div className="reset">
+          <span className="reset__clock">
+            {account.resetAt === null ? '--:--' : clockOf(account.resetAt)}
+          </span>
+          <span className="reset__rel">
+            {remaining === null ? 'janela nao iniciada' : `reset em ${formatDuration(remaining)}`}
+          </span>
+        </div>
+      </div>
+
+      <WindowBars series={account.series} progress={elapsed} accent={accent} />
+
+      <div className="axis" aria-hidden="true">
+        <span>inicio</span>
+        <span className="axis__rule" />
+        <span>{account.resetAt === null ? '+5h' : clockOf(account.resetAt)}</span>
       </div>
 
       <dl className="stats">
@@ -128,23 +141,13 @@ function AccountBay({ account, now, index, switching, onSwitch }: BayProps) {
         />
       </dl>
 
-      <Sparkline series={account.series} progress={elapsed} accent={accent} />
-
-      <div className="axis" aria-hidden="true">
-        <span>-5h</span>
-        <span className="axis__rule" />
-        <span>agora</span>
-      </div>
-
       <footer className="bay__foot">
-        {account.resetSource === 'observed' && remaining !== null ? (
+        {account.resetSource === 'observed' ? (
           <span className="bay__reset bay__reset--real">
             <Radio size={10} strokeWidth={2.4} /> reset lido do terminal
           </span>
         ) : (
-          <span className="bay__reset">
-            {remaining === null ? 'janela nao iniciada' : 'reset estimado'}
-          </span>
+          <span className="bay__reset">reset estimado</span>
         )}
 
         {account.tokenIssue !== null && (

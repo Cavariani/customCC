@@ -1,13 +1,16 @@
 import { FlaskConical } from 'lucide-react'
 import { THEMES, type ThemeName } from '../../theme/themes'
 import { useWorkspace } from '../../lib/workspace'
+import type { Prefs } from '../../lib/usePrefs'
 
 interface Props {
   theme: ThemeName
   onTheme: (name: ThemeName) => void
+  prefs: Prefs
+  onPref: <K extends keyof Prefs>(key: K, value: Prefs[K]) => void
 }
 
-export function SettingsView({ theme, onTheme }: Props) {
+export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
   const { markRateLimited, accounts, activeAccountId, info } = useWorkspace()
   const activeLimited = accounts.find((a) => a.id === activeAccountId)?.rateLimited
 
@@ -39,6 +42,47 @@ export function SettingsView({ theme, onTheme }: Props) {
       </section>
 
       <section className="group">
+        <h4 className="group__title">interface</h4>
+
+        <Choice
+          label="densidade"
+          value={prefs.density}
+          options={['compacta', 'confortavel']}
+          onPick={(v) => onPref('density', v as Prefs['density'])}
+        />
+
+        <Toggle
+          label="animacoes"
+          hint="pulsos, varreduras e transicoes"
+          on={prefs.animations}
+          onToggle={() => onPref('animations', !prefs.animations)}
+        />
+
+        <Toggle
+          label="grao no fundo"
+          hint="textura fina sobre o preto"
+          on={prefs.grain}
+          onToggle={() => onPref('grain', !prefs.grain)}
+        />
+
+        <div className="field">
+          <span className="field__label">
+            corpo do terminal <em>{prefs.terminalFontSize}px</em>
+          </span>
+          <input
+            type="range"
+            min={10}
+            max={18}
+            step={0.5}
+            value={prefs.terminalFontSize}
+            onChange={(e) => onPref('terminalFontSize', Number(e.target.value))}
+          />
+        </div>
+
+        <p className="view__note">painel recolhe e volta com cmd+B</p>
+      </section>
+
+      <section className="group">
         <h4 className="group__title">servidor</h4>
         {info ? (
           <ul className="kv">
@@ -62,11 +106,65 @@ export function SettingsView({ theme, onTheme }: Props) {
           <FlaskConical size={13} strokeWidth={2} />
           {activeLimited ? 'conta ativa ja marcada' : 'marcar conta ativa como no limite'}
         </button>
-        <p className="view__note">
-          Marca a conta ativa no estado do servidor. A deteccao automatica
-          pelo output do pty ainda nao esta ligada.
-        </p>
       </section>
+    </div>
+  )
+}
+
+function Toggle({
+  label,
+  hint,
+  on,
+  onToggle,
+}: {
+  label: string
+  hint: string
+  on: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={`switch${on ? ' is-on' : ''}`}
+      role="switch"
+      aria-checked={on}
+      onClick={onToggle}
+    >
+      <span className="switch__text">
+        {label}
+        <em>{hint}</em>
+      </span>
+      <span className="switch__track"><span className="switch__knob" /></span>
+    </button>
+  )
+}
+
+function Choice({
+  label,
+  value,
+  options,
+  onPick,
+}: {
+  label: string
+  value: string
+  options: string[]
+  onPick: (value: string) => void
+}) {
+  return (
+    <div className="field">
+      <span className="field__label">{label}</span>
+      <div className="segmented">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={option === value ? 'is-on' : undefined}
+            onClick={() => onPick(option)}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
