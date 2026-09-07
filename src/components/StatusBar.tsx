@@ -35,6 +35,8 @@ export function StatusBar({ animations }: { animations: boolean }) {
 
       <span className="status__spacer" />
 
+      <span className="status__item status__item--muted status__kbd">cmd+K</span>
+
       {info && (
         <span className="status__item status__item--muted" title={info.claudeBin}>
           claude {info.claudeVersion.split(' ')[0]}
