@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>customCC · opcoes de card</title>
+<style>
+:root {
+  /* paleta midnight, a que voce escolheu */
+  --bg: #0d1117;
+  --fg: #c9d1d9;
+  --panel: #161b22;
+  --border: #30363d;
+  --red: #f85149;
+
+  --green: #3fb950;
+  --warn: #d29922;
+  --blue: #58a6ff;
+  --violet: #bc8cff;
+  --muted: #6e7681;
+
+  --mono: ui-monospace, 'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, monospace;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 28px 24px 80px;
+  background:
+    radial-gradient(900px 500px at 80% -10%, #16202e, transparent 70%),
+    var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
+
+.lede { margin: 0 0 28px; max-width: 70ch; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.lede b { color: var(--fg); font-weight: 600; }
+
+.option { margin-bottom: 46px; }
+
+.option__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.option__n {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--red);
+}
+
+.option__name { font-size: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.option__idea { font-size: 11.5px; color: var(--muted); }
+
+/* Uma coluna de 372px imita a largura real do painel. */
+.rack { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.col { width: 372px; display: flex; flex-direction: column; gap: 10px; }
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 372px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   OPCAO 1 · REATOR
+   O consumo e o nucleo: o numero pulsa dentro de um halo que respira,
+   e o anel em volta e a janela de 5h fatiada em 30 segmentos.
+   ══════════════════════════════════════════════════════════════════ */
+
+.reator {
+  position: relative;
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: linear-gradient(150deg, #1b222c, var(--panel));
+  overflow: hidden;
+}
+
+.reator.on {
+  border-color: color-mix(in srgb, var(--red) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red) 18%, transparent),
+              0 10px 40px -18px color-mix(in srgb, var(--red) 80%, transparent);
+}
+
+.core { position: relative; width: 108px; height: 108px; display: grid; place-items: center; }
+
+.core__halo {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 42%, transparent), transparent 68%);
+  animation: pulse 3.4s ease-in-out infinite;
+}
+
+.reator:not(.on) .core__halo { animation: none; opacity: 0.35; }
+
+@keyframes pulse {
+  0%, 100% { transform: scale(0.86); opacity: 0.55; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+.core svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+
+.core__num {
+  position: relative;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.core__unit { position: relative; margin-top: 3px; font-size: 8px; letter-spacing: 0.2em; color: var(--muted); }
+.core__stack { position: relative; display: flex; flex-direction: column; align-items: center; }
+
+.reator__body { min-width: 0; }
+
+.reator__top { display: flex; align-items: center; gap: 8px; }
+
+.tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.reator.on .tag { color: var(--red); }
+
+.name { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; }
+
+.mail {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+.badge.live { color: var(--red); }
+.badge.free { color: var(--green); }
+.badge.warn { color: var(--warn); }
+
+.dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+.badge.live .dot { animation: blink 1.6s ease-in-out infinite; }
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.chips { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--chip) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip) 30%, transparent);
+}
+
+.chip b { font-size: 13px; font-weight: 700; color: var(--chip); letter-spacing: -0.02em; }
+.chip span { font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+.reator__reset {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.reator__clock { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: var(--fg); }
+
+/* ══════════════════════════════════════════════════════════════════
+   OPCAO 2 · OSCILOSCOPIO
+   O card inteiro e a tela do instrumento: grade de fosforo, traco do
+   consumo com rastro, e um ponto varrendo a posicao do agora.
+   ══════════════════════════════════════════════════════════════════ */
+
+.scope {
+  position: relative;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #0b1016;
+  overflow: hidden;
+}
+
+.scope.on { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+
+.scope__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--accent) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 9%, transparent) 1px, transparent 1px);
+  background-size: 26px 22px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.scope__head { position: relative; display: flex; align-items: center; gap: 8px; }
+
+.scope__screen { position: relative; height: 96px; margin: 10px 0 8px; }
+.scope__screen svg { width: 100%; height: 100%; overflow: visible; }
+
+.trace {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 90%, transparent));
+  stroke-dasharray: 620;
+  animation: sweep-trace 3.4s var(--ease) infinite;
+}
+
+@keyframes sweep-trace {
+  0% { stroke-dashoffset: 620; }
+  55%, 100% { stroke-dashoffset: 0; }
+}
+
+.scope:not(.on) .trace { animation: none; stroke-dashoffset: 0; opacity: 0.55; filter: none; }
+
+.beam { fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent)); }
+.scope.on .beam { animation: beam 3.4s var(--ease) infinite; }
+
+@keyframes beam {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  55% { opacity: 1; }
+  70%, 100% { opacity: 0; }
+}
+
+.scope__readout {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  text-align: right;
+  z-index: 2;
+}
+
+.scope__big {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.scope__small { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+
+.scope__foot {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.scope__foot b { display: block; font-size: 12px; letter-spacing: -0.01em; color: var(--fg); text-transform: none; }
+.scope__foot .k { color: var(--kc); }
+
+/* ══════════════════════════════════════════════════════════════════
+   OPCAO 3 · MOSAICO
+   Trinta blocos, um por fatia de 10 minutos, com a cor subindo junto
+   com o consumo. Le o padrao do dia sem precisar de eixo.
+   ══════════════════════════════════════════════════════════════════ */
+
+.mosaic {
+  position: relative;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  transition: border-color 0.3s var(--ease);
+}
+
+.mosaic.on {
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--red) 9%, transparent), var(--panel) 60%);
+}
+
+.mosaic__top { display: flex; align-items: center; gap: 8px; }
+
+.mosaic__figure { display: flex; align-items: flex-end; gap: 10px; margin: 12px 0 10px; }
+
+.mosaic__num {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  color: var(--fg);
+}
+
+.mosaic.on .mosaic__num { color: var(--red); text-shadow: 0 0 26px color-mix(in srgb, var(--red) 45%, transparent); }
+
+.mosaic__label { font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); padding-bottom: 4px; }
+.mosaic__spacer { flex: 1; }
+
+.mosaic__clock { text-align: right; }
+.mosaic__clock b { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+.mosaic__clock span { display: block; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+.grid30 { display: grid; grid-template-columns: repeat(15, 1fr); gap: 3px; }
+
+.cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--cell, #1d242e);
+  animation: cell-in 0.4s var(--ease) backwards;
+}
+
+.cell.hot { box-shadow: 0 0 8px 0 color-mix(in srgb, var(--accent) 70%, transparent); }
+
+@keyframes cell-in { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.mosaic__legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.scale { display: flex; gap: 2px; }
+.scale i { width: 9px; height: 9px; border-radius: 2px; display: block; }
+
+.mosaic__stats {
+  display: flex;
+  gap: 8px;
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.mstat { flex: 1; }
+.mstat b { display: block; font-size: 13px; font-weight: 700; color: var(--sc); letter-spacing: -0.02em; }
+.mstat span { font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+/* ══════════════════════════════════════════════════════════════════
+   OPCAO 4 · FITA
+   Uma fita correndo: a janela e a trilha, o cabecote marca o agora, e
+   o consumo aparece como relevo na fita.
+   ══════════════════════════════════════════════════════════════════ */
+
+.tape {
+  position: relative;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.tape.on { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+
+.tape__strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--accent) 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.5;
+}
+
+.tape.on .tape__strip { animation: run 1.1s linear infinite; }
+
+@keyframes run { to { background-position-y: 12px; } }
+
+.tape__inner { padding: 13px 13px 13px 17px; }
+
+.tape__top { display: flex; align-items: center; gap: 8px; }
+
+.tape__row { display: flex; align-items: flex-end; gap: 12px; margin-top: 12px; }
+
+.tape__num {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+}
+
+.tape.on .tape__num { color: var(--red); }
+
+.tape__meta { padding-bottom: 3px; }
+.tape__meta span { display: block; font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.tape__meta b { font-size: 12px; }
+
+.track {
+  position: relative;
+  height: 40px;
+  margin-top: 12px;
+  border-radius: 3px;
+  background: #10161e;
+  overflow: hidden;
+}
+
+.track__bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; padding: 4px; }
+.track__bars i { flex: 1; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.85; }
+
+.track__done { position: absolute; top: 0; bottom: 0; left: 0; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+.head {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--fg);
+  box-shadow: 0 0 10px var(--fg);
+}
+
+.tape.on .head { background: var(--red); box-shadow: 0 0 12px var(--red); animation: nudge 2.4s ease-in-out infinite; }
+
+@keyframes nudge { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.tape__scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tape__stats { display: flex; margin-top: 11px; border-top: 1px solid var(--border); }
+.tape__stats div { flex: 1; padding: 8px 0 0; text-align: center; border-right: 1px solid var(--border); }
+.tape__stats div:last-child { border-right: none; }
+.tape__stats b { display: block; font-size: 13px; font-weight: 700; color: var(--sc); }
+.tape__stats span { font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+.btn {
+  margin-top: 11px;
+  width: 100%;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+
+.btn:hover { border-color: var(--red); color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+</style>
+</head>
+<body>
+
+<h1>customCC · quatro cartas para o painel de contas</h1>
+<p class="lede">
+  Mesma paleta <b>midnight</b> e os mesmos dados reais de sempre: tokens na
+  janela, sessoes, pico por fatia de 10 minutos, ultimo uso e o horario do
+  reset. Em cada opcao o primeiro card esta <b>ativo</b> e os outros dois nao,
+  para dar para julgar o contraste entre eles. Me diz o numero que voce quer,
+  ou uma mistura (o nucleo de uma com a base de outra).
+</p>
+
+<div id="app"></div>
+
+<script>
+const CONTAS = [
+  { id: 1, nome: 'PESSOAL', mail: 'pedrorcavariani@hotmail.com', tokens: '40.6k', sessoes: 1, pico: '40.6k', ultimo: '8s', reset: '04:34', rel: 'reset em 4h 18m', progresso: 0.14, ativa: true,  estado: 'live', selo: 'ativa' },
+  { id: 2, nome: 'MLEGATE', mail: 'pedro.cavariani@mlegate.com', tokens: '612k', sessoes: 4, pico: '96.2k', ultimo: '2h', reset: '05:16', rel: 'reset em 4h 59m', progresso: 0.62, ativa: false, estado: 'warn', selo: 'janela em uso' },
+  { id: 3, nome: 'MLEGATE BACKUP', mail: 'compras.ti@mlegate.com', tokens: '0', sessoes: 0, pico: '--', ultimo: '--', reset: '--:--', rel: 'janela nao iniciada', progresso: 0, ativa: false, estado: 'free', selo: 'janela cheia' },
+]
+
+// Serie de 30 fatias: rajada no meio para a primeira, uso espalhado na
+// segunda, nada na terceira.
+const SERIES = [
+  Array.from({ length: 30 }, (_, i) => Math.max(0, Math.exp(-((i - 3) ** 2) / 6) * 100)),
+  Array.from({ length: 30 }, (_, i) => (i < 19 ? 30 + Math.sin(i / 1.6) * 26 + (i === 9 ? 44 : 0) : 0)),
+  Array.from({ length: 30 }, () => 0),
+]
+
+const accentOf = (c) => (c.ativa ? 'var(--red)' : c.estado === 'warn' ? 'var(--warn)' : 'var(--muted)')
+
+/* ── 1 · REATOR ───────────────────────────────────────────────────── */
+function reator(c, i) {
+  const seg = 30
+  const acc = accentOf(c)
+  let ticks = ''
+  for (let s = 0; s < seg; s++) {
+    const a = (s / seg) * 2 * Math.PI
+    const on = s / seg <= c.progresso
+    const r1 = 44, r2 = 50
+    const x1 = 54 + Math.cos(a) * r1, y1 = 54 + Math.sin(a) * r1
+    const x2 = 54 + Math.cos(a) * r2, y2 = 54 + Math.sin(a) * r2
+    ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${on ? acc : 'var(--border)'}" stroke-width="2" stroke-linecap="round" opacity="${on ? 1 : 0.6}"/>`
+  }
+  return `
+  <article class="reator ${c.ativa ? 'on' : ''}" style="--accent:${acc}">
+    <div class="core">
+      <div class="core__halo"></div>
+      <svg viewBox="0 0 108 108">${ticks}</svg>
+      <div class="core__stack">
+        <div class="core__num" style="color:${c.ativa ? 'var(--red)' : 'var(--fg)'}">${c.tokens}</div>
+        <div class="core__unit">TOKENS</div>
+      </div>
+    </div>
+    <div class="reator__body">
+      <div class="reator__top">
+        <span class="tag">0${c.id}</span>
+        <div style="min-width:0">
+          <div class="name">${c.nome}</div>
+          <p class="mail">${c.mail}</p>
+        </div>
+        <span class="badge ${c.estado}"><span class="dot"></span>${c.selo}</span>
+      </div>
+      <div class="chips">
+        <div class="chip" style="--chip:var(--blue)"><b>${c.sessoes}</b><span>sessoes</span></div>
+        <div class="chip" style="--chip:var(--violet)"><b>${c.pico}</b><span>pico 10m</span></div>
+        <div class="chip" style="--chip:var(--green)"><b>${c.ultimo}</b><span>ultimo</span></div>
+      </div>
+      <div class="reator__reset">
+        <span>${c.rel}</span>
+        <span class="reator__clock">${c.reset}</span>
+      </div>
+    </div>
+  </article>`
+}
+
+/* ── 2 · OSCILOSCOPIO ─────────────────────────────────────────────── */
+function scope(c, i) {
+  const acc = accentOf(c)
+  const s = SERIES[i]
+  const max = Math.max(...s, 1)
+  const W = 340, H = 96
+  const pts = s.map((v, k) => [(k / (s.length - 1)) * W, H - (v / max) * (H - 14) - 7])
+  let d = `M ${pts[0][0]} ${pts[0][1]}`
+  for (let k = 1; k < pts.length; k++) {
+    const [px, py] = pts[k - 1], [x, y] = pts[k], mx = (px + x) / 2
+    d += ` C ${mx} ${py}, ${mx} ${y}, ${x} ${y}`
+  }
+  const bx = c.progresso * W
+  const bi = Math.min(pts.length - 1, Math.round(c.progresso * (pts.length - 1)))
+  return `
+  <article class="scope ${c.ativa ? 'on' : ''}" style="--accent:${acc}">
+    <div class="scope__grid"></div>
+    <div class="scope__head">
+      <span class="tag">0${c.id}</span>
+      <div style="min-width:0">
+        <div class="name">${c.nome}</div>
+        <p class="mail">${c.mail}</p>
+      </div>
+      <span class="badge ${c.estado}"><span class="dot"></span>${c.selo}</span>
+    </div>
+    <div class="scope__screen">
+      <div class="scope__readout">
+        <div class="scope__big">${c.tokens}</div>
+        <div class="scope__small">tokens na janela</div>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <path class="trace" d="${d}"/>
+        <circle class="beam" cx="${bx}" cy="${pts[bi][1]}" r="3.5"/>
+        <line x1="${bx}" y1="0" x2="${bx}" y2="${H}" stroke="${acc}" stroke-width="1" opacity="0.35"/>
+      </svg>
+    </div>
+    <div class="scope__foot">
+      <span class="k" style="--kc:var(--blue)">sessoes<b>${c.sessoes}</b></span>
+      <span class="k" style="--kc:var(--violet)">pico 10m<b>${c.pico}</b></span>
+      <span class="k" style="--kc:var(--green)">ultimo<b>${c.ultimo}</b></span>
+      <span style="margin-left:auto;text-align:right">${c.rel}<b>${c.reset}</b></span>
+    </div>
+  </article>`
+}
+
+/* ── 3 · MOSAICO ──────────────────────────────────────────────────── */
+function mosaic(c, i) {
+  const acc = accentOf(c)
+  const s = SERIES[i]
+  const max = Math.max(...s, 1)
+  const cells = s.map((v, k) => {
+    const t = v / max
+    const past = k / s.length <= c.progresso
+    const bg = v === 0
+      ? (past ? '#232b36' : '#1a212a')
+      : `color-mix(in srgb, ${acc} ${Math.round(18 + t * 82)}%, #10161e)`
+    return `<span class="cell ${t > 0.85 ? 'hot' : ''}" style="--cell:${bg};--accent:${acc};animation-delay:${k * 14}ms"></span>`
+  }).join('')
+  return `
+  <article class="mosaic ${c.ativa ? 'on' : ''}" style="--accent:${acc}">
+    <div class="mosaic__top">
+      <span class="tag">0${c.id}</span>
+      <div style="min-width:0">
+        <div class="name">${c.nome}</div>
+        <p class="mail">${c.mail}</p>
+      </div>
+      <span class="badge ${c.estado}"><span class="dot"></span>${c.selo}</span>
+    </div>
+    <div class="mosaic__figure">
+      <span class="mosaic__num">${c.tokens}</span>
+      <span class="mosaic__label">tokens</span>
+      <span class="mosaic__spacer"></span>
+      <span class="mosaic__clock"><b>${c.reset}</b><span>${c.rel}</span></span>
+    </div>
+    <div class="grid30">${cells}</div>
+    <div class="mosaic__legend">
+      inicio da janela
+      <span class="scale">
+        <i style="background:#1d242e"></i>
+        <i style="background:color-mix(in srgb, ${acc} 35%, #10161e)"></i>
+        <i style="background:color-mix(in srgb, ${acc} 65%, #10161e)"></i>
+        <i style="background:${acc}"></i>
+      </span>
+      reset
+    </div>
+    <div class="mosaic__stats">
+      <div class="mstat" style="--sc:var(--blue)"><b>${c.sessoes}</b><span>sessoes</span></div>
+      <div class="mstat" style="--sc:var(--violet)"><b>${c.pico}</b><span>pico 10m</span></div>
+      <div class="mstat" style="--sc:var(--green)"><b>${c.ultimo}</b><span>ultimo uso</span></div>
+    </div>
+  </article>`
+}
+
+/* ── 4 · FITA ─────────────────────────────────────────────────────── */
+function tape(c, i) {
+  const acc = accentOf(c)
+  const s = SERIES[i]
+  const max = Math.max(...s, 1)
+  const bars = s.map((v) => `<i style="height:${Math.max((v / max) * 100, v > 0 ? 8 : 2)}%;opacity:${v > 0 ? 0.9 : 0.15}"></i>`).join('')
+  return `
+  <article class="tape ${c.ativa ? 'on' : ''}" style="--accent:${acc}">
+    <span class="tape__strip"></span>
+    <div class="tape__inner">
+      <div class="tape__top">
+        <span class="tag">0${c.id}</span>
+        <div style="min-width:0">
+          <div class="name">${c.nome}</div>
+          <p class="mail">${c.mail}</p>
+        </div>
+        <span class="badge ${c.estado}"><span class="dot"></span>${c.selo}</span>
+      </div>
+
+      <div class="tape__row">
+        <span class="tape__num">${c.tokens}</span>
+        <span class="tape__meta"><span>tokens na janela</span><b>${c.reset}</b><span>${c.rel}</span></span>
+      </div>
+
+      <div class="track">
+        <span class="track__done" style="width:${c.progresso * 100}%"></span>
+        <span class="track__bars">${bars}</span>
+        <span class="head" style="left:${c.progresso * 100}%"></span>
+      </div>
+      <div class="tape__scale"><span>inicio</span><span>${c.reset}</span></div>
+
+      <div class="tape__stats">
+        <div style="--sc:var(--blue)"><b>${c.sessoes}</b><span>sessoes</span></div>
+        <div style="--sc:var(--violet)"><b>${c.pico}</b><span>pico 10m</span></div>
+        <div style="--sc:var(--green)"><b>${c.ultimo}</b><span>ultimo</span></div>
+      </div>
+
+      ${c.ativa ? '' : '<button class="btn">ativar</button>'}
+    </div>
+  </article>`
+}
+
+const OPCOES = [
+  { n: 1, nome: 'reator', ideia: 'o consumo como nucleo que pulsa, cercado pelo anel da janela de 5h', render: reator,
+    hint: 'O numero vive dentro do halo, entao a conta ativa brilha de longe. O anel de 30 segmentos e a janela: da para ver quanto ja passou sem ler numero nenhum. Stats coloridos por tipo, cada um com sua cor fixa.' },
+  { n: 2, nome: 'osciloscopio', ideia: 'o card e a tela do instrumento, com traco de fosforo e feixe varrendo', render: scope,
+    hint: 'O traco se redesenha em loop e o feixe percorre ate a posicao do agora. E o mais "ligado" dos quatro, e o que mais mostra o formato do consumo, mas o numero divide espaco com o grafico.' },
+  { n: 3, nome: 'mosaico', ideia: 'trinta blocos, um por fatia de 10 minutos, cor subindo com o consumo', render: mosaic,
+    hint: 'O mais legivel de bater o olho: da para ver rajada, uso constante ou silencio na hora. Os blocos entram em cascata ao carregar. Menos animacao continua, mais informacao por pixel.' },
+  { n: 4, nome: 'fita', ideia: 'a janela como uma fita correndo, com cabecote marcando o agora', render: tape,
+    hint: 'A fita lateral corre enquanto a conta esta ativa, o que da a sensacao de maquina rodando. O cabecote marca o agora sobre as barras de consumo. Base mecanica, mais sobria que as outras.' },
+]
+
+document.getElementById('app').innerHTML = OPCOES.map((o) => `
+  <section class="option">
+    <div class="option__head">
+      <span class="option__n">0${o.n}</span>
+      <span class="option__name">${o.nome}</span>
+      <span class="option__idea">${o.ideia}</span>
+    </div>
+    <div class="rack">
+      <div class="col">${CONTAS.map((c, i) => o.render(c, i)).join('')}</div>
+      <p class="hint">${o.hint}</p>
+    </div>
+  </section>
+`).join('')
+</script>
+</body>
+</html>

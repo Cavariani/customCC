@@ -16,6 +16,9 @@
   --color-accent: #00aaff;
 
   --hl-keyword: #c678dd;
+  /* Cores fixas por tipo de estatistica: sessoes, pico e recencia. */
+  --blue: #58a6ff;
+  --violet: #bc8cff;
   --hl-string: #e5c07b;
   --hl-comment: #828997;
   --hl-function: #61afef;

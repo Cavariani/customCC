@@ -243,9 +243,8 @@
   color: var(--color-muted);
 }
 
-/* ── Baias de conta ──────────────────────────────────────────────────── */
+/* ── Baias de conta: osciloscopio ────────────────────────────────────── */
 
-/* Tres partes iguais ocupando a altura toda: nada de sobra morta embaixo. */
 .bays {
   display: grid;
   grid-template-rows: repeat(3, minmax(0, 1fr));
@@ -267,41 +266,51 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  /* A baia mede a si mesma: quando o terco fica baixo demais, as partes
-     opcionais saem de cena em vez de o conteudo vazar sobre o card de baixo. */
   container-type: size;
   container-name: bay;
   overflow: hidden;
-  padding: 12px 13px;
+  padding: 11px 12px;
   border: 1px solid var(--border);
-  border-radius: 3px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--fg) 4%, transparent), transparent 60%),
-    color-mix(in srgb, var(--fg) 2%, transparent);
+  border-radius: 4px;
+  /* Fundo mais escuro que o painel: a baia e a tela do instrumento. */
+  background: color-mix(in srgb, var(--bg) 72%, #000);
   animation: bay-in 0.5s var(--ease) backwards;
-  transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
+  transition: border-color 0.25s var(--ease);
 }
 
 .bay:hover { border-color: color-mix(in srgb, var(--fg) 26%, var(--border)); }
 
 .bay--active {
-  border-color: color-mix(in srgb, var(--red) 55%, transparent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--red) 12%, transparent), transparent 62%),
-    color-mix(in srgb, var(--red) 4%, transparent);
+  border-color: color-mix(in srgb, var(--red) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red) 14%, transparent),
+    0 10px 34px -20px color-mix(in srgb, var(--red) 90%, transparent);
 }
 
-.bay--limited {
-  border-color: color-mix(in srgb, var(--color-error) 60%, transparent);
-  background: color-mix(in srgb, var(--color-error) 6%, transparent);
+.bay--limited { border-color: color-mix(in srgb, var(--color-error) 65%, transparent); }
+
+/* Grade de fosforo ao fundo, como retícula de tela de instrumento. */
+.bay__grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fg) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fg) 6%, transparent) 1px, transparent 1px);
+  background-size: 26px 22px;
 }
 
-/* Colchetes de canto: o detalhe que faz o card ler como painel montado. */
+.bay--active .bay__grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--red) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--red) 9%, transparent) 1px, transparent 1px);
+}
+
 .bay__bracket {
   position: absolute;
   width: 9px;
   height: 9px;
-  border: 1px solid color-mix(in srgb, var(--fg) 34%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent);
   animation: bracket-in 0.5s var(--ease) 0.15s backwards;
   pointer-events: none;
 }
@@ -310,63 +319,16 @@
 .bay__bracket--br { right: -1px; bottom: -1px; border-left: none; border-top: none; }
 .bay--active .bay__bracket { border-color: var(--red); }
 
-/* Barramento na borda superior da baia ativa: um pulso curto percorrendo a
-   linha sem parar, que le como equipamento ligado em vez de varredura. O
-   fundo respira junto, devagar. */
-.bay__sweep {
-  position: absolute;
-  inset: 0;
-  border-radius: 3px;
-  overflow: hidden;
-  pointer-events: none;
-}
+/* ── Cabecalho ───────────────────────────────────────────────────────── */
 
-.bay__sweep::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: color-mix(in srgb, var(--red) 22%, transparent);
-}
-
-.bay__sweep::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 22%;
-  height: 2px;
-  border-radius: 0 0 2px 2px;
-  background: linear-gradient(90deg, transparent, var(--red), transparent);
-  box-shadow: 0 0 10px 0 var(--red);
-  animation: bus 2.6s linear infinite;
-}
-
-.bay--active { animation: bay-in 0.5s var(--ease) backwards, breathe 4.5s ease-in-out infinite; }
-
-@keyframes bus {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(560%); }
-}
-
-@keyframes breathe {
-  0%, 100% { box-shadow: inset 0 0 24px -12px color-mix(in srgb, var(--red) 55%, transparent); }
-  50% { box-shadow: inset 0 0 34px -8px color-mix(in srgb, var(--red) 75%, transparent); }
-}
-
-/* ── Cabecalho da baia ───────────────────────────────────────────────── */
-
-.bay__head { flex: none; display: flex; align-items: center; gap: 9px; }
+.bay__head { position: relative; flex: none; display: flex; align-items: center; gap: 8px; }
 
 .bay__n {
   flex: none;
-  font-family: var(--font-readout);
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1;
-  color: color-mix(in srgb, var(--fg) 40%, transparent);
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--fg) 42%, transparent);
   transition: color 0.25s var(--ease);
 }
 
@@ -378,7 +340,7 @@
   margin: 0;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--fg);
 }
@@ -392,205 +354,166 @@
   white-space: nowrap;
 }
 
-/* Status como LED de painel, nao como pilula colorida. */
 .led {
   flex: none;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 8.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-muted);
 }
 
 .led__dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 5px 0 currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
 .led--active { color: var(--red); }
-.led--active .led__dot { animation: led 2s ease-in-out infinite; }
+.led--active .led__dot { animation: led 1.8s ease-in-out infinite; }
 .led--ready { color: var(--green); }
+.led--cooling { color: var(--warn); }
 .led--limited { color: var(--color-error); }
 .led--limited .led__dot { animation: led 0.9s ease-in-out infinite; }
 
-/* ── Leitura numerica ────────────────────────────────────────────────── */
+/* ── Tela ────────────────────────────────────────────────────────────── */
 
-.bay__readout {
-  flex: none;
+.scope { position: relative; flex: 1; min-height: 0; margin-top: 8px; }
+
+.scope__readout {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
 }
 
-.readout { display: flex; flex-direction: column; min-width: 0; }
-
-.readout__value {
-  font-family: var(--font-readout);
-  font-size: 34px;
-  font-weight: 600;
-  line-height: 0.9;
+.scope__big {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
   letter-spacing: -0.05em;
   font-variant-numeric: slashed-zero;
-  color: color-mix(in srgb, var(--fg) 55%, transparent);
-  animation: readout-in 0.6s var(--ease) 0.2s backwards;
+  color: color-mix(in srgb, var(--fg) 70%, transparent);
   transition: color 0.3s var(--ease), text-shadow 0.3s var(--ease);
 }
 
-.bay--active .readout__value {
+.bay--active .scope__big {
   color: var(--red);
-  text-shadow: 0 0 22px color-mix(in srgb, var(--red) 45%, transparent);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--red) 55%, transparent);
 }
 
-.bay--limited .readout__value { color: var(--color-error); }
+.bay--limited .scope__big { color: var(--color-error); }
 
-.readout__unit {
-  display: flex;
-  flex-direction: column;
-  margin-top: 6px;
-  font-size: 9px;
+.scope__small {
+  margin-top: 2px;
+  font-size: 8px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--color-muted);
 }
 
-.readout__unit em {
-  font-style: normal;
-  letter-spacing: 0.06em;
-  opacity: 0.75;
+.scope__svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.scope__trace {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 0.3s var(--ease);
 }
 
-/* ── Mostrador em arco ───────────────────────────────────────────────── */
-
-.gauge { position: relative; flex: none; padding-right: 2px; color: var(--fg); }
-.gauge svg { display: block; }
-
-.gauge__tick {
-  transform-origin: center;
-  animation: tick-in 0.4s var(--ease) backwards;
+/* O rastro se redesenha em loop so na conta ativa: e o sinal de que
+   aquele processo esta de fato rodando agora. */
+.scope__svg.is-live .scope__trace {
+  filter: drop-shadow(0 0 5px currentColor);
+  stroke-dasharray: 620;
+  animation: trace 3.6s var(--ease) infinite;
 }
 
-.gauge__fill { transition: d 0.8s var(--ease); }
+@keyframes trace {
+  0% { stroke-dashoffset: 620; }
+  55%, 100% { stroke-dashoffset: 0; }
+}
 
-.gauge__text {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 8px;
+.scope__now { stroke-width: 1; opacity: 0.3; vector-effect: non-scaling-stroke; }
+
+.scope__beam { opacity: 0.9; }
+.scope__svg.is-live .scope__beam { animation: beam 3.6s var(--ease) infinite; }
+
+@keyframes beam {
+  0% { opacity: 0; }
+  12%, 55% { opacity: 1; }
+  72%, 100% { opacity: 0; }
+}
+
+/* ── Rodape ──────────────────────────────────────────────────────────── */
+
+.bay__foot {
+  position: relative;
+  flex: none;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--fg) 10%, transparent);
 }
 
-.gauge__value {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--fg);
-  font-variant-numeric: tabular-nums;
-}
+.stat-cell { min-width: 0; }
 
-.gauge__caption {
-  margin-top: 2px;
-  font-size: 7.5px;
+.stat-cell dt {
+  font-size: 8px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-muted);
 }
 
-/* ── Sparkline ───────────────────────────────────────────────────────── */
+.stat-cell dd {
+  margin: 1px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--tone, var(--fg));
+}
 
-.spark {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  margin-top: 10px;
+.stat-cell--blue { --tone: var(--blue); }
+.stat-cell--violet { --tone: var(--violet); }
+.stat-cell--green { --tone: var(--green); }
+
+.bay__reset { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; }
+
+.bay__clock {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
   color: var(--fg);
 }
-.spark svg { display: block; width: 100%; height: 100%; }
 
-.spark__line { stroke-dasharray: 300; animation: draw 1.2s var(--ease) forwards; }
-.spark__area { animation: fade-in 0.9s var(--ease) 0.25s backwards; }
-.spark__peak { animation: fade-in 0.4s var(--ease) 1s backwards; }
-
-.spark--empty { display: flex; align-items: center; justify-content: center; }
-
-.spark__baseline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 3px;
-  height: 1px;
-  background: color-mix(in srgb, var(--fg) 12%, transparent);
-}
-
-.spark__none {
-  font-size: 8.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--fg) 26%, transparent);
-}
-
-/* Ordem de sacrificio quando a altura aperta: primeiro o eixo, depois o
-   grafico, por ultimo a linha de estatisticas. O numero grande, o estado e o
-   botao de ativar nunca somem. */
-@container bay (max-height: 250px) {
-  .axis { display: none; }
-  .spark { margin-top: 6px; }
-}
-
-@container bay (max-height: 215px) {
-  .spark { display: none; }
-  .stats { margin-top: 8px; }
-}
-
-@container bay (max-height: 175px) {
-  .stats { display: none; }
-  .bay__email { display: none; }
-  .readout__value { font-size: 30px; }
-}
-
-/* ── Rodape da baia ──────────────────────────────────────────────────── */
-
-.bay__foot {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--fg) 9%, transparent);
-}
-
-.bay__reset {
-  flex: 1;
-  min-width: 0;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bay__reset--real { display: inline-flex; align-items: center; gap: 4px; color: var(--green); }
-
-.bay__warn {
+.bay__rel {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  color: var(--warn);
+  gap: 3px;
+  margin-top: 2px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 .bay__action {
@@ -598,11 +521,11 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 12px;
+  padding: 5px 10px;
   border: 1px solid color-mix(in srgb, var(--fg) 22%, transparent);
-  border-radius: 2px;
-  font-size: 10px;
-  font-weight: 600;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--fg);
@@ -616,10 +539,20 @@
   transform: translateY(-1px);
 }
 
-.bay__action:active:not(:disabled) { transform: translateY(0) scale(0.97); }
 .bay__action:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .spin { animation: spin 0.9s linear infinite; }
+
+/* Ordem de sacrificio quando o terco fica baixo demais. */
+@container bay (max-height: 200px) {
+  .bay__email { display: none; }
+  .scope__big { font-size: 24px; }
+}
+
+@container bay (max-height: 160px) {
+  .stat-cell { display: none; }
+  .bay__grid { display: none; }
+}
 
 /* ── Git ─────────────────────────────────────────────────────────────── */
 
@@ -1045,42 +978,6 @@
 }
 
 /* ── Linha de estatisticas da baia ───────────────────────────────────── */
-
-.stats {
-  flex: none;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  margin: 9px 0 0;
-  /* O fio entre celulas e o gap do fundo aparecendo, nao uma borda em cada. */
-  background: color-mix(in srgb, var(--fg) 9%, transparent);
-  border-block: 1px solid color-mix(in srgb, var(--fg) 9%, transparent);
-}
-
-.stat-cell {
-  padding: 5px 0 5px;
-  background: var(--panel);
-  text-align: center;
-}
-
-.bay--active .stat-cell { background: color-mix(in srgb, var(--red) 5%, var(--panel)); }
-.bay--limited .stat-cell { background: color-mix(in srgb, var(--color-error) 5%, var(--panel)); }
-
-.stat-cell dt {
-  font-size: 8px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.stat-cell dd {
-  margin: 2px 0 0;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--fg);
-  font-variant-numeric: tabular-nums slashed-zero;
-}
 
 /* ── Eixo do sparkline ───────────────────────────────────────────────── */
 
@@ -1602,18 +1499,18 @@
    numeros piscarem de um valor para outro. */
 .bay.is-switching { border-color: color-mix(in srgb, var(--fg) 18%, var(--border)); }
 
-.bay.is-switching .readout__value,
-.bay.is-switching .reset__clock,
+.bay.is-switching .scope__big,
+.bay.is-switching .bay__clock,
 .bay.is-switching .stat-cell dd {
   opacity: 0.35;
   filter: blur(1px);
   transition: opacity 0.2s var(--ease), filter 0.2s var(--ease);
 }
 
-.bay.is-switching .bars__fill { opacity: 0.3; }
+.bay.is-switching .scope__trace { opacity: 0.3; }
 
-.readout__value,
-.reset__clock,
+.scope__big,
+.bay__clock,
 .stat-cell dd {
   transition: opacity 0.35s var(--ease), filter 0.35s var(--ease), color 0.3s var(--ease);
 }

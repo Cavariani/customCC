@@ -3,7 +3,7 @@ import { useWorkspace } from '../../lib/workspace'
 import { useNow } from '../../lib/useNow'
 import { useCountUp } from '../../lib/useCountUp'
 import { useScramble } from '../../lib/useScramble'
-import { WindowBars } from '../WindowBars'
+import { ScopeTrace } from '../ScopeTrace'
 import {
   STATUS_LABEL,
   formatAgo,
@@ -51,10 +51,13 @@ function clockOf(at: number): string {
   return new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
-/** Numero pequeno com rotulo, alinhados em coluna para varrer com o olho. */
-function Stat({ label, value }: { label: string; value: string }) {
+/**
+ * Numero pequeno com rotulo. A cor e fixa por tipo de dado, entao o olho
+ * aprende que roxo e sempre pico e verde e sempre recencia.
+ */
+function Stat({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="stat-cell">
+    <div className={`stat-cell stat-cell--${tone}`}>
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
@@ -89,9 +92,9 @@ function AccountBay({ account, now, index, switching, animations, onSwitch }: Ba
       className={`bay bay--${status}${switching ? ' is-switching' : ''}`}
       style={{ animationDelay: `${index * 90}ms` }}
     >
+      <span className="bay__grid" aria-hidden="true" />
       <span className="bay__bracket bay__bracket--tl" aria-hidden="true" />
       <span className="bay__bracket bay__bracket--br" aria-hidden="true" />
-      {isActive && <span className="bay__sweep" aria-hidden="true" />}
 
       <header className="bay__head">
         <span className="bay__n">{String(account.id).padStart(2, '0')}</span>
@@ -110,56 +113,43 @@ function AccountBay({ account, now, index, switching, animations, onSwitch }: Ba
         </span>
       </header>
 
-      <div className="bay__readout">
-        <div className="readout">
-          <span className="readout__value">{formatTokens(Math.round(tokens))}</span>
-          <span className="readout__unit">tokens na janela</span>
+      <div className="scope">
+        <div className="scope__readout">
+          <span className="scope__big">{formatTokens(Math.round(tokens))}</span>
+          <span className="scope__small">tokens na janela</span>
         </div>
-
-        <div className="reset">
-          <span className="reset__clock">
-            {account.resetAt === null ? '--:--' : clockOf(account.resetAt)}
-          </span>
-          <span className="reset__rel">
-            {remaining === null ? 'janela nao iniciada' : `reset em ${formatDuration(remaining)}`}
-          </span>
-        </div>
-      </div>
-
-      <WindowBars series={account.series} progress={elapsed} accent={accent} />
-
-      <div className="axis" aria-hidden="true">
-        <span>inicio</span>
-        <span className="axis__rule" />
-        <span>{account.resetAt === null ? '+5h' : clockOf(account.resetAt)}</span>
-      </div>
-
-      <dl className="stats">
-        <Stat label="sessoes" value={String(account.sessions)} />
-        <Stat
-          label="pico / 10min"
-          value={account.peakTokens > 0 ? formatTokens(account.peakTokens) : '--'}
+        <ScopeTrace
+          series={account.series}
+          progress={elapsed}
+          accent={accent}
+          live={isActive && animations}
         />
-        <Stat
-          label="ultimo uso"
-          value={account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
-        />
-      </dl>
+      </div>
 
       <footer className="bay__foot">
-        {account.resetSource === 'observed' ? (
-          <span className="bay__reset bay__reset--real">
-            <Radio size={10} strokeWidth={2.4} /> reset lido do terminal
-          </span>
-        ) : (
-          <span className="bay__reset">reset estimado</span>
-        )}
+        <Stat label="sessoes" value={String(account.sessions)} tone="blue" />
+        <Stat
+          label="pico 10m"
+          value={account.peakTokens > 0 ? formatTokens(account.peakTokens) : '--'}
+          tone="violet"
+        />
+        <Stat
+          label="ultimo"
+          value={account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
+          tone="green"
+        />
 
-        {account.tokenIssue !== null && (
-          <span className="bay__warn" title={TOKEN_ISSUE[account.tokenIssue]}>
-            <KeyRound size={10} strokeWidth={2.4} /> sem token
+        <div className="bay__reset">
+          <span className="bay__clock">
+            {account.resetAt === null ? '--:--' : clockOf(account.resetAt)}
           </span>
-        )}
+          <span className="bay__rel">
+            {account.resetSource === 'observed' && (
+              <Radio size={9} strokeWidth={2.6} style={{ color: 'var(--green)' }} />
+            )}
+            {remaining === null ? 'nao iniciada' : `em ${formatDuration(remaining)}`}
+          </span>
+        </div>
 
         {!isActive && (
           <button
@@ -167,8 +157,17 @@ function AccountBay({ account, now, index, switching, animations, onSwitch }: Ba
             className="bay__action"
             disabled={switching}
             onClick={onSwitch}
+            title={
+              account.tokenIssue === null
+                ? undefined
+                : `sem token valido: ${TOKEN_ISSUE[account.tokenIssue]}`
+            }
           >
-            <Zap size={11} strokeWidth={2.4} />
+            {account.tokenIssue === null ? (
+              <Zap size={11} strokeWidth={2.4} />
+            ) : (
+              <KeyRound size={11} strokeWidth={2.4} />
+            )}
             ativar
           </button>
         )}
