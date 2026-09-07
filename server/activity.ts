@@ -1,4 +1,4 @@
-import { squish, stripAnsi } from './limits.js'
+import { squish } from './limits.js'
 
 export type Activity = 'working' | 'waiting' | 'idle'
 
@@ -13,12 +13,16 @@ export type Activity = 'working' | 'waiting' | 'idle'
  * pedindo aprovacao e qual ja terminou.
  */
 /**
- * A TUI desenha o marcador dentro do rodape de progresso, sempre precedido
- * de parentese ou do separador: "(12s · 4.2k tokens · esc to interrupt)".
- * Exigir isso evita que uma resposta do proprio Claude falando sobre a
- * frase deixe a aba marcada como trabalhando para sempre.
+ * Trabalhando nao e mais reconhecido por frase. Medido no binario 2.1.263,
+ * o rodape nao escreve "esc to interrupt": ele mostra "Pollinating…",
+ * "Thinking…" e afins, que mudam entre versoes e nao dao para listar.
+ *
+ * O que e estavel e o fluxo: com a sessao parada, o pty nao emitiu um unico
+ * pacote em 5s de medicao; trabalhando, emitiu 21 no mesmo intervalo, com
+ * pausa maxima de 2.3s entre eles. Entao "esta escrevendo na tela" e o
+ * sinal, e o silencio marca o fim.
  */
-const WORKING = /[(·]\s*esc to interrupt/i
+export const SILENCIO_MS = 3500
 
 /**
  * Frases sem espaco, para casar tanto com a linha escrita normalmente
@@ -40,13 +44,13 @@ const WAITING = [
  * descreve o estado atual: se o marcador nao esta mais la, aquele estado
  * acabou.
  */
-export function detectActivity(tail: string): Activity {
-  const clean = stripAnsi(tail)
+/**
+ * Estado a partir do que esta na tela e de quanto tempo faz que o pty
+ * escreveu algo. Esperando vence trabalhando: o pedido de permissao aparece
+ * com a tarefa ainda em curso, e quem precisa agir e o usuario.
+ */
+export function detectActivity(tail: string, msDesdeODadoAnterior: number): Activity {
   const apertado = squish(tail).toLowerCase()
-
-  // Esperando vence trabalhando: o prompt de permissao aparece com a
-  // tarefa ainda em andamento, e quem precisa agir e o usuario.
   if (WAITING.some((frase) => apertado.includes(frase))) return 'waiting'
-  if (WORKING.test(clean) || apertado.includes('esctointerrupt')) return 'working'
-  return 'idle'
+  return msDesdeODadoAnterior < SILENCIO_MS ? 'working' : 'idle'
 }

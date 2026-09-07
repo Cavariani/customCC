@@ -23,7 +23,7 @@ import {
 import { resolveNow, startDiscovery, stopDiscovery } from './discovery.js'
 import { listRecentProjects } from './projects.js'
 import { onLimitEvent, watchSession } from './watcher.js'
-import { detectActivity } from './activity.js'
+import { SILENCIO_MS, detectActivity } from './activity.js'
 import {
   getSession,
   killAll,
@@ -352,14 +352,27 @@ wss.on('connection', async (socket: WebSocket, request) => {
   // Cauda propria por socket: a TUI escreve em pedacos e o marcador de
   // estado pode nascer partido entre dois deles.
   let tail = ''
+  let ultimoDado = 0
+  let ocioso: ReturnType<typeof setTimeout> | null = null
+
+  const anunciar = (state: 'working' | 'waiting' | 'idle') => {
+    if (state === session.activity) return
+    session.activity = state
+    send({ t: 'activity', state })
+  }
+
   const onData = (chunk: string) => {
     send({ t: 'data', data: chunk })
     tail = (tail + chunk).slice(-4000)
-    const activity = detectActivity(tail)
-    if (activity !== session.activity) {
-      session.activity = activity
-      send({ t: 'activity', state: activity })
-    }
+
+    const agora = Date.now()
+    anunciar(detectActivity(tail, agora - ultimoDado))
+    ultimoDado = agora
+
+    // O silencio e o que marca o fim do trabalho, entao ele precisa de um
+    // despertador proprio: nao chega mais nenhum pacote para reavaliar.
+    if (ocioso) clearTimeout(ocioso)
+    ocioso = setTimeout(() => anunciar(detectActivity(tail, SILENCIO_MS + 1)), SILENCIO_MS)
   }
   const onExit = (code: number) => send({ t: 'exit', code })
   session.listeners.add(onData)
@@ -380,6 +393,7 @@ wss.on('connection', async (socket: WebSocket, request) => {
   socket.on('close', () => {
     // A sessao sobrevive ao socket de proposito: fechar a aba do navegador
     // nao pode matar o `claude` que esta no meio de uma tarefa.
+    if (ocioso) clearTimeout(ocioso)
     session.listeners.delete(onData)
     session.exitListeners.delete(onExit)
   })

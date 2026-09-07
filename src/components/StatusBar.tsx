@@ -13,6 +13,7 @@ export function StatusBar({ animations }: { animations: boolean }) {
   const remaining = active ? msUntilReset(active, now) : null
   const label = useScramble(active ? `conta ${active.id} · ${active.label}` : '', {
     enabled: animations,
+    skipFirst: true,
   })
 
   return (

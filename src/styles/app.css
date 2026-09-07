@@ -1793,3 +1793,13 @@
   font-size: 9px;
   letter-spacing: 0.06em;
 }
+
+/* A lista de comandos tambem ganha a sombra de rolagem: em janela baixa ela
+   terminava cortada na borda, sem pista de que havia mais abaixo. */
+.cmd__list {
+  background:
+    linear-gradient(var(--panel) 30%, transparent) top / 100% 20px no-repeat local,
+    linear-gradient(transparent, var(--panel) 70%) bottom / 100% 20px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.5), transparent) top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.5), transparent) bottom / 100% 10px no-repeat scroll;
+}

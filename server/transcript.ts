@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -13,10 +14,20 @@ export const FILE_HISTORY_DIR = join(CLAUDE_HOME, 'file-history')
  * til vira "Programa--o". A regra e lossy, mas e a dele, entao copiamos.
  */
 export function projectSlug(cwd: string): string {
-  // normalize('NFC') e obrigatorio: o macOS entrega o caminho em NFD, onde a
-  // cedilha e um combinante separado, e o slug sairia "Programac-a-o" em vez
-  // do "Programa--o" que o Claude Code de fato criou no disco.
-  return resolve(cwd).normalize('NFC').replace(/[^a-zA-Z0-9]/g, '-')
+  // Duas armadilhas de caminho, as duas ja custaram bug:
+  // - normalize('NFC'): o macOS entrega em NFD, onde a cedilha e um
+  //   combinante separado, e o slug sairia "Programac-a-o" no lugar de
+  //   "Programa--o", que e o que o Claude Code criou no disco.
+  // - realpath: o `claude` resolve symlink ao nascer, entao /tmp/projeto
+  //   vira -private-tmp-projeto. Sem resolver, procuravamos numa pasta que
+  //   nunca existiu.
+  let real = resolve(cwd)
+  try {
+    real = realpathSync(real)
+  } catch {
+    /* caminho pode nao existir mais; segue com o resolvido */
+  }
+  return real.normalize('NFC').replace(/[^a-zA-Z0-9]/g, '-')
 }
 
 export interface BackupRef {

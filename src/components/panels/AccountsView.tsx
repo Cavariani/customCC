@@ -80,7 +80,11 @@ function AccountBay({ account, now, index, switching, animations, onSwitch }: Ba
   const tokens = useCountUp(account.tokensUsed)
   const isActive = account.active
   // O nome se remonta a cada troca: o card mostra que acabou de assumir.
-  const label = useScramble(account.label, { enabled: animations, trigger: isActive })
+  const label = useScramble(account.label, {
+    enabled: animations,
+    trigger: isActive,
+    skipFirst: true,
+  })
 
   // Uma serie por card: a cor carrega estado, nao identidade. O ativo e o
   // destaque; os outros recuam para cinza em vez de disputarem atencao.

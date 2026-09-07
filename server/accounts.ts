@@ -242,64 +242,91 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
   const tokens = await loadTokens()
   const now = Date.now()
 
-  // Uma varredura so nos transcripts, distribuindo cada mensagem na conta
-  // que estava ativa naquele instante.
+  // Passo 1: distribuir cada mensagem na conta que estava ativa no instante
+  // dela, sem filtrar por janela ainda. Filtrar antes era o bug: a conta
+  // recem-ativada nao tinha janela aberta, e todo o consumo dela era
+  // descartado em silencio.
+  const pontos: Record<number, { timestamp: number; tokens: number; sessionId: string }[]> = {
+    1: [], 2: [], 3: [],
+  }
+
+  for (const [sessionId, ref] of Object.entries(state.transcripts)) {
+    for (const point of await usageTimeline(ref.file, sessionId)) {
+      const dono = accountAt(state, point.timestamp)
+      if (dono === null) continue
+      pontos[dono].push({ ...point, sessionId })
+    }
+  }
+
+  // Passo 2: decidir a janela de cada conta. Quando ha consumo recente sem
+  // janela aberta (troca de conta retomando uma sessao ja descoberta, que
+  // nunca passa por registerTranscript de novo), a janela comeca na
+  // mensagem mais antiga ainda dentro das ultimas 5h.
+  let mudou = false
+  const janelas = new Map<AccountId, { start: number | null; end: number | null }>()
+
+  for (const id of ACCOUNT_IDS) {
+    const record = state.accounts[id] ?? blank()
+    const expirada = record.windowStartedAt !== null && now - record.windowStartedAt > WINDOW_MS
+    let start = expirada ? null : record.windowStartedAt
+
+    if (start === null) {
+      const recentes = pontos[id].filter((p) => now - p.timestamp <= WINDOW_MS)
+      if (recentes.length > 0) {
+        start = Math.min(...recentes.map((p) => p.timestamp))
+        record.windowStartedAt = start
+        record.rateLimitedAt = expirada ? null : record.rateLimitedAt
+        state.accounts[id] = record
+        mudou = true
+      }
+    }
+
+    // O reset visto no terminal vale mais que inicio da janela mais 5h.
+    const observado =
+      record.observedResetAt !== null && record.observedResetAt > now ? record.observedResetAt : null
+    janelas.set(id, { start, end: observado ?? (start === null ? null : start + WINDOW_MS) })
+  }
+
+  if (mudou) await saveState(state)
+
+  // Passo 3: somar so o que cai dentro da janela de cada conta.
   const used: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
-  // Ultima mensagem cobrada na conta, para o card dizer ha quanto tempo.
   const lastAt: Record<number, number | null> = { 1: null, 2: null, 3: null }
   const sessionCount: Record<number, Set<string>> = { 1: new Set(), 2: new Set(), 3: new Set() }
-  // Consumo fatiado ao longo da janela, para o grafico do card.
   const buckets: Record<number, number[]> = {
     1: new Array(SERIES_BUCKETS).fill(0),
     2: new Array(SERIES_BUCKETS).fill(0),
     3: new Array(SERIES_BUCKETS).fill(0),
   }
 
-  const windows = new Map<AccountId, { start: number | null; end: number | null }>()
   for (const id of ACCOUNT_IDS) {
-    const record = state.accounts[id] ?? blank()
-    const expired = record.windowStartedAt !== null && now - record.windowStartedAt > WINDOW_MS
-    const start = expired ? null : record.windowStartedAt
-    // O reset visto no terminal vale mais que inicio da janela mais 5h.
-    const observed = record.observedResetAt !== null && record.observedResetAt > now
-      ? record.observedResetAt
-      : null
-    const end = observed ?? (start === null ? null : start + WINDOW_MS)
-    windows.set(id, { start, end })
-  }
+    const janela = janelas.get(id)!
+    if (janela.start === null) continue
+    const fim = janela.end ?? now
 
-  for (const [sessionId, ref] of Object.entries(state.transcripts)) {
-    const timeline = await usageTimeline(ref.file, sessionId)
-    for (const point of timeline) {
-      const owner = accountAt(state, point.timestamp)
-      if (owner === null) continue
-      const window = windows.get(owner)
-      if (!window || window.start === null) continue
-      if (point.timestamp < window.start || point.timestamp > (window.end ?? now)) continue
-      used[owner] += point.tokens
-      sessionCount[owner].add(sessionId)
-      if (lastAt[owner] === null || point.timestamp > lastAt[owner]!) {
-        lastAt[owner] = point.timestamp
-      }
+    for (const ponto of pontos[id]) {
+      if (ponto.timestamp < janela.start || ponto.timestamp > fim) continue
+      used[id] += ponto.tokens
+      sessionCount[id].add(ponto.sessionId)
+      if (lastAt[id] === null || ponto.timestamp > lastAt[id]!) lastAt[id] = ponto.timestamp
 
-      const span = (window.end ?? now) - window.start
+      const span = fim - janela.start
       if (span > 0) {
-        const slot = Math.min(
+        const fatia = Math.min(
           SERIES_BUCKETS - 1,
-          Math.floor(((point.timestamp - window.start) / span) * SERIES_BUCKETS),
+          Math.floor(((ponto.timestamp - janela.start) / span) * SERIES_BUCKETS),
         )
-        buckets[owner][slot] += point.tokens
+        buckets[id][fatia] += ponto.tokens
       }
     }
   }
 
   return ACCOUNT_IDS.map((id) => {
     const record = state.accounts[id] ?? blank()
-    const window = windows.get(id)!
+    const janela = janelas.get(id)!
     const entry = tokens.get(id)
     const tokenIssue = inspectToken(entry?.token)
-    // Passou do reset observado: a conta se destrava sozinha.
-    const stillLimited =
+    const aindaLimitada =
       record.rateLimitedAt !== null &&
       (record.observedResetAt === null || record.observedResetAt > now)
 
@@ -310,18 +337,19 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       hasToken: tokenIssue === null,
       tokenIssue,
       active: state.activeAccountId === id,
-      windowStartedAt: window.start,
-      resetAt: window.end,
-      resetSource: record.observedResetAt !== null && record.observedResetAt > now
-        ? ('observed' as const)
-        : ('estimated' as const),
+      windowStartedAt: janela.start,
+      resetAt: janela.end,
+      resetSource:
+        record.observedResetAt !== null && record.observedResetAt > now
+          ? ('observed' as const)
+          : ('estimated' as const),
       tokensUsed: used[id],
       series: buckets[id],
       lastUsedAt: lastAt[id],
       peakTokens: Math.max(0, ...buckets[id]),
       sessions: sessionCount[id].size,
-      rateLimited: stillLimited,
-      limitEvidence: stillLimited ? record.evidence : null,
+      rateLimited: aindaLimitada,
+      limitEvidence: aindaLimitada ? record.evidence : null,
     }
   })
 }

@@ -1,4 +1,5 @@
 import * as pty from 'node-pty'
+import { realpathSync } from 'node:fs'
 import { DEFAULT_CWD, IS_WINDOWS, expandHome, resolveClaudeBin } from './config.js'
 
 /** Quanto de output guardamos por sessao para repor apos um reload. */
@@ -75,6 +76,15 @@ export function getSession(id: string): Session | undefined {
   return sessions.get(id)
 }
 
+/** Caminho com os symlinks resolvidos, como o subprocesso vai enxergar. */
+function realPath(path: string): string {
+  try {
+    return realpathSync(path)
+  } catch {
+    return path
+  }
+}
+
 /** Dimensao de terminal utilizavel, com o padrao quando vem lixo. */
 function sane(value: number | undefined, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 1
@@ -87,7 +97,13 @@ export function startSession(opts: SessionOptions): Session {
   if (existing && !existing.exited) return existing
 
   const bin = resolveClaudeBin()
-  const cwd = opts.cwd ? expandHome(opts.cwd) : DEFAULT_CWD
+  // realpath antes de tudo: o proprio `claude` resolve o symlink ao nascer e
+  // grava o transcript sob o caminho real. Guardando aqui o caminho nao
+  // resolvido, a descoberta procurava em ~/.claude/projects/-tmp-projeto
+  // enquanto o arquivo estava em -private-tmp-projeto, e o id da sessao
+  // nunca era encontrado. Consequencia: a troca de conta caia para sessao
+  // limpa e perdia o contexto sem dizer nada.
+  const cwd = realPath(opts.cwd ? expandHome(opts.cwd) : DEFAULT_CWD)
   const args = opts.resume ? ['--continue'] : []
 
   // O token entra so como variavel de ambiente do subprocesso: quem fala com
