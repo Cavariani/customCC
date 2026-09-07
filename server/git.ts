@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { readFile, realpath } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
 
@@ -107,7 +107,10 @@ export async function readGitState(cwd: string): Promise<GitState> {
   // macOS grava os nomes em NFD e o git devolve NFC: sem normalizar os dois
   // lados, "Programacao" com til nao casa consigo mesma e o relative erra.
   const root = (await git(cwd, ['rev-parse', '--show-toplevel'])).trim().normalize('NFC')
-  const base = resolve(cwd).normalize('NFC')
+  // realpath, e nao resolve: o git ja devolve a raiz com os symlinks
+  // resolvidos, e comparar /tmp com /private/tmp produzia caminhos como
+  // "../../private/tmp/projeto/a.txt" no lugar de "a.txt".
+  const base = (await realpath(cwd).catch(() => resolve(cwd))).normalize('NFC')
   const entries = porcelain.split('\0').filter(Boolean)
   const files: GitFile[] = []
 

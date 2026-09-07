@@ -23,8 +23,20 @@ function assertPaths(cwd: string, paths: string[]): void {
 }
 
 async function git(cwd: string, args: string[]): Promise<string> {
-  const { stdout } = await run('git', args, { cwd, maxBuffer: 32 * 1024 * 1024 })
-  return stdout
+  try {
+    const { stdout } = await run('git', args, { cwd, maxBuffer: 32 * 1024 * 1024 })
+    return stdout
+  } catch (error) {
+    // O `git commit` explica o motivo na saida padrao, nao no stderr. Sem
+    // juntar as duas, uma recusa vira "Command failed: git commit -m x" e
+    // nao diz nada a quem clicou.
+    const detail = error as { stdout?: string; stderr?: string; message?: string }
+    const motivo = [detail.stderr, detail.stdout]
+      .map((t) => (t ?? '').trim())
+      .filter(Boolean)
+      .join(' · ')
+    throw new Error(motivo || detail.message || 'git falhou')
+  }
 }
 
 export async function stage(cwd: string, paths: string[]): Promise<void> {
