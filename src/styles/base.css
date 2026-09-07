@@ -22,9 +22,19 @@
   --hl-number: #d19a66;
 
   --font-mono: 'Fira Code', ui-monospace, Menlo, monospace;
+  /* A leitura grande fica na propria face do sistema. Tentei uma display em
+     matriz de pontos e, renderizada, o numero virava um anel ilegivel: o
+     instrumento vem do acabamento (ticks, colchetes, LED), nao de fonte
+     decorativa. */
+  --font-readout: 'Fira Code', ui-monospace, Menlo, monospace;
+
   --rail-w: 46px;
-  --dock-w: 320px;
+  --dock-w: 372px;
+  /* Altura unica da faixa superior: e o que mantem a regua da aba e a do
+     painel na mesma linha em vez de uma pisando dois pixels abaixo. */
+  --topbar-h: 38px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   color-scheme: dark;
 }
@@ -105,4 +115,74 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+@property --sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes sweep { to { --sweep: 360deg; } }
+
+@keyframes card-activate {
+  0% { transform: scale(0.985); box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 40%, transparent); }
+  60% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--red) 0%, transparent); }
+  100% { transform: none; }
+}
+
+@keyframes n-ring {
+  0% { opacity: 0.7; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.45; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: 260; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Atmosfera ───────────────────────────────────────────────────────── */
+
+/* Grao finissimo sobre o fundo: tira o achatamento do preto puro sem virar
+   textura visivel. Fica atras de tudo e nao intercepta clique. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes bay-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes led {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px 0 currentColor; }
+  50% { opacity: 0.55; box-shadow: 0 0 2px 0 currentColor; }
+}
+
+@keyframes tick-in {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes readout-in {
+  from { opacity: 0; letter-spacing: 0.24em; filter: blur(3px); }
+  to { opacity: 1; letter-spacing: -0.02em; filter: none; }
+}
+
+@keyframes bracket-in {
+  from { opacity: 0; transform: scale(1.16); }
+  to { opacity: 1; transform: none; }
 }

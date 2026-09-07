@@ -14,9 +14,19 @@ export interface Account {
   active: boolean
   windowStartedAt: number | null
   resetAt: number | null
+  /** 'observed' = lido do terminal; 'estimated' = inicio da janela mais 5h. */
+  resetSource: 'observed' | 'estimated'
   tokensUsed: number
+  /** Consumo por fatia da janela de 5h, para o sparkline. */
+  series: number[]
+  /** Quando a conta foi cobrada pela ultima vez nesta janela. */
+  lastUsedAt: number | null
+  /** Maior consumo numa unica fatia de 10 minutos. */
+  peakTokens: number
   sessions: number
   rateLimited: boolean
+  /** Trecho do terminal que disparou o alerta. */
+  limitEvidence: string | null
 }
 
 export interface TerminalTab {

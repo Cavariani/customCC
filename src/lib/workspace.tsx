@@ -31,6 +31,16 @@ export interface TerminalMessage {
 }
 
 const FIRST_TAB: TerminalTab = { id: 'tab-1', title: 'terminal 1', cwd: '' }
+const TITLES_KEY = 'customcc-tab-titles'
+
+/** Nomes que o Pedro deu as abas, guardados entre reloads. */
+function storedTitles(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(TITLES_KEY) ?? '{}')
+  } catch {
+    return {}
+  }
+}
 
 /** Git e diff mudam a cada edicao; conta muda devagar. */
 const GIT_POLL_MS = 4000
@@ -43,6 +53,7 @@ interface Workspace {
   switching: boolean
   switchAccount: (id: AccountId) => void
   markRateLimited: () => void
+  clearLimit: (id: AccountId) => void
 
   tabs: TerminalTab[]
   activeTabId: string
@@ -50,6 +61,7 @@ interface Workspace {
   setActiveTabId: (id: string) => void
   openTab: () => void
   closeTab: (id: string) => void
+  renameTab: (id: string, title: string) => void
 
   git: GitState | null
   gitError: string | null
@@ -105,8 +117,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (!alive) return
         setInfo(data)
         const name = data.defaultCwd.split(/[/\\]/).filter(Boolean).pop() ?? 'terminal'
+        const titles = storedTitles()
         setTabs((prev) =>
-          prev.map((t) => (t.cwd ? t : { ...t, cwd: data.defaultCwd, title: name })),
+          prev.map((t) =>
+            t.cwd ? t : { ...t, cwd: data.defaultCwd, title: titles[t.id] ?? name },
+          ),
         )
       })
       .catch(() => {})
@@ -146,6 +161,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
   }, [accountsPoll, activeAccountId])
 
+  const clearLimit = useCallback(
+    (id: AccountId) => {
+      fetch(`/api/accounts/${id}/clear-limit`, { method: 'POST' })
+        .then(() => accountsPoll.refresh())
+        .catch(() => {})
+    },
+    [accountsPoll],
+  )
+
   const openTab = useCallback(() => {
     tabSeqRef.current += 1
     const id = `tab-${tabSeqRef.current}`
@@ -155,6 +179,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     ])
     setActiveTabId(id)
   }, [info])
+
+  const renameTab = useCallback((id: string, title: string) => {
+    const clean = title.trim().slice(0, 40)
+    if (!clean) return
+    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, title: clean } : t)))
+    // Sobrevive ao reload; a sessao do pty tambem sobrevive.
+    try {
+      const stored = JSON.parse(localStorage.getItem(TITLES_KEY) ?? '{}')
+      localStorage.setItem(TITLES_KEY, JSON.stringify({ ...stored, [id]: clean }))
+    } catch {
+      /* storage indisponivel nao pode quebrar o rename */
+    }
+  }, [])
 
   const closeTab = useCallback((id: string) => {
     // Encerra tambem o processo no servidor, senao fica `claude` orfao.
@@ -175,12 +212,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       switching,
       switchAccount,
       markRateLimited,
+      clearLimit,
       tabs,
       activeTabId,
       activeTab,
       setActiveTabId,
       openTab,
       closeTab,
+      renameTab,
       git: gitPoll.data,
       gitError: gitPoll.error,
       changes: changesPoll.data,
@@ -196,11 +235,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       switching,
       switchAccount,
       markRateLimited,
+      clearLimit,
       tabs,
       activeTabId,
       activeTab,
       openTab,
       closeTab,
+      renameTab,
       gitPoll.data,
       gitPoll.error,
       changesPoll.data,

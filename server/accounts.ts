@@ -8,12 +8,18 @@ const STATE_FILE = join(STATE_DIR, 'state.json')
 const TOKENS_FILE = join(STATE_DIR, '.env')
 
 export const WINDOW_MS = 5 * 60 * 60 * 1000
+/** Fatias do grafico de consumo: uma a cada 10 minutos da janela. */
+const SERIES_BUCKETS = 30
 export const ACCOUNT_IDS = [1, 2, 3] as const
 export type AccountId = (typeof ACCOUNT_IDS)[number]
 
 interface AccountRecord {
   windowStartedAt: number | null
   rateLimitedAt: number | null
+  /** Reset lido do proprio terminal, mais confiavel que a estimativa. */
+  observedResetAt: number | null
+  /** Trecho que disparou a deteccao, para a UI justificar o alerta. */
+  evidence: string | null
 }
 
 interface TranscriptRef {
@@ -48,7 +54,7 @@ const EMPTY_STATE: State = {
 }
 
 function blank(): AccountRecord {
-  return { windowStartedAt: null, rateLimitedAt: null }
+  return { windowStartedAt: null, rateLimitedAt: null, observedResetAt: null, evidence: null }
 }
 
 let cache: State | null = null
@@ -217,9 +223,18 @@ export interface AccountSummary {
   active: boolean
   windowStartedAt: number | null
   resetAt: number | null
+  /** Se o reset veio do terminal ou e a estimativa de inicio mais 5h. */
+  resetSource: 'observed' | 'estimated'
   tokensUsed: number
+  /** Consumo por fatia da janela, para o sparkline. */
+  series: number[]
+  /** Quando a conta foi cobrada pela ultima vez nesta janela. */
+  lastUsedAt: number | null
+  /** Maior consumo numa unica fatia de 10 minutos. */
+  peakTokens: number
   sessions: number
   rateLimited: boolean
+  limitEvidence: string | null
 }
 
 export async function summarizeAccounts(): Promise<AccountSummary[]> {
@@ -230,14 +245,27 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
   // Uma varredura so nos transcripts, distribuindo cada mensagem na conta
   // que estava ativa naquele instante.
   const used: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
+  // Ultima mensagem cobrada na conta, para o card dizer ha quanto tempo.
+  const lastAt: Record<number, number | null> = { 1: null, 2: null, 3: null }
   const sessionCount: Record<number, Set<string>> = { 1: new Set(), 2: new Set(), 3: new Set() }
+  // Consumo fatiado ao longo da janela, para o grafico do card.
+  const buckets: Record<number, number[]> = {
+    1: new Array(SERIES_BUCKETS).fill(0),
+    2: new Array(SERIES_BUCKETS).fill(0),
+    3: new Array(SERIES_BUCKETS).fill(0),
+  }
 
   const windows = new Map<AccountId, { start: number | null; end: number | null }>()
   for (const id of ACCOUNT_IDS) {
     const record = state.accounts[id] ?? blank()
     const expired = record.windowStartedAt !== null && now - record.windowStartedAt > WINDOW_MS
     const start = expired ? null : record.windowStartedAt
-    windows.set(id, { start, end: start === null ? null : start + WINDOW_MS })
+    // O reset visto no terminal vale mais que inicio da janela mais 5h.
+    const observed = record.observedResetAt !== null && record.observedResetAt > now
+      ? record.observedResetAt
+      : null
+    const end = observed ?? (start === null ? null : start + WINDOW_MS)
+    windows.set(id, { start, end })
   }
 
   for (const [sessionId, ref] of Object.entries(state.transcripts)) {
@@ -250,6 +278,18 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       if (point.timestamp < window.start || point.timestamp > (window.end ?? now)) continue
       used[owner] += point.tokens
       sessionCount[owner].add(sessionId)
+      if (lastAt[owner] === null || point.timestamp > lastAt[owner]!) {
+        lastAt[owner] = point.timestamp
+      }
+
+      const span = (window.end ?? now) - window.start
+      if (span > 0) {
+        const slot = Math.min(
+          SERIES_BUCKETS - 1,
+          Math.floor(((point.timestamp - window.start) / span) * SERIES_BUCKETS),
+        )
+        buckets[owner][slot] += point.tokens
+      }
     }
   }
 
@@ -258,7 +298,11 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
     const window = windows.get(id)!
     const entry = tokens.get(id)
     const tokenIssue = inspectToken(entry?.token)
-    const expired = window.start === null
+    // Passou do reset observado: a conta se destrava sozinha.
+    const stillLimited =
+      record.rateLimitedAt !== null &&
+      (record.observedResetAt === null || record.observedResetAt > now)
+
     return {
       id,
       label: entry?.label ?? `conta ${id}`,
@@ -268,9 +312,16 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       active: state.activeAccountId === id,
       windowStartedAt: window.start,
       resetAt: window.end,
+      resetSource: record.observedResetAt !== null && record.observedResetAt > now
+        ? ('observed' as const)
+        : ('estimated' as const),
       tokensUsed: used[id],
+      series: buckets[id],
+      lastUsedAt: lastAt[id],
+      peakTokens: Math.max(0, ...buckets[id]),
       sessions: sessionCount[id].size,
-      rateLimited: !expired && record.rateLimitedAt !== null,
+      rateLimited: stillLimited,
+      limitEvidence: stillLimited ? record.evidence : null,
     }
   })
 }
@@ -296,10 +347,38 @@ export async function tokenFor(id: AccountId): Promise<string | undefined> {
   return entry.token
 }
 
-export async function markRateLimited(id: AccountId): Promise<void> {
+export async function markRateLimited(
+  id: AccountId,
+  options: { resetAt?: number | null; evidence?: string } = {},
+): Promise<void> {
   const state = await loadState()
   const record = state.accounts[id] ?? blank()
   record.rateLimitedAt = Date.now()
+  if (options.resetAt) record.observedResetAt = options.resetAt
+  if (options.evidence) record.evidence = options.evidence
+  state.accounts[id] = record
+  await saveState(state)
+}
+
+/** O terminal avisou que a janela virou, ou o horario do reset passou. */
+export async function clearRateLimited(id: AccountId): Promise<void> {
+  const state = await loadState()
+  const record = state.accounts[id] ?? blank()
+  record.rateLimitedAt = null
+  record.observedResetAt = null
+  record.evidence = null
+  // A janela recomeca do zero: o consumo anterior nao conta mais.
+  record.windowStartedAt = null
+  state.accounts[id] = record
+  await saveState(state)
+}
+
+/** Horario de reset visto no terminal, sem que a conta esteja bloqueada. */
+export async function noteResetHint(id: AccountId, resetAt: number): Promise<void> {
+  const state = await loadState()
+  const record = state.accounts[id] ?? blank()
+  if (record.observedResetAt === resetAt) return
+  record.observedResetAt = resetAt
   state.accounts[id] = record
   await saveState(state)
 }

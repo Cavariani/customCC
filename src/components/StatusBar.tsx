@@ -1,7 +1,8 @@
 import { Cpu, GitBranch, TerminalSquare } from 'lucide-react'
 import { useWorkspace } from '../lib/workspace'
 import { useNow } from '../lib/useNow'
-import { formatDuration, formatTokens, msUntilReset } from '../lib/format'
+import { formatDuration, formatTokens, msUntilReset, windowRatio } from '../lib/format'
+import { Sparkline } from './Sparkline'
 
 export function StatusBar() {
   const { accounts, activeAccountId, git, changes, tabs, info } = useWorkspace()
@@ -40,6 +41,14 @@ export function StatusBar() {
           <span className="status__item">
             <Cpu size={11} strokeWidth={2} style={{ color: 'var(--red)' }} />
             conta {active.id} · {active.label}
+          </span>
+          <span className="status__item status__spark">
+            <Sparkline
+              series={active.series}
+              progress={windowRatio(active, now)}
+              accent="var(--red)"
+              height={12}
+            />
           </span>
           <span className="status__item">{formatTokens(active.tokensUsed)} tokens</span>
           <span className="status__item status__item--muted">

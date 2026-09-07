@@ -52,8 +52,14 @@ export default function App() {
       </main>
 
       <aside className="dock">
-        <h2 className="dock__title">{VIEW_TITLE[view]}</h2>
-        <div className="dock__body" key={view}>
+        <h2 className="dock__title">
+          {VIEW_TITLE[view]}
+          {view === 'accounts' && anyLimited && <span className="dock__alarm">limite</span>}
+        </h2>
+        <div
+          className={`dock__body${view === 'accounts' ? ' dock__body--flush' : ''}`}
+          key={view}
+        >
           {view === 'accounts' && <AccountsView />}
           {view === 'git' && <GitView />}
           {view === 'diff' && <DiffView />}

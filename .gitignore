@@ -4,3 +4,6 @@ dist
 .env.local
 *.local
 .DS_Store
+
+# artefatos de build incremental do tsc
+*.tsbuildinfo

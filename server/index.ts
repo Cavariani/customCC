@@ -8,6 +8,7 @@ import { readChanges } from './changes.js'
 import {
   ACCOUNT_IDS,
   getActiveAccountId,
+  clearRateLimited,
   markRateLimited,
   setActiveAccountId,
   summarizeAccounts,
@@ -15,6 +16,7 @@ import {
   type AccountId,
 } from './accounts.js'
 import { resolveNow, startDiscovery, stopDiscovery } from './discovery.js'
+import { onLimitEvent, watchSession } from './watcher.js'
 import {
   getSession,
   killAll,
@@ -120,10 +122,24 @@ app.post('/api/accounts/:id/activate', async (req, res) => {
   })
 })
 
+onLimitEvent(({ signal, accountId }) => {
+  console.log(
+    `[customcc] limite ${signal.kind} na conta ${accountId}: ${signal.evidence}`,
+  )
+})
+
 app.post('/api/accounts/:id/rate-limited', async (req, res) => {
   const id = parseAccountId(req.params.id)
   if (id === null) return res.status(400).json({ error: 'conta invalida' })
-  await markRateLimited(id)
+  await markRateLimited(id, { evidence: 'marcado manualmente nos ajustes' })
+  res.json({ accounts: await summarizeAccounts() })
+})
+
+// Usado quando o alerta e um falso positivo, ou apos resolver na mao.
+app.post('/api/accounts/:id/clear-limit', async (req, res) => {
+  const id = parseAccountId(req.params.id)
+  if (id === null) return res.status(400).json({ error: 'conta invalida' })
+  await clearRateLimited(id)
   res.json({ accounts: await summarizeAccounts() })
 })
 
@@ -164,6 +180,8 @@ wss.on('connection', async (socket: WebSocket, request) => {
 
   // Amarra a aba ao transcript que o `claude` vai abrir, para quota e diff.
   if (!existing) void startDiscovery(id, session.cwd, session.startedAt)
+  // Fica de olho no output procurando os avisos de limite.
+  watchSession(session)
 
   send({
     t: 'ready',

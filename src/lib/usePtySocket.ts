@@ -49,6 +49,12 @@ export function usePtySocket({ sessionId, cwd, getTerm, enabled }: Options) {
       if (msg.t === 'ready') {
         setStatus('live')
         if (msg.replay) term.write(msg.replay)
+        // Sincroniza o tamanho na reconexao. O pty sobrevive ao reload, e
+        // sem isto ele guarda as dimensoes de quando foi criado: abrir a
+        // mesma sessao numa janela maior deixava o `claude` desenhando na
+        // largura antiga. O primeiro fit acontece antes deste socket
+        // existir, entao o evento de resize dele nao seria ouvido.
+        socket.send(JSON.stringify({ t: 'resize', cols: term.cols, rows: term.rows }))
       } else if (msg.t === 'data') {
         term.write(msg.data ?? '')
       } else if (msg.t === 'exit') {

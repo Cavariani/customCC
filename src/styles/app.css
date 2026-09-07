@@ -78,8 +78,8 @@
 
 .rail__badge {
   position: absolute;
-  top: 1px;
-  right: 0;
+  top: -2px;
+  right: -3px;
   min-width: 13px;
   height: 13px;
   padding: 0 3px;
@@ -117,6 +117,7 @@
   display: flex;
   align-items: stretch;
   gap: 2px;
+  height: var(--topbar-h);
   padding: 5px 6px 0;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -210,8 +211,12 @@
 }
 
 .dock__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--topbar-h);
   margin: 0;
-  padding: 11px 14px 9px;
+  padding: 0 14px;
   border-bottom: 1px solid var(--border);
   font-size: 10px;
   font-weight: 600;
@@ -228,6 +233,7 @@
 }
 
 .view { display: flex; flex-direction: column; gap: 14px; padding: 14px; }
+.dock__body--flush { padding: 0; }
 .view__cards { display: flex; flex-direction: column; gap: 10px; }
 
 .view__note {
@@ -237,135 +243,364 @@
   color: var(--color-muted);
 }
 
-/* ── Card de conta ───────────────────────────────────────────────────── */
+/* ── Baias de conta ──────────────────────────────────────────────────── */
 
-.acct {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 11px;
-  background: color-mix(in srgb, var(--fg) 3%, transparent);
-  transition: border-color 0.15s, background 0.15s;
+/* Tres partes iguais ocupando a altura toda: nada de sobra morta embaixo. */
+.bays {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  height: 100%;
+  padding: 12px;
 }
 
-.acct--active {
-  border-color: var(--red);
-  background: color-mix(in srgb, var(--red) 9%, transparent);
-}
-
-.acct--limited {
-  border-color: var(--color-error);
-  animation: limit-glow 1.6s ease-in-out infinite;
-}
-
-.acct__head { display: flex; align-items: flex-start; gap: 9px; }
-
-.acct__n {
-  flex: none;
-  width: 21px;
-  height: 21px;
+.bays--empty {
   display: grid;
   place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  height: 100%;
   font-size: 11px;
-  font-weight: 600;
   color: var(--color-muted);
 }
 
-.acct--active .acct__n {
-  border-color: var(--red);
-  background: var(--red);
-  color: var(--panel);
+.bay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* A baia mede a si mesma: quando o terco fica baixo demais, as partes
+     opcionais saem de cena em vez de o conteudo vazar sobre o card de baixo. */
+  container-type: size;
+  container-name: bay;
+  overflow: hidden;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--fg) 4%, transparent), transparent 60%),
+    color-mix(in srgb, var(--fg) 2%, transparent);
+  animation: bay-in 0.5s var(--ease) backwards;
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
 }
 
-.acct__id { flex: 1; min-width: 0; }
+.bay:hover { border-color: color-mix(in srgb, var(--fg) 26%, var(--border)); }
 
-.acct__label { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--fg); }
+.bay--active {
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--red) 12%, transparent), transparent 62%),
+    color-mix(in srgb, var(--red) 4%, transparent);
+}
 
-.acct__email {
+.bay--limited {
+  border-color: color-mix(in srgb, var(--color-error) 60%, transparent);
+  background: color-mix(in srgb, var(--color-error) 6%, transparent);
+}
+
+/* Colchetes de canto: o detalhe que faz o card ler como painel montado. */
+.bay__bracket {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid color-mix(in srgb, var(--fg) 34%, transparent);
+  animation: bracket-in 0.5s var(--ease) 0.15s backwards;
+  pointer-events: none;
+}
+
+.bay__bracket--tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.bay__bracket--br { right: -1px; bottom: -1px; border-left: none; border-top: none; }
+.bay--active .bay__bracket { border-color: var(--red); }
+
+/* Varredura horizontal lenta sobre a baia ativa, como um scanner. */
+.bay__sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bay__sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 38%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--red) 9%, transparent),
+    transparent
+  );
+  animation: scan 5.5s var(--ease) infinite;
+}
+
+@keyframes scan {
+  0% { transform: translateX(-120%); }
+  55%, 100% { transform: translateX(360%); }
+}
+
+/* ── Cabecalho da baia ───────────────────────────────────────────────── */
+
+.bay__head { flex: none; display: flex; align-items: center; gap: 9px; }
+
+.bay__n {
+  flex: none;
+  font-family: var(--font-readout);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: color-mix(in srgb, var(--fg) 40%, transparent);
+  transition: color 0.25s var(--ease);
+}
+
+.bay--active .bay__n { color: var(--red); }
+
+.bay__id { flex: 1; min-width: 0; }
+
+.bay__label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.bay__email {
   margin: 1px 0 0;
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--color-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.chip {
+/* Status como LED de painel, nao como pilula colorida. */
+.led {
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 9.5px;
-  letter-spacing: 0.03em;
+  gap: 5px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--color-muted);
 }
 
-.chip--active { border-color: var(--red); color: var(--red); }
-.chip--ready { border-color: color-mix(in srgb, var(--green) 45%, transparent); color: var(--green); }
-.chip--limited { border-color: var(--color-error); color: var(--color-error); }
-
-.chip__dot {
-  width: 5px;
-  height: 5px;
+.led__dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: currentColor;
-  animation: pulse-dot 1.8s ease-in-out infinite;
+  box-shadow: 0 0 5px 0 currentColor;
 }
 
-.acct__metrics { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.led--active { color: var(--red); }
+.led--active .led__dot { animation: led 2s ease-in-out infinite; }
+.led--ready { color: var(--green); }
+.led--limited { color: var(--color-error); }
+.led--limited .led__dot { animation: led 0.9s ease-in-out infinite; }
 
-.metric__row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.metric__label { font-size: 10px; color: var(--color-muted); }
-.metric__value { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--fg); }
+/* ── Leitura numerica ────────────────────────────────────────────────── */
 
-.bar {
-  height: 3px;
-  margin-top: 4px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--fg) 10%, transparent);
-  overflow: hidden;
-}
-
-.bar__fill {
-  height: 100%;
-  border-radius: 999px;
-  transform-origin: left;
-  animation: bar-fill 0.5s var(--ease);
-  transition: width 0.6s var(--ease), background 0.2s;
-}
-
-.bar--accent .bar__fill { background: var(--red); }
-.bar--danger .bar__fill { background: var(--color-error); }
-.bar--muted .bar__fill { background: var(--color-muted); }
-
-.acct__action {
-  width: 100%;
+.bay__readout {
+  flex: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 12px;
-  padding: 7px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--fg);
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
 }
 
-.acct__action:hover:not(:disabled) {
+.readout { display: flex; flex-direction: column; min-width: 0; }
+
+.readout__value {
+  font-family: var(--font-readout);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: slashed-zero;
+  color: color-mix(in srgb, var(--fg) 55%, transparent);
+  animation: readout-in 0.6s var(--ease) 0.2s backwards;
+  transition: color 0.3s var(--ease), text-shadow 0.3s var(--ease);
+}
+
+.bay--active .readout__value {
+  color: var(--red);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--red) 45%, transparent);
+}
+
+.bay--limited .readout__value { color: var(--color-error); }
+
+.readout__unit {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.readout__unit em {
+  font-style: normal;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+}
+
+/* ── Mostrador em arco ───────────────────────────────────────────────── */
+
+.gauge { position: relative; flex: none; padding-right: 2px; color: var(--fg); }
+.gauge svg { display: block; }
+
+.gauge__tick {
+  transform-origin: center;
+  animation: tick-in 0.4s var(--ease) backwards;
+}
+
+.gauge__fill { transition: d 0.8s var(--ease); }
+
+.gauge__text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.gauge__value {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.gauge__caption {
+  margin-top: 2px;
+  font-size: 7.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ── Sparkline ───────────────────────────────────────────────────────── */
+
+.spark {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  margin-top: 10px;
+  color: var(--fg);
+}
+.spark svg { display: block; width: 100%; height: 100%; }
+
+.spark__line { stroke-dasharray: 300; animation: draw 1.2s var(--ease) forwards; }
+.spark__area { animation: fade-in 0.9s var(--ease) 0.25s backwards; }
+.spark__peak { animation: fade-in 0.4s var(--ease) 1s backwards; }
+
+.spark--empty { display: flex; align-items: center; justify-content: center; }
+
+.spark__baseline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 1px;
+  background: color-mix(in srgb, var(--fg) 12%, transparent);
+}
+
+.spark__none {
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--fg) 26%, transparent);
+}
+
+/* Ordem de sacrificio quando a altura aperta: primeiro o eixo, depois o
+   grafico, por ultimo a linha de estatisticas. O numero grande, o estado e o
+   botao de ativar nunca somem. */
+@container bay (max-height: 250px) {
+  .axis { display: none; }
+  .spark { margin-top: 6px; }
+}
+
+@container bay (max-height: 215px) {
+  .spark { display: none; }
+  .stats { margin-top: 8px; }
+}
+
+@container bay (max-height: 175px) {
+  .stats { display: none; }
+  .bay__email { display: none; }
+  .readout__value { font-size: 30px; }
+}
+
+/* ── Rodape da baia ──────────────────────────────────────────────────── */
+
+.bay__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--fg) 9%, transparent);
+}
+
+.bay__reset {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bay__reset--real { display: inline-flex; align-items: center; gap: 4px; color: var(--green); }
+
+.bay__warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--warn);
+}
+
+.bay__action {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--fg) 22%, transparent);
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg);
+  transition: border-color 0.18s, color 0.18s, background 0.18s, transform 0.18s var(--ease-spring);
+}
+
+.bay__action:hover:not(:disabled) {
   border-color: var(--red);
   color: var(--red);
-  background: color-mix(in srgb, var(--red) 10%, transparent);
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  transform: translateY(-1px);
 }
 
-.acct__action:disabled { color: var(--color-muted); cursor: default; }
-.acct__action.is-current { border-style: dashed; }
+.bay__action:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+.bay__action:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .spin { animation: spin 0.9s linear infinite; }
 
@@ -644,3 +879,174 @@
 
 .view__note--warn { display: flex; align-items: center; gap: 6px; color: var(--warn); }
 .tool--git { background: color-mix(in srgb, var(--color-muted) 22%, transparent); color: var(--color-muted); }
+
+/* Reset lido do terminal, em oposicao ao estimado. */
+.metric__tag {
+  margin-left: 5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--green) 20%, transparent);
+  color: var(--green);
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.evidence {
+  margin: 0;
+  padding: 6px 8px;
+  border-left: 2px solid var(--color-error);
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--fg);
+  word-break: break-word;
+}
+
+.evidence__who {
+  display: block;
+  color: var(--color-muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toast__evidence {
+  margin-top: 4px;
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: var(--color-muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.toast__dismiss {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: var(--color-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.toast__dismiss:hover { background: color-mix(in srgb, var(--fg) 12%, transparent); color: var(--fg); }
+
+/* ── Renomear aba ────────────────────────────────────────────────────── */
+
+.tab__rename {
+  width: 130px;
+  margin: 4px 6px;
+  padding: 3px 7px;
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 11.5px;
+  outline: none;
+}
+
+.tab__rename::selection { background: color-mix(in srgb, var(--red) 35%, transparent); }
+
+/* A aba ativa ganha um fio de cor no topo, ligando ao terminal abaixo. */
+.tab.is-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--red);
+  animation: fade-in 0.25s var(--ease);
+}
+
+.tab { position: relative; }
+
+.tabbar__hint {
+  margin-left: auto;
+  align-self: center;
+  padding: 0 10px 5px 0;
+  font-size: 9.5px;
+  color: var(--color-muted);
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.dock__alarm {
+  margin-left: auto;
+  padding: 2px 7px;
+  border: 1px solid var(--color-error);
+  border-radius: 2px;
+  color: var(--color-error);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  animation: led 1.2s ease-in-out infinite;
+}
+
+/* ── Linha de estatisticas da baia ───────────────────────────────────── */
+
+.stats {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 9px 0 0;
+  /* O fio entre celulas e o gap do fundo aparecendo, nao uma borda em cada. */
+  background: color-mix(in srgb, var(--fg) 9%, transparent);
+  border-block: 1px solid color-mix(in srgb, var(--fg) 9%, transparent);
+}
+
+.stat-cell {
+  padding: 5px 0 5px;
+  background: var(--panel);
+  text-align: center;
+}
+
+.bay--active .stat-cell { background: color-mix(in srgb, var(--red) 5%, var(--panel)); }
+.bay--limited .stat-cell { background: color-mix(in srgb, var(--color-error) 5%, var(--panel)); }
+
+.stat-cell dt {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.stat-cell dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* ── Eixo do sparkline ───────────────────────────────────────────────── */
+
+.axis {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--fg) 30%, transparent);
+}
+
+.axis__rule {
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+}
+
+/* Mini grafico da conta ativa no rodape: liga a barra de status ao painel. */
+.status__spark { width: 54px; }
+.status__spark .spark { margin: 0; min-height: 0; }
+.status__spark .spark__none { display: none; }

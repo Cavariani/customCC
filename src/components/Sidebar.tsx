@@ -26,9 +26,6 @@ interface Props {
 export function Sidebar({ view, onView, badges, alert }: Props) {
   return (
     <nav className="rail" aria-label="Secoes">
-      <div className="rail__mark" title="Claude Code Multi-Conta" aria-hidden="true">
-        cc
-      </div>
       {ITEMS.map(({ view: v, label, Icon, color }) => {
         const badge = badges[v]
         const isAlert = v === 'accounts' && alert
@@ -44,7 +41,9 @@ export function Sidebar({ view, onView, badges, alert }: Props) {
           >
             <Icon size={17} strokeWidth={1.8} />
             {badge !== undefined && badge !== 0 && (
-              <span className="rail__badge">{badge}</span>
+              <span className="rail__badge">
+                {typeof badge === 'number' && badge > 99 ? '99+' : badge}
+              </span>
             )}
             <span className="rail__tip">{label}</span>
           </button>
