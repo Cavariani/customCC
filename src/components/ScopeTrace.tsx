@@ -19,6 +19,7 @@ const H = 96
 export function ScopeTrace({ series, progress, accent, live }: Props) {
   const max = Math.max(...series, 1)
   const hasData = series.some((v) => v > 0)
+  const total = series.reduce((a, b) => a + b, 0)
 
   const points = series.map((value, i) => {
     const x = (i / Math.max(1, series.length - 1)) * W
@@ -44,7 +45,11 @@ export function ScopeTrace({ series, progress, accent, live }: Props) {
       preserveAspectRatio="none"
       aria-hidden="true"
     >
+      {/* A chave muda quando chega consumo novo, e so entao o traco se
+          redesenha. Antes ele varria em loop, o que virava ruido no canto
+          do olho sem dizer nada. */}
       <path
+        key={`${series.length}:${total}`}
         className="scope__trace"
         d={path}
         style={{ stroke: accent, opacity: hasData ? 1 : 0.4 }}
