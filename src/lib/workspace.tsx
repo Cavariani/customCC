@@ -197,6 +197,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const post = useCallback(
     async (url: string, body: Record<string, unknown>) => {
+      // O servidor recusa escrita sem cwd de proposito; avisar aqui evita
+      // que o Pedro veja o erro cru de uma aba que ainda nao carregou.
+      if (!activeTab?.cwd) throw new Error('a aba ainda nao sabe em que pasta esta')
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

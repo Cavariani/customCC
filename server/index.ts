@@ -35,7 +35,24 @@ import {
 } from './pty.js'
 
 const app = express()
-app.use(express.json())
+app.use(express.json({ limit: '2mb' }))
+
+/**
+ * Corpo que nao e JSON valido nao pode derrubar o servidor. Sem este
+ * tratador o erro do body-parser sobe como excecao nao capturada e o
+ * processo morre: com o servico em KeepAlive isso reaparecia como uma
+ * queda silenciosa no meio do trabalho.
+ */
+app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (error && typeof error === 'object' && 'type' in error && error.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'corpo nao e JSON valido' })
+  }
+  if (error) {
+    console.error('[customcc] erro nao tratado:', error)
+    return res.status(500).json({ error: 'erro interno' })
+  }
+  next()
+})
 
 const claudeBin = resolveClaudeBin()
 const claudeVersion = (() => {
@@ -90,9 +107,21 @@ app.get('/api/changes', async (req, res) => {
   }
 })
 
-/** cwd de uma requisicao de escrita, sempre explicito e resolvido. */
+/**
+ * Escrita exige cwd explicito. Cair no diretorio padrao do servidor
+ * significaria que uma chamada malformada, ou qualquer processo local,
+ * commitaria ou sobrescreveria arquivo no projeto errado sem ninguem ter
+ * pedido. Leitura pode ter padrao; escrita nao.
+ */
 function bodyCwd(value: unknown): string {
-  return typeof value === 'string' && value.trim() ? expandHome(value) : DEFAULT_CWD
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error('cwd obrigatorio nesta rota')
+  }
+  const cwd = expandHome(value)
+  if (!existsSync(cwd) || !statSync(cwd).isDirectory()) {
+    throw new Error(`pasta invalida: ${cwd}`)
+  }
+  return cwd
 }
 
 app.post('/api/git/stage', async (req, res) => {
@@ -132,7 +161,13 @@ app.post('/api/git/commit', async (req, res) => {
  * apaga arquivo novo: sumir com o trabalho de alguem nao e "reverter".
  */
 app.post('/api/changes/revert', async (req, res) => {
-  const cwd = bodyCwd(req.body?.cwd)
+  let cwd: string
+  try {
+    cwd = bodyCwd(req.body?.cwd)
+  } catch (error) {
+    return res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+
   const path = String(req.body?.path ?? '')
   if (!path || !insideCwd(cwd, path)) {
     return res.status(400).json({ error: `caminho fora do projeto: ${path}` })
@@ -141,7 +176,9 @@ app.post('/api/changes/revert', async (req, res) => {
   try {
     const backup = await backupContentFor(cwd, path)
     if (backup !== null) {
-      await writeFile(expandHome(`${cwd}/${path}`), backup, 'utf8')
+      // join, nao concatenacao: no Windows a barra invertida quebraria e um
+      // caminho ja absoluto viraria "cwd/-Users-...".
+      await writeFile(resolvePath(cwd, path), backup, 'utf8')
       return res.json({ ok: true, source: 'file-history' })
     }
     if (await isTracked(cwd, path)) {
@@ -235,9 +272,11 @@ app.post('/api/accounts/:id/clear-limit', async (req, res) => {
 
 /** Move uma aba para outra pasta: o processo daquela sessao recomeca la. */
 app.post('/api/sessions/:id/cwd', async (req, res) => {
-  const cwd = bodyCwd(req.body?.cwd)
-  if (!existsSync(cwd) || !statSync(cwd).isDirectory()) {
-    return res.status(400).json({ error: `pasta invalida: ${cwd}` })
+  let cwd: string
+  try {
+    cwd = bodyCwd(req.body?.cwd)
+  } catch (error) {
+    return res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
   }
   stopDiscovery(req.params.id)
   killSession(req.params.id)
@@ -335,6 +374,16 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`[customcc] servidor em http://localhost:${PORT} (apenas loopback)`)
   console.log(`[customcc] claude ${claudeVersion} em ${claudeBin}`)
   console.log(`[customcc] cwd padrao ${DEFAULT_CWD}`)
+})
+
+// Ultima rede: uma excecao solta em callback assincrono nao pode levar
+// junto os processos `claude` que estao no meio de uma tarefa.
+process.on('uncaughtException', (error) => {
+  console.error('[customcc] excecao nao capturada:', error)
+})
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[customcc] promessa rejeitada sem tratamento:', reason)
 })
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
