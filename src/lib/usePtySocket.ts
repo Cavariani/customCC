@@ -3,8 +3,11 @@ import type { Terminal } from '@xterm/xterm'
 
 export type PtyStatus = 'connecting' | 'live' | 'exited' | 'error'
 
+export type Activity = 'working' | 'waiting' | 'idle'
+
 interface ServerMessage {
-  t: 'ready' | 'data' | 'exit'
+  t: 'ready' | 'data' | 'exit' | 'activity'
+  state?: Activity
   data?: string
   code?: number
   pid?: number
@@ -16,6 +19,8 @@ interface ServerMessage {
 interface Options {
   sessionId: string
   cwd: string
+  /** Recebe o estado da sessao lido do output. */
+  onActivity: (state: Activity) => void
   /** Terminal ja montado; o hook so liga os dois lados. */
   getTerm: () => Terminal | null
   enabled: boolean
@@ -25,7 +30,7 @@ interface Options {
  * Liga um xterm a uma sessao de pty no servidor. O processo `claude` vive no
  * backend e sobrevive a reloads: ao reconectar, o servidor repoe o output.
  */
-export function usePtySocket({ sessionId, cwd, getTerm, enabled }: Options) {
+export function usePtySocket({ sessionId, cwd, getTerm, enabled, onActivity }: Options) {
   const [status, setStatus] = useState<PtyStatus>('connecting')
   const socketRef = useRef<WebSocket | null>(null)
 
@@ -57,6 +62,8 @@ export function usePtySocket({ sessionId, cwd, getTerm, enabled }: Options) {
         socket.send(JSON.stringify({ t: 'resize', cols: term.cols, rows: term.rows }))
       } else if (msg.t === 'data') {
         term.write(msg.data ?? '')
+      } else if (msg.t === 'activity') {
+        if (msg.state) onActivity(msg.state)
       } else if (msg.t === 'exit') {
         setStatus('exited')
         term.writeln(`\r\n\x1b[38;2;130;137;151mprocesso encerrado (${msg.code})\x1b[0m`)
@@ -83,7 +90,7 @@ export function usePtySocket({ sessionId, cwd, getTerm, enabled }: Options) {
       socket.close()
       socketRef.current = null
     }
-  }, [sessionId, cwd, enabled, getTerm])
+  }, [sessionId, cwd, enabled, getTerm, onActivity])
 
   return { status }
 }

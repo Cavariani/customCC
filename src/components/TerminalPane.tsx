@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { THEMES, xtermTheme, type ThemeName } from '../theme/themes'
-import { usePtySocket, type PtyStatus } from '../lib/usePtySocket'
+import { usePtySocket, type Activity, type PtyStatus } from '../lib/usePtySocket'
 import type { TerminalTab } from '../types'
 import type { TerminalMessage } from '../lib/workspace'
 import '@xterm/xterm/css/xterm.css'
@@ -14,6 +14,7 @@ interface Props {
   theme: ThemeName
   notice: TerminalMessage | null
   onStatus: (tabId: string, status: PtyStatus) => void
+  onActivity: (tabId: string, state: Activity) => void
 }
 
 /**
@@ -21,7 +22,15 @@ interface Props {
  * nunca desmonta ao trocar de aba, so fica escondido, senao o scrollback se
  * perde. O processo `claude` vive no backend e sobrevive a reloads.
  */
-export function TerminalPane({ tab, visible, fontSize, theme, notice, onStatus }: Props) {
+export function TerminalPane({
+  tab,
+  visible,
+  fontSize,
+  theme,
+  notice,
+  onStatus,
+  onActivity,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -29,11 +38,13 @@ export function TerminalPane({ tab, visible, fontSize, theme, notice, onStatus }
   const [ready, setReady] = useState(false)
 
   const getTerm = useCallback(() => termRef.current, [])
+  const report = useCallback((state: Activity) => onActivity(tab.id, state), [onActivity, tab.id])
   const { status } = usePtySocket({
     sessionId: tab.id,
     cwd: tab.cwd,
     getTerm,
     enabled: ready,
+    onActivity: report,
   })
 
   useEffect(() => {

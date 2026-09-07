@@ -15,7 +15,7 @@ import type {
   GitState,
   TerminalTab,
 } from '../types'
-import type { PtyStatus } from './usePtySocket'
+import type { Activity, PtyStatus } from './usePtySocket'
 import { usePolling } from './usePolling'
 
 export interface ServerInfo {
@@ -79,6 +79,9 @@ interface Workspace {
   info: ServerInfo | null
   tabStatus: Record<string, PtyStatus>
   setTabStatus: (tabId: string, status: PtyStatus) => void
+  /** Em que pe cada aba esta: trabalhando, esperando voce, ou parada. */
+  tabActivity: Record<string, Activity>
+  setTabActivity: (tabId: string, state: Activity) => void
 
   notice: TerminalMessage | null
 }
@@ -90,6 +93,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [activeTabId, setActiveTabId] = useState(FIRST_TAB.id)
   const [info, setInfo] = useState<ServerInfo | null>(null)
   const [tabStatus, setTabStatusState] = useState<Record<string, PtyStatus>>({})
+  const [tabActivity, setTabActivityState] = useState<Record<string, Activity>>({})
   const [notice, setNotice] = useState<TerminalMessage | null>(null)
   const [switching, setSwitching] = useState(false)
   const seqRef = useRef(0)
@@ -166,6 +170,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const setTabStatus = useCallback((tabId: string, status: PtyStatus) => {
     setTabStatusState((prev) => (prev[tabId] === status ? prev : { ...prev, [tabId]: status }))
+  }, [])
+
+  const setTabActivity = useCallback((tabId: string, state: Activity) => {
+    setTabActivityState((prev) => (prev[tabId] === state ? prev : { ...prev, [tabId]: state }))
   }, [])
 
   const switchAccount = useCallback(
@@ -339,6 +347,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       info,
       tabStatus,
       setTabStatus,
+      tabActivity,
+      setTabActivity,
       notice,
     }),
     [
@@ -367,6 +377,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       info,
       tabStatus,
       setTabStatus,
+      tabActivity,
+      setTabActivity,
       notice,
     ],
   )

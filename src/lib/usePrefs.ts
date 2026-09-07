@@ -8,6 +8,8 @@ export interface Prefs {
   grain: boolean
   /** Corpo da fonte do terminal, em px. */
   terminalFontSize: number
+  /** Avisar quando uma aba termina ou para esperando permissao. */
+  notify: boolean
 }
 
 const KEY = 'customcc-prefs'
@@ -18,6 +20,7 @@ const DEFAULTS: Prefs = {
   animations: true,
   grain: true,
   terminalFontSize: 12.5,
+  notify: false,
 }
 
 function load(): Prefs {

@@ -23,6 +23,7 @@ import {
 import { resolveNow, startDiscovery, stopDiscovery } from './discovery.js'
 import { listRecentProjects } from './projects.js'
 import { onLimitEvent, watchSession } from './watcher.js'
+import { detectActivity } from './activity.js'
 import {
   getSession,
   killAll,
@@ -336,6 +337,8 @@ wss.on('connection', async (socket: WebSocket, request) => {
   // Fica de olho no output procurando os avisos de limite.
   watchSession(session)
 
+  send({ t: 'activity', state: session.activity })
+
   send({
     t: 'ready',
     session: id,
@@ -346,7 +349,18 @@ wss.on('connection', async (socket: WebSocket, request) => {
     replay: session.buffer,
   })
 
-  const onData = (chunk: string) => send({ t: 'data', data: chunk })
+  // Cauda propria por socket: a TUI escreve em pedacos e o marcador de
+  // estado pode nascer partido entre dois deles.
+  let tail = ''
+  const onData = (chunk: string) => {
+    send({ t: 'data', data: chunk })
+    tail = (tail + chunk).slice(-4000)
+    const activity = detectActivity(tail)
+    if (activity !== session.activity) {
+      session.activity = activity
+      send({ t: 'activity', state: activity })
+    }
+  }
   const onExit = (code: number) => send({ t: 'exit', code })
   session.listeners.add(onData)
   session.exitListeners.add(onExit)

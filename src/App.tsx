@@ -13,6 +13,7 @@ import { SettingsView } from './components/panels/SettingsView'
 import { useWorkspace } from './lib/workspace'
 import { useTheme } from './theme/useTheme'
 import { usePrefs } from './lib/usePrefs'
+import { useNotifier } from './lib/useNotifier'
 import { DockRail } from './components/DockRail'
 import { OfflineBanner } from './components/OfflineBanner'
 import type { ViewName } from './types'
@@ -27,7 +28,17 @@ const VIEW_TITLE: Record<ViewName, string> = {
 export default function App() {
   const { theme, setTheme } = useTheme()
   const { prefs, set, toggleDock } = usePrefs()
-  const { tabs, activeTabId, notice, git, changes, accounts, setTabStatus } = useWorkspace()
+  const {
+    tabs,
+    activeTabId,
+    notice,
+    git,
+    changes,
+    accounts,
+    setTabStatus,
+    setTabActivity,
+    tabActivity,
+  } = useWorkspace()
   // A secao aberta vive no hash: recarregar a pagina volta para onde estava,
   // e da para deixar o painel de git como bookmark.
   const [view, setView] = useState<ViewName>(() => {
@@ -38,6 +49,8 @@ export default function App() {
   useEffect(() => {
     if (location.hash.replace('#', '') !== view) history.replaceState(null, '', `#${view}`)
   }, [view])
+
+  useNotifier(tabs, tabActivity, activeTabId, prefs.notify)
 
   const anyLimited = accounts.some((a) => a.rateLimited)
 
@@ -75,6 +88,7 @@ export default function App() {
               theme={theme}
               notice={notice}
               onStatus={setTabStatus}
+              onActivity={setTabActivity}
             />
           ))}
         </div>

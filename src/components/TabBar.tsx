@@ -3,9 +3,24 @@ import { FolderOpen, FolderSymlink, Plus, TerminalSquare, X } from 'lucide-react
 import { useWorkspace } from '../lib/workspace'
 import { FolderPicker } from './FolderPicker'
 
+const ACTIVITY_LABEL: Record<string, string> = {
+  working: 'trabalhando',
+  waiting: 'esperando voce',
+  idle: 'parado',
+}
+
 export function TabBar() {
-  const { tabs, activeTabId, setActiveTabId, openTab, closeTab, renameTab, moveTab, tabStatus } =
-    useWorkspace()
+  const {
+    tabs,
+    activeTabId,
+    setActiveTabId,
+    openTab,
+    closeTab,
+    renameTab,
+    moveTab,
+    tabStatus,
+    tabActivity,
+  } = useWorkspace()
   const [editing, setEditing] = useState<string | null>(null)
   // 'nova' abre outra aba; um id move aquela aba de pasta.
   const [picking, setPicking] = useState<'nova' | string | null>(null)
@@ -38,8 +53,16 @@ export function TabBar() {
               <TerminalSquare size={13} strokeWidth={1.8} />
               <span className="tab__title">{tab.title}</span>
               <span
-                className={`tab__status tab__status--${tabStatus[tab.id] ?? 'connecting'}`}
-                title={tabStatus[tab.id] ?? 'connecting'}
+                className={`tab__status tab__status--${
+                  tabStatus[tab.id] === 'live'
+                    ? (tabActivity[tab.id] ?? 'idle')
+                    : (tabStatus[tab.id] ?? 'connecting')
+                }`}
+                title={
+                  tabStatus[tab.id] === 'live'
+                    ? ACTIVITY_LABEL[tabActivity[tab.id] ?? 'idle']
+                    : (tabStatus[tab.id] ?? 'conectando')
+                }
               />
             </button>
           )}

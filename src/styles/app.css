@@ -1667,3 +1667,20 @@
     radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.45), transparent) top / 100% 11px no-repeat scroll,
     radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.45), transparent) bottom / 100% 11px no-repeat scroll;
 }
+
+/* Estado da aba: trabalhando pulsa, esperando pisca em ambar, parado apaga. */
+.tab__status--working {
+  background: var(--blue);
+  animation: pulse-dot 1.1s ease-in-out infinite;
+}
+
+.tab__status--waiting {
+  background: var(--warn);
+  box-shadow: 0 0 7px var(--warn);
+  animation: led 0.8s ease-in-out infinite;
+}
+
+.tab__status--idle { background: color-mix(in srgb, var(--fg) 35%, transparent); }
+
+/* A aba que espera por voce chama atencao mesmo sem estar selecionada. */
+.tab:has(.tab__status--waiting) .tab__title { color: var(--warn); }

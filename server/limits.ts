@@ -18,6 +18,16 @@ export interface LimitSignal {
   evidence: string
 }
 
+/**
+ * Texto sem ANSI e sem espaco nenhum. A TUI as vezes posiciona cada palavra
+ * com sequencia de cursor em vez de escrever espacos, e ai a frase chega
+ * como "Isthisaprojectyoutrust?". Comparar as duas pontas sem espaco faz o
+ * reconhecimento funcionar nos dois jeitos de desenhar.
+ */
+export function squish(text: string): string {
+  return stripAnsi(text).replace(/\s+/g, '')
+}
+
 /** Remove ANSI, OSC e os caracteres de moldura que a TUI desenha. */
 export function stripAnsi(text: string): string {
   return text
@@ -84,9 +94,38 @@ export function detectLimit(chunk: string, now = Date.now()): LimitSignal | null
   const clean = stripAnsi(chunk)
   let signal: LimitSignal | null = null
 
+
+
   for (const line of clean.split(/\r?\n/)) {
     const trimmed = line.trim()
     if (!trimmed) continue
+
+    // A TUI as vezes posiciona as palavras com sequencia de cursor em vez
+    // de escrever espacos, e ai nenhum padrao com espaco casa. Comparamos
+    // tambem a linha sem espaco nenhum, mantendo a ancora no comeco dela:
+    // sem essa ancora, uma resposta do Claude falando sobre o limite
+    // dispararia o alerta.
+    // Apostrofo tambem sai: "You're" chega ora reto, ora curvo.
+    const apertado = trimmed
+      .replace(/^[\s\u2500-\u257f>|·•⏵⚠✳*-]+/, '')
+      .replace(/[\s'’`]+/g, '')
+      .toLowerCase()
+    if (apertado.startsWith('yourusagelimithasreset')) {
+      signal = { kind: 'cleared', resetAt: null, evidence: shorten(trimmed) }
+      continue
+    }
+    if (/^(?:youre|yourorganizationis|yourorgis)outofusagecredits/.test(apertado)) {
+      signal = { kind: 'credits', resetAt: null, evidence: shorten(trimmed) }
+      continue
+    }
+    if (apertado.startsWith('usagelimitreached')) {
+      signal = {
+        kind: 'reached',
+        resetAt: parseSquishedReset(apertado, now),
+        evidence: shorten(trimmed),
+      }
+      continue
+    }
 
     if (CLEARED.test(trimmed)) {
       signal = { kind: 'cleared', resetAt: null, evidence: shorten(trimmed) }
@@ -114,6 +153,14 @@ export function detectLimit(chunk: string, now = Date.now()): LimitSignal | null
   }
 
   return signal
+}
+
+/** "continuingautomaticallyat3:30pm" -> instante do reset. */
+function parseSquishedReset(apertado: string, now: number): number | null {
+  const m = apertado.match(/(?:continuingautomaticallyat|limitresetsat)([a-z]{3}\d{1,2},?)?(\d{1,2}(?::\d{2})?(?:am|pm))/)
+  if (!m) return null
+  const dia = m[1] ? `${m[1].slice(0, 3)} ${m[1].slice(3).replace(',', '')}, ` : ''
+  return parseResetTime(`${dia}${m[2]}`, now)
 }
 
 function shorten(line: string): string {

@@ -36,6 +36,8 @@ type ExitListener = (code: number, signal?: number) => void
 export interface Session {
   id: string
   cwd: string
+  /** Em que pe a sessao esta, inferido do que o `claude` desenha. */
+  activity: 'working' | 'waiting' | 'idle'
   /**
    * Sessao do Claude Code que esta aba abriu, descoberta pelo transcript.
    * Guardar isso e o que permite retomar com `--resume <id>` em vez de
@@ -60,6 +62,7 @@ export function listSessions() {
   return [...sessions.values()].map((s) => ({
     id: s.id,
     cwd: s.cwd,
+    activity: s.activity,
     claudeSessionId: s.claudeSessionId,
     pid: s.proc.pid,
     exited: s.exited,
@@ -108,6 +111,7 @@ export function startSession(opts: SessionOptions): Session {
   const session: Session = {
     id: opts.id,
     cwd,
+    activity: 'idle',
     claudeSessionId: null,
     proc,
     buffer: '',

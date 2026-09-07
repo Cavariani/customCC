@@ -1,4 +1,5 @@
 import { FlaskConical } from 'lucide-react'
+import { pedirPermissaoDeAviso } from '../../lib/useNotifier'
 import { THEMES, type ThemeName } from '../../theme/themes'
 import { useWorkspace } from '../../lib/workspace'
 import type { Prefs } from '../../lib/usePrefs'
@@ -56,6 +57,18 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
           hint="pulsos, varreduras e transicoes"
           on={prefs.animations}
           onToggle={() => onPref('animations', !prefs.animations)}
+        />
+
+        <Toggle
+          label="avisos do sistema"
+          hint="quando uma aba termina ou pede permissao"
+          on={prefs.notify}
+          onToggle={async () => {
+            if (prefs.notify) return onPref('notify', false)
+            // A permissao do navegador so pode ser pedida a partir de um clique.
+            const resposta = await pedirPermissaoDeAviso()
+            onPref('notify', resposta === 'granted')
+          }}
         />
 
         <Toggle
