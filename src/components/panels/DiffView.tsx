@@ -7,9 +7,11 @@ import { Delta } from '../Delta'
 import type { ChangedFile } from '../../types'
 
 export function DiffView() {
-  const { changes, changesError } = useWorkspace()
+  const { changes, changesError, revert } = useWorkspace()
   const now = useNow(5000)
   const [open, setOpen] = useState<string | null>(null)
+  const [confirmando, setConfirmando] = useState<string | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
 
   if (changesError) {
     return (
@@ -50,8 +52,20 @@ export function DiffView() {
           index={i}
           open={open === file.path}
           onToggle={() => setOpen(open === file.path ? null : file.path)}
+          confirming={confirmando === file.path}
+          onRevert={() => {
+            if (confirmando !== file.path) {
+              setConfirmando(file.path)
+              setErro(null)
+              return
+            }
+            setConfirmando(null)
+            revert(file.path).catch((e) => setErro(e instanceof Error ? e.message : String(e)))
+          }}
         />
       ))}
+
+      {erro && <p className="view__note view__note--warn">{erro}</p>}
 
       <p className="view__note">
         <History size={12} strokeWidth={2} />
@@ -69,6 +83,8 @@ function FileBlock({
   index,
   open,
   onToggle,
+  confirming,
+  onRevert,
 }: {
   file: ChangedFile
   now: number
@@ -76,6 +92,8 @@ function FileBlock({
   index: number
   open: boolean
   onToggle: () => void
+  confirming: boolean
+  onRevert: () => void
 }) {
   const fresh = file.touchedAt !== null && now - file.touchedAt < 30_000
   const name = file.path.split('/').pop()
@@ -120,8 +138,16 @@ function FileBlock({
               </code>
             ))}
           </pre>
-          <button type="button" className="wide-btn wide-btn--ghost" disabled>
-            <RotateCcw size={12} strokeWidth={2} /> reverter arquivo (ainda nao ligado)
+          {/* Dois toques: reverter sobrescreve o arquivo em disco. */}
+          <button
+            type="button"
+            className={`wide-btn wide-btn--ghost${confirming ? ' is-armed' : ''}`}
+            onClick={onRevert}
+          >
+            <RotateCcw size={12} strokeWidth={2} />
+            {confirming
+              ? `confirmar: desfaz as mudancas de ${file.path.split('/').pop()}`
+              : 'reverter arquivo'}
           </button>
         </>
       )}

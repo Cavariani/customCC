@@ -14,6 +14,7 @@ import { useWorkspace } from './lib/workspace'
 import { useTheme } from './theme/useTheme'
 import { usePrefs } from './lib/usePrefs'
 import { DockRail } from './components/DockRail'
+import { OfflineBanner } from './components/OfflineBanner'
 import type { ViewName } from './types'
 
 const VIEW_TITLE: Record<ViewName, string> = {
@@ -118,6 +119,7 @@ export default function App() {
         </div>
       </aside>
 
+      <OfflineBanner />
       <StatusBar animations={prefs.animations} />
       <LimitToast />
     </div>

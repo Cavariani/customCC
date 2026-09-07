@@ -65,6 +65,14 @@ interface Workspace {
 
   git: GitState | null
   gitError: string | null
+  /** Servidor local respondendo. Falso quando o poll comeca a falhar. */
+  online: boolean
+  stage: (paths: string[]) => Promise<void>
+  unstage: (paths: string[]) => Promise<void>
+  commit: (message: string, all: boolean) => Promise<{ hash: string; subject: string }>
+  revert: (path: string) => Promise<string>
+  /** Move a aba para outra pasta: o processo recomeca la. */
+  moveTab: (id: string, cwd: string) => void
   changes: ChangesResult | null
   changesError: string | null
 
@@ -187,6 +195,73 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
   }, [accountsPoll, activeAccountId])
 
+  const post = useCallback(
+    async (url: string, body: Record<string, unknown>) => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ cwd: activeTab?.cwd, ...body }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`)
+      return data
+    },
+    [activeTab],
+  )
+
+  const stage = useCallback(
+    async (paths: string[]) => {
+      await post('/api/git/stage', { paths })
+      await gitPoll.refresh()
+    },
+    [post, gitPoll],
+  )
+
+  const unstage = useCallback(
+    async (paths: string[]) => {
+      await post('/api/git/unstage', { paths })
+      await gitPoll.refresh()
+    },
+    [post, gitPoll],
+  )
+
+  const commit = useCallback(
+    async (message: string, all: boolean) => {
+      const result = await post('/api/git/commit', { message, all })
+      await Promise.all([gitPoll.refresh(), changesPoll.refresh()])
+      emit(`commit ${result.hash}: ${result.subject}`)
+      return result as { hash: string; subject: string }
+    },
+    [post, gitPoll, changesPoll, emit],
+  )
+
+  const revert = useCallback(
+    async (path: string) => {
+      const result = await post('/api/changes/revert', { path })
+      await Promise.all([gitPoll.refresh(), changesPoll.refresh()])
+      emit(`revertido ${path} (${result.source})`)
+      return result.source as string
+    },
+    [post, gitPoll, changesPoll, emit],
+  )
+
+  const moveTab = useCallback(
+    (id: string, cwd: string) => {
+      const name = cwd.split(/[/\\]/).filter(Boolean).pop() ?? 'terminal'
+      fetch(`/api/sessions/${id}/cwd`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ cwd }),
+      })
+        .then(() => {
+          // O pty morreu; a aba remonta apontando para a pasta nova.
+          setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, cwd, title: name } : t)))
+        })
+        .catch(() => {})
+    },
+    [],
+  )
+
   const clearLimit = useCallback(
     (id: AccountId) => {
       fetch(`/api/accounts/${id}/clear-limit`, { method: 'POST' })
@@ -250,6 +325,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       renameTab,
       git: gitPoll.data,
       gitError: gitPoll.error,
+      online: accountsPoll.error === null,
+      stage,
+      unstage,
+      commit,
+      revert,
+      moveTab,
       changes: changesPoll.data,
       changesError: changesPoll.error,
       info,
@@ -272,6 +353,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       renameTab,
       gitPoll.data,
       gitPoll.error,
+      accountsPoll.error,
+      stage,
+      unstage,
+      commit,
+      revert,
+      moveTab,
       changesPoll.data,
       changesPoll.error,
       info,

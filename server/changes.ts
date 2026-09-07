@@ -47,6 +47,28 @@ const CONTEXT = 3
 const MAX_BYTES = 1_500_000
 const MAX_FILES = 100
 
+/**
+ * Devolve o conteudo anterior a primeira edicao da sessao, quando o Claude
+ * Code guardou um backup. E o que permite desfazer uma edicao mesmo em
+ * arquivo que o git nunca viu.
+ */
+export async function backupContentFor(cwd: string, filePath: string): Promise<string | null> {
+  const base = resolve(cwd)
+  const session = await findActiveSession(base)
+  if (!session) return null
+
+  const transcript = await readTranscript(session.file, session.sessionId)
+  if (!transcript) return null
+
+  const wanted = resolve(base, filePath).normalize('NFC')
+  for (const backup of transcript.backups.values()) {
+    const absolute = resolve(backup.realParentDir, basenameOf(backup.trackingPath)).normalize('NFC')
+    if (absolute !== wanted) continue
+    return readMaybe(join(FILE_HISTORY_DIR, session.sessionId, backup.backupFileName))
+  }
+  return null
+}
+
 export async function readChanges(cwd: string): Promise<ChangesResult> {
   const base = resolve(cwd)
   const [fromHistory, session] = await Promise.all([

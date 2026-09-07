@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { FolderOpen, Plus, TerminalSquare, X } from 'lucide-react'
+import { FolderOpen, FolderSymlink, Plus, TerminalSquare, X } from 'lucide-react'
 import { useWorkspace } from '../lib/workspace'
 import { FolderPicker } from './FolderPicker'
 
 export function TabBar() {
-  const { tabs, activeTabId, setActiveTabId, openTab, closeTab, renameTab, tabStatus } =
+  const { tabs, activeTabId, setActiveTabId, openTab, closeTab, renameTab, moveTab, tabStatus } =
     useWorkspace()
   const [editing, setEditing] = useState<string | null>(null)
-  const [picking, setPicking] = useState(false)
+  // 'nova' abre outra aba; um id move aquela aba de pasta.
+  const [picking, setPicking] = useState<'nova' | string | null>(null)
 
   return (
     <div className="tabbar" role="tablist" aria-label="Terminais">
@@ -69,21 +70,33 @@ export function TabBar() {
       <button
         type="button"
         className="tabbar__add"
-        onClick={() => setPicking(true)}
-        aria-label="Abrir outra pasta"
-        title="abrir outra pasta"
+        onClick={() => setPicking('nova')}
+        aria-label="Abrir outra pasta em nova aba"
+        title="abrir outra pasta em nova aba"
       >
         <FolderOpen size={14} strokeWidth={1.9} />
+      </button>
+
+      <button
+        type="button"
+        className="tabbar__add"
+        onClick={() => setPicking(activeTabId)}
+        aria-label="Mover esta aba para outra pasta"
+        title="mover esta aba para outra pasta"
+      >
+        <FolderSymlink size={14} strokeWidth={1.9} />
       </button>
 
       <span className="tabbar__hint">duplo clique renomeia</span>
 
       {picking && (
         <FolderPicker
-          onClose={() => setPicking(false)}
+          onClose={() => setPicking(null)}
           onPick={(cwd) => {
-            setPicking(false)
-            openTab(cwd)
+            const alvo = picking
+            setPicking(null)
+            if (alvo === 'nova') openTab(cwd)
+            else if (alvo) moveTab(alvo, cwd)
           }}
         />
       )}

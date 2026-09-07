@@ -77,6 +77,15 @@ export function TerminalPane({ tab, visible, fontSize, theme, notice, onStatus }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // A aba mudou de pasta: o processo antigo morreu, entao a tela dele nao
+  // pode continuar ali por baixo do processo novo.
+  const cwdRef = useRef(tab.cwd)
+  useEffect(() => {
+    if (cwdRef.current === tab.cwd) return
+    cwdRef.current = tab.cwd
+    termRef.current?.reset()
+  }, [tab.cwd])
+
   // Corpo da fonte mudou: refaz o calculo de colunas com o novo tamanho.
   useEffect(() => {
     const term = termRef.current

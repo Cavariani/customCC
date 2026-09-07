@@ -1,4 +1,5 @@
 import express from 'express'
+import { writeFile } from 'node:fs/promises'
 import { existsSync, statSync } from 'node:fs'
 import { dirname, join, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -7,7 +8,8 @@ import { execFileSync } from 'node:child_process'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { DEFAULT_CWD, PORT, expandHome, resolveClaudeBin } from './config.js'
 import { readGitState } from './git.js'
-import { readChanges } from './changes.js'
+import { backupContentFor, readChanges } from './changes.js'
+import { checkoutFile, commit, insideCwd, isTracked, stage, unstage } from './gitwrite.js'
 import {
   ACCOUNT_IDS,
   getActiveAccountId,
@@ -88,6 +90,72 @@ app.get('/api/changes', async (req, res) => {
   }
 })
 
+/** cwd de uma requisicao de escrita, sempre explicito e resolvido. */
+function bodyCwd(value: unknown): string {
+  return typeof value === 'string' && value.trim() ? expandHome(value) : DEFAULT_CWD
+}
+
+app.post('/api/git/stage', async (req, res) => {
+  try {
+    await stage(bodyCwd(req.body?.cwd), req.body?.paths ?? [])
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+app.post('/api/git/unstage', async (req, res) => {
+  try {
+    await unstage(bodyCwd(req.body?.cwd), req.body?.paths ?? [])
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+app.post('/api/git/commit', async (req, res) => {
+  try {
+    const result = await commit(
+      bodyCwd(req.body?.cwd),
+      String(req.body?.message ?? ''),
+      Boolean(req.body?.all),
+    )
+    res.json({ ok: true, ...result })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/**
+ * Desfaz as mudancas de um arquivo. Prefere o backup da sessao, que existe
+ * mesmo para arquivo que o git nunca viu; sem backup, volta ao HEAD. Nao
+ * apaga arquivo novo: sumir com o trabalho de alguem nao e "reverter".
+ */
+app.post('/api/changes/revert', async (req, res) => {
+  const cwd = bodyCwd(req.body?.cwd)
+  const path = String(req.body?.path ?? '')
+  if (!path || !insideCwd(cwd, path)) {
+    return res.status(400).json({ error: `caminho fora do projeto: ${path}` })
+  }
+
+  try {
+    const backup = await backupContentFor(cwd, path)
+    if (backup !== null) {
+      await writeFile(expandHome(`${cwd}/${path}`), backup, 'utf8')
+      return res.json({ ok: true, source: 'file-history' })
+    }
+    if (await isTracked(cwd, path)) {
+      await checkoutFile(cwd, path)
+      return res.json({ ok: true, source: 'git' })
+    }
+    res.status(400).json({
+      error: 'arquivo novo e sem backup da sessao: reverter aqui seria apagar',
+    })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
 app.get('/api/accounts', async (_req, res) => {
   try {
     res.json({ accounts: await summarizeAccounts(), activeId: await getActiveAccountId() })
@@ -163,6 +231,17 @@ app.post('/api/accounts/:id/clear-limit', async (req, res) => {
   if (id === null) return res.status(400).json({ error: 'conta invalida' })
   await clearRateLimited(id)
   res.json({ accounts: await summarizeAccounts() })
+})
+
+/** Move uma aba para outra pasta: o processo daquela sessao recomeca la. */
+app.post('/api/sessions/:id/cwd', async (req, res) => {
+  const cwd = bodyCwd(req.body?.cwd)
+  if (!existsSync(cwd) || !statSync(cwd).isDirectory()) {
+    return res.status(400).json({ error: `pasta invalida: ${cwd}` })
+  }
+  stopDiscovery(req.params.id)
+  killSession(req.params.id)
+  res.json({ ok: true, cwd })
 })
 
 // Fechar a aba no navegador encerra de proposito o `claude` daquela sessao.
