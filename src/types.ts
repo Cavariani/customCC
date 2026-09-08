@@ -70,6 +70,11 @@ export interface TerminalTab {
   id: string
   title: string
   cwd: string
+  /**
+   * Conversa que esta aba deve retomar ao nascer, escolhida na lista.
+   * Vale so na primeira conexao: depois disso a aba tem vida propria.
+   */
+  resumeId?: string
 }
 
 export type GitFileStatus =
@@ -134,7 +139,14 @@ export interface ChangesResult {
   totals: { added: number; removed: number }
 }
 
-export type ViewName = 'accounts' | 'fleet' | 'git' | 'diff' | 'history' | 'settings'
+export type ViewName =
+  | 'accounts'
+  | 'conversas'
+  | 'fleet'
+  | 'git'
+  | 'diff'
+  | 'history'
+  | 'settings'
 
 export interface SessaoViva {
   pid: number
@@ -188,6 +200,13 @@ export interface ResumoDeSessao {
   linhasRemovidas: number
   mensagens: number
   modelos: ModeloDaSessao[]
+}
+
+export interface ProjetoComConversas {
+  nome: string
+  cwd: string
+  conversas: ResumoDeSessao[]
+  atualizadoEm: number
 }
 
 export interface Historico {

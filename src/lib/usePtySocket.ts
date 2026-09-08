@@ -19,6 +19,8 @@ interface ServerMessage {
 interface Options {
   sessionId: string
   cwd: string
+  /** Conversa a retomar ao nascer, quando a aba veio da lista. */
+  resumeId?: string
   /** Recebe o estado da sessao lido do output. */
   onActivity: (state: Activity) => void
   /** Terminal ja montado; o hook so liga os dois lados. */
@@ -30,7 +32,7 @@ interface Options {
  * Liga um xterm a uma sessao de pty no servidor. O processo `claude` vive no
  * backend e sobrevive a reloads: ao reconectar, o servidor repoe o output.
  */
-export function usePtySocket({ sessionId, cwd, getTerm, enabled, onActivity }: Options) {
+export function usePtySocket({ sessionId, cwd, resumeId, getTerm, enabled, onActivity }: Options) {
   const [status, setStatus] = useState<PtyStatus>('connecting')
   const socketRef = useRef<WebSocket | null>(null)
 
@@ -46,6 +48,9 @@ export function usePtySocket({ sessionId, cwd, getTerm, enabled, onActivity }: O
       cols: String(term.cols),
       rows: String(term.rows),
     })
+    // So na primeira conexao: numa reconexao o processo ja existe e o
+    // servidor ignora o parametro, mas mandar de novo confundiria a leitura.
+    if (resumeId) params.set('resume', resumeId)
     const socket = new WebSocket(`${proto}://${location.host}/pty?${params}`)
     socketRef.current = socket
 

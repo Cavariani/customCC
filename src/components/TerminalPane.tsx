@@ -45,6 +45,7 @@ export function TerminalPane({
   const { status } = usePtySocket({
     sessionId: tab.id,
     cwd: tab.cwd,
+    resumeId: tab.resumeId,
     getTerm,
     enabled: ready,
     onActivity: report,

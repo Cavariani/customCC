@@ -27,6 +27,14 @@ export interface SessionOptions {
   rows?: number
   /** Passa `--continue` para retomar o transcript apos uma troca de conta. */
   resume?: boolean
+  /**
+   * Retoma uma conversa especifica, por id.
+   *
+   * Diferente do `resume`: aquele pega a conversa mais recente da pasta,
+   * que serve para a troca de conta mas nao para abrir uma conversa
+   * escolhida numa lista. Aqui o id vem de quem clicou.
+   */
+  resumeId?: string
   /** Token da conta ativa. Ausente = usa a credencial ambiente do usuario. */
   token?: string
 }
@@ -104,7 +112,11 @@ export function startSession(opts: SessionOptions): Session {
   // nunca era encontrado. Consequencia: a troca de conta caia para sessao
   // limpa e perdia o contexto sem dizer nada.
   const cwd = realPath(opts.cwd ? expandHome(opts.cwd) : DEFAULT_CWD)
-  const args = opts.resume ? ['--continue'] : []
+  const args = opts.resumeId
+    ? ['--resume', opts.resumeId]
+    : opts.resume
+      ? ['--continue']
+      : []
 
   // O token entra so como variavel de ambiente do subprocesso: quem fala com
   // a Anthropic e o binario oficial, nunca este servidor.

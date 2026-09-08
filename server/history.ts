@@ -56,6 +56,39 @@ function ehObjeto(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
+/**
+ * Texto util de uma mensagem do usuario, para virar nome da conversa.
+ *
+ * Descarta os invólucros que o proprio Claude Code injeta — saida de
+ * comando local, lembrete de sistema, resultado de ferramenta — porque
+ * nenhum deles foi escrito por quem abriu a conversa.
+ */
+function textoDoPedido(message: unknown): string | null {
+  let cru: string | null = null
+  if (typeof message === 'string') cru = message
+  else if (ehObjeto(message)) {
+    const c = message.content
+    if (typeof c === 'string') cru = c
+    else if (Array.isArray(c)) {
+      for (const bloco of c) {
+        if (ehObjeto(bloco) && bloco.type === 'text' && typeof bloco.text === 'string') {
+          cru = bloco.text
+          break
+        }
+      }
+    }
+  }
+  if (!cru) return null
+
+  const limpo = cru.trim()
+  if (!limpo || limpo.startsWith('<')) return null
+
+  // Uma linha so, e curta: e rotulo de lista, nao resumo.
+  const linha = limpo.split('\n').find((l) => l.trim().length > 0)?.trim()
+  if (!linha) return null
+  return linha.length > 64 ? `${linha.slice(0, 63)}…` : linha
+}
+
 function numero(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0
 }
@@ -96,6 +129,7 @@ async function resumir(file: string, sessionId: string): Promise<ResumoDeSessao 
   }
 
   const porModelo = new Map<string, { tokens: number; custoUSD: number }>()
+  let primeiroPedido: string | null = null
 
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue
@@ -148,6 +182,15 @@ async function resumir(file: string, sessionId: string): Promise<ResumoDeSessao 
       continue
     }
 
+    // Sem ai-title, o primeiro pedido serve de nome: conversa curta demais
+    // para o Claude Code titular ainda tem um assunto, e "sem titulo"
+    // repetido dez vezes na lista nao ajuda a achar nada.
+    if (e.type === 'user' && primeiroPedido === null) {
+      const texto = textoDoPedido(e.message)
+      if (texto) primeiroPedido = texto
+      continue
+    }
+
     if (e.type !== 'assistant') continue
     const message = e.message
     if (!ehObjeto(message)) continue
@@ -159,6 +202,8 @@ async function resumir(file: string, sessionId: string): Promise<ResumoDeSessao 
     r.saida += numero(usage.output_tokens)
     r.cache += numero(usage.cache_read_input_tokens) + numero(usage.cache_creation_input_tokens)
   }
+
+  if (r.titulo === null && primeiroPedido) r.titulo = primeiroPedido
 
   r.tokens = r.entrada + r.saida + r.cache
   r.projeto = nomeDoProjeto(r.cwd)
@@ -269,6 +314,47 @@ export async function lerHistorico(dias = 30, limite = 200): Promise<Historico> 
     .sort((a, b) => b.custoUSD - a.custoUSD || b.tokens - a.tokens)
 
   return { sessoes, totais, projetos }
+}
+
+export interface ProjetoComConversas {
+  nome: string
+  cwd: string
+  conversas: ResumoDeSessao[]
+  /** Ultimo uso do projeto: e por ele que a lista se ordena. */
+  atualizadoEm: number
+}
+
+/**
+ * As conversas agrupadas por projeto, como uma barra lateral de chat.
+ *
+ * O Claude Code ja guarda um diretorio por projeto em ~/.claude/projects,
+ * entao o agrupamento existe no disco desde sempre — o que faltava era
+ * alguem mostrar. Aqui o agrupamento sai do `cwd` gravado dentro do
+ * transcript, e nao do nome do diretorio: o slug e lossy (todo caractere
+ * nao alfanumerico vira hifen) e duas pastas diferentes podem colidir nele.
+ */
+export async function lerConversas(dias = 90, porProjeto = 40): Promise<ProjetoComConversas[]> {
+  const { sessoes } = await lerHistorico(dias, 500)
+
+  const mapa = new Map<string, ProjetoComConversas>()
+  for (const s of sessoes) {
+    // Sessao sem cwd nao pertence a projeto nenhum e nao tem onde ser
+    // retomada; deixa-la de fora e melhor que criar um grupo fantasma.
+    if (!s.cwd) continue
+    const grupo = mapa.get(s.cwd) ?? {
+      nome: s.projeto,
+      cwd: s.cwd,
+      conversas: [],
+      atualizadoEm: 0,
+    }
+    grupo.conversas.push(s)
+    grupo.atualizadoEm = Math.max(grupo.atualizadoEm, s.atualizadaEm)
+    mapa.set(s.cwd, grupo)
+  }
+
+  return [...mapa.values()]
+    .map((g) => ({ ...g, conversas: g.conversas.slice(0, porProjeto) }))
+    .sort((a, b) => b.atualizadoEm - a.atualizadoEm)
 }
 
 function zerado() {

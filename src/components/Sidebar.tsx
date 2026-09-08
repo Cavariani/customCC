@@ -1,4 +1,12 @@
-import { GitBranch, History, Radio, SlidersHorizontal, SquareStack, Users } from 'lucide-react'
+import {
+  GitBranch,
+  History,
+  MessagesSquare,
+  Radio,
+  SlidersHorizontal,
+  SquareStack,
+  Users,
+} from 'lucide-react'
 import type { ViewName } from '../types'
 
 interface RailItem {
@@ -13,6 +21,7 @@ const ITEMS: RailItem[] = [
   // Contas em azul, e nao no vermelho do tema: vermelho num icone de
   // navegacao le como alerta, e este fica aceso o tempo todo.
   { view: 'accounts', label: 'contas', Icon: Users, color: 'var(--blue)' },
+  { view: 'conversas', label: 'conversas', Icon: MessagesSquare, color: 'var(--hl-string)' },
   { view: 'fleet', label: 'frota', Icon: Radio, color: 'var(--hl-function)' },
   { view: 'git', label: 'git', Icon: GitBranch, color: 'var(--green)' },
   { view: 'diff', label: 'mudancas', Icon: SquareStack, color: 'var(--warn)' },

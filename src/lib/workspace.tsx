@@ -64,7 +64,7 @@ interface Workspace {
   activeTabId: string
   activeTab: TerminalTab
   setActiveTabId: (id: string) => void
-  openTab: (cwd?: string) => void
+  openTab: (cwd?: string, conversa?: { id: string; titulo?: string | null }) => void
   closeTab: (id: string) => void
   renameTab: (id: string, title: string) => void
 
@@ -318,12 +318,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   )
 
   const openTab = useCallback(
-    (cwd?: string) => {
+    (cwd?: string, conversa?: { id: string; titulo?: string | null }) => {
       tabSeqRef.current += 1
       const id = `tab-${tabSeqRef.current}`
       const folder = cwd ?? info?.defaultCwd ?? ''
-      const name = folder.split(/[/\\]/).filter(Boolean).pop() ?? `terminal ${tabSeqRef.current}`
-      setTabs((prev) => [...prev, { id, title: name, cwd: folder }])
+      const pasta = folder.split(/[/\\]/).filter(Boolean).pop() ?? `terminal ${tabSeqRef.current}`
+      // Vindo da lista de conversas, a aba se chama como a conversa; o nome
+      // da pasta ali seria repetido em todas as abas do mesmo projeto.
+      const name = conversa?.titulo?.trim() || pasta
+      setTabs((prev) => [...prev, { id, title: name, cwd: folder, resumeId: conversa?.id }])
       setActiveTabId(id)
     },
     [info],
