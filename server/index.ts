@@ -9,6 +9,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import { DEFAULT_CWD, PORT, expandHome, resolveClaudeBin } from './config.js'
 import { readGitState } from './git.js'
 import { backupContentFor, readChanges } from './changes.js'
+import { lerFrota } from './fleet.js'
 import { lerHistorico } from './history.js'
 import { listHunks, stageHunk, unstageHunk } from './hunks.js'
 import {
@@ -308,6 +309,21 @@ app.get('/api/history', async (req, res) => {
   try {
     const dias = Number(req.query.dias ?? 30)
     res.json(await lerHistorico(Number.isFinite(dias) && dias > 0 ? Math.min(dias, 365) : 30))
+  } catch (error) {
+    res.status(500).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/**
+ * Sessoes do Claude Code vivas nesta maquina, e tarefas de fundo.
+ *
+ * Sai de ~/.claude/sessions, onde cada processo mantem um arquivo com o
+ * proprio estado. O painel so sabia da aba que ele mesmo abriu.
+ */
+app.get('/api/fleet', async (req, res) => {
+  try {
+    const atual = typeof req.query.sessao === 'string' ? req.query.sessao : undefined
+    res.json(await lerFrota(atual))
   } catch (error) {
     res.status(500).json({ error: String(error instanceof Error ? error.message : error) })
   }

@@ -36,7 +36,7 @@ interface Props {
 
 /**
  * Tudo o que o painel faz, alcancavel sem tirar a mao do teclado. A busca e
- * por subsequencia, entao "atc2" encontra "ativar conta 2".
+ * por subsequencia, entao "lgc2" encontra "logar conta 2".
  */
 export function CommandPalette({ commands, onClose }: Props) {
   const [query, setQuery] = useState('')

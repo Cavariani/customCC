@@ -866,6 +866,105 @@ button.arow__acao--bloq:hover:not(:disabled) {
   border-top: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
 }
 
+/* ── Frota: as sessoes vivas na maquina ──────────────────────────────
+   Um mascote por sessao, na cor do estado dela. O bicho so anda quando o
+   heartbeat diz "busy": animar sem dado seria inventar trabalho. */
+
+.fv {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 14px 12px;
+}
+
+.fv__topo { flex: none; }
+.fv__linha { display: flex; align-items: baseline; gap: 7px; }
+
+.fv__v {
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 600;
+  color: var(--red);
+  font-variant-numeric: tabular-nums;
+}
+
+.fv__k { color: var(--color-muted); }
+
+.fv__split {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--color-muted-alt);
+}
+
+.fv__split b { font-weight: 600; font-size: 12.5px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.fv__split b.fv__on { color: var(--green); }
+
+.fv__lista { flex: 1; min-height: 0; overflow-y: auto; }
+
+.fvs { display: flex; align-items: center; gap: 12px; padding: 10px 0; min-width: 0; }
+.fvs + .fvs { border-top: 1px solid color-mix(in srgb, var(--color-muted) 12%, transparent); }
+
+.fvs__bicho { flex: none; width: 34px; height: 34px; display: grid; place-items: center; }
+.fvs__dados { flex: 1; min-width: 0; }
+
+.fvs__linha { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+
+.fvs__nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--fg);
+  font-variant-ligatures: none;
+}
+
+.fvs__aqui {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--panel);
+  background: var(--color-muted);
+  padding: 1px 5px;
+}
+
+.fvs__estado {
+  margin-left: auto;
+  flex: none;
+  font-size: 11px;
+  color: var(--color-muted-alt);
+}
+
+.fvs--busy .fvs__estado { color: var(--green); }
+
+.fvs__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-muted-alt);
+}
+
+.fvs__proj { color: var(--color-muted); }
+.fvs__desde { margin-left: auto; }
+
+/* ── O mascote ────────────────────────────────────────────────────────── */
+
+.masc { display: block; }
+.masc rect { fill: var(--color-muted-alt); }
+.masc--busy rect { fill: var(--green); }
+
+/* transform-box: as animacoes usam translate em unidade do viewBox, que e
+   16 de largura; sem isso o passo de 1px sairia gigante. */
+.masc g { transform-box: fill-box; }
+
+.masc--busy .masc__corpo { animation: masc-corpo 0.5s steps(2, end) infinite; }
+.masc--busy .masc__pe--esq { animation: masc-pe-a 0.5s steps(2, end) infinite; }
+.masc--busy .masc__pe--dir { animation: masc-pe-b 0.5s steps(2, end) infinite; }
+
 /* ── Historico de sessoes ─────────────────────────────────────────────
    A unica tela que olha para tras. O dado ja estava no disco, na linha
    cost-state de cada transcript, e nao era lido por ninguem. */

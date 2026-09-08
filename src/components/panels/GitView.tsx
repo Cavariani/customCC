@@ -165,7 +165,7 @@ export function GitView() {
               }
             }}
           />
-          {/* Faixa de largura total, como o ativar das contas. */}
+          {/* Faixa de largura total, como a acao das contas. */}
           <button
             type="button"
             className="gv__acao"

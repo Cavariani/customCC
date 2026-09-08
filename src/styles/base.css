@@ -84,6 +84,23 @@ button {
   50% { opacity: 0.45; transform: scale(0.82); }
 }
 
+/* O mascote caminhando: o corpo sobe e desce e as pernas alternam. Sao
+   dois movimentos porque um so faz o bicho deslizar em vez de andar. */
+@keyframes masc-corpo {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.6px); }
+}
+
+@keyframes masc-pe-a {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+@keyframes masc-pe-b {
+  0%, 100% { transform: translateY(-1px); }
+  50% { transform: translateY(0); }
+}
+
 @keyframes row-flash {
   from { background: color-mix(in srgb, var(--warn) 24%, transparent); }
   to { background: transparent; }

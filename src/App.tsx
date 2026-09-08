@@ -10,6 +10,7 @@ import { LimitToast } from './components/LimitToast'
 import { AccountsView } from './components/panels/AccountsView'
 import { GitView } from './components/panels/GitView'
 import { DiffView } from './components/panels/DiffView'
+import { FleetView } from './components/panels/FleetView'
 import { HistoryView } from './components/panels/HistoryView'
 import { SettingsView } from './components/panels/SettingsView'
 import { useWorkspace } from './lib/workspace'
@@ -25,6 +26,7 @@ import type { ViewName } from './types'
 
 const VIEW_TITLE: Record<ViewName, string> = {
   accounts: 'contas',
+  fleet: 'frota',
   git: 'git',
   diff: 'mudancas',
   history: 'historico',
@@ -92,7 +94,7 @@ export default function App() {
       lista.push({
         id: `conta-${conta.id}`,
         group: 'conta',
-        label: `ativar ${conta.label}`,
+        label: `logar ${conta.label}`,
         keywords: `trocar ${conta.id} ${conta.email ?? ''}`,
         hint: conta.tokenIssue ? 'sem token' : undefined,
         Icon: CMD_ICONS.Zap,
@@ -198,6 +200,7 @@ export default function App() {
           ) : (
             <ErrorBoundary area={`painel de ${VIEW_TITLE[view]}`}>
               {view === 'accounts' && <AccountsView />}
+              {view === 'fleet' && <FleetView />}
               {view === 'git' && <GitView />}
               {view === 'diff' && <DiffView />}
               {view === 'history' && <HistoryView />}

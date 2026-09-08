@@ -171,13 +171,14 @@ function Row({ account, now, switching, onSwitch }: RowProps) {
   // oposto do que acontece: no reset o consumo da janela volta a zero, ou
   // seja, a conta melhora — nao para de servir. Numa conta bloqueada o
   // mesmo instante e quando ela volta, entao o texto muda com o estado.
-  const legenda = bloqueada
-    ? resta === null
-      ? 'no limite'
-      : `volta em ${regressivo(resta)}`
-    : resta === null
-      ? 'janela fechada'
-      : `reseta em ${regressivo(resta)}`
+  // Zerado nao vira "reseta em 00:00": a frase perde o sentido no instante
+  // em que o numero chega la, e o botao fica melhor so com o rotulo.
+  const legenda =
+    resta === null || resta < 1000
+      ? null
+      : bloqueada
+        ? `volta em ${regressivo(resta)}`
+        : `reseta em ${regressivo(resta)}`
 
   return (
     <div
@@ -221,7 +222,7 @@ function Row({ account, now, switching, onSwitch }: RowProps) {
         {isActive ? (
           <span className="arow__acao arow__acao--uso">
             <b>em uso</b>
-            <small>{legenda}</small>
+            {legenda && <small>{legenda}</small>}
           </span>
         ) : (
           <button
@@ -235,8 +236,8 @@ function Row({ account, now, switching, onSwitch }: RowProps) {
                 : `sem token valido: ${TOKEN_ISSUE[account.tokenIssue]}`
             }
           >
-            <b>{account.tokenIssue === null ? 'ativar' : 'ativar sem token'}</b>
-            <small>{legenda}</small>
+            <b>{account.tokenIssue === null ? 'logar' : 'logar sem token'}</b>
+            {legenda && <small>{legenda}</small>}
           </button>
         )}
       </div>

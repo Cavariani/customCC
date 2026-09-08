@@ -118,7 +118,35 @@ export interface ChangesResult {
   totals: { added: number; removed: number }
 }
 
-export type ViewName = 'accounts' | 'git' | 'diff' | 'history' | 'settings'
+export type ViewName = 'accounts' | 'fleet' | 'git' | 'diff' | 'history' | 'settings'
+
+export interface SessaoViva {
+  pid: number
+  sessionId: string
+  nome: string
+  projeto: string
+  cwd: string
+  kind: string
+  versao: string
+  estado: 'busy' | 'idle'
+  iniciadaEm: number
+  desdeMs: number
+  ehEstaAba: boolean
+}
+
+export interface TarefaDeFundo {
+  id: string
+  nome: string
+  projeto: string
+  estado: string
+  criadaEm: number
+  atualizadaEm: number
+}
+
+export interface Frota {
+  sessoes: SessaoViva[]
+  tarefas: TarefaDeFundo[]
+}
 
 export interface ModeloDaSessao {
   nome: string
