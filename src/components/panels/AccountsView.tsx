@@ -2,6 +2,7 @@ import { useWorkspace } from '../../lib/workspace'
 import { useNow } from '../../lib/useNow'
 import { useCountUp } from '../../lib/useCountUp'
 import { WindowBars } from '../WindowBars'
+import { AccountTimeline } from '../AccountTimeline'
 import {
   STATUS_LABEL,
   formatAgo,
@@ -23,7 +24,7 @@ const CELULAS = 24
 // As animacoes ja tem interruptor global em [data-animations='false'], entao
 // o bloco nao precisa carregar a preferencia ate cada linha.
 export function AccountsView() {
-  const { accounts, switching, switchAccount } = useWorkspace()
+  const { accounts, switching, switchAccount, periods } = useWorkspace()
   const now = useNow()
 
   if (accounts.length === 0) {
@@ -33,6 +34,10 @@ export function AccountsView() {
   return (
     <div className="acct">
       <Total accounts={accounts} />
+
+      {/* Quem esteve ativo ao longo do dia. O estado ja guardava isso para
+          atribuir os tokens; aqui ele finalmente aparece. */}
+      <AccountTimeline periods={periods} now={now} />
 
       {/* Regua de titulos, como a linha de cabecalho do `top`. */}
       <div className="acct__cols">

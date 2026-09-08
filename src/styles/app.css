@@ -303,6 +303,49 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Linha do tempo das contas ────────────────────────────────────────
+   Faixa fina com quem esteve ativo. Sem cor por conta: a identidade vem
+   do numeral dentro do bloco, para nao competir com o codigo de cores de
+   estado que o resto do painel usa. */
+.linha {
+  position: relative;
+  flex: none;
+  height: 13px;
+  margin-top: 8px;
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+  overflow: hidden;
+}
+
+.linha__marca {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--fg) 12%, transparent);
+}
+
+.linha__bloco {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-muted) 42%, transparent);
+  /* Fresta entre blocos vizinhos: sem ela duas trocas seguidas viram um
+     bloco continuo e a faixa mente sobre quantas houve. */
+  box-shadow: inset -1px 0 0 var(--panel);
+}
+
+.linha__bloco.is-atual { background: color-mix(in srgb, var(--red) 62%, transparent); }
+
+.linha__n {
+  font-size: 9px;
+  line-height: 1;
+  color: var(--panel);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Regua de titulos, como a linha de cabecalho do `top`. */
 .acct__cols {
   flex: none;

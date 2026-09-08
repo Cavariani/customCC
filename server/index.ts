@@ -22,6 +22,7 @@ import {
   ACCOUNT_IDS,
   getActiveAccountId,
   getAutoSwitch,
+  periodosRecentes,
   proximaContaDisponivel,
   setAutoSwitch,
   clearRateLimited,
@@ -258,7 +259,11 @@ app.post('/api/changes/revert', async (req, res) => {
 
 app.get('/api/accounts', async (_req, res) => {
   try {
-    res.json({ accounts: await summarizeAccounts(), activeId: await getActiveAccountId() })
+    res.json({
+      accounts: await summarizeAccounts(),
+      activeId: await getActiveAccountId(),
+      periods: await periodosRecentes(),
+    })
   } catch (error) {
     res.status(500).json({ error: String(error) })
   }

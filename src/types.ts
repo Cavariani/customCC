@@ -3,6 +3,13 @@ export type AccountId = 1 | 2 | 3
 export const WINDOW_MS = 5 * 60 * 60 * 1000
 
 /** Espelha o AccountSummary do servidor. */
+/** Trecho em que uma conta esteve ativa. `to` null e o periodo atual. */
+export interface Periodo {
+  accountId: AccountId
+  from: number
+  to: number | null
+}
+
 /** Quanto uma origem consumiu na janela: serve para modelo e para projeto. */
 export interface Fatia {
   nome: string

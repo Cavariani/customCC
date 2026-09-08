@@ -519,6 +519,27 @@ function nomeDoProjeto(cwd: string | undefined): string {
   return partes[partes.length - 1] || cwd
 }
 
+/** Trecho em que uma conta esteve ativa, para a linha do tempo da UI. */
+export interface PeriodoResumo {
+  accountId: AccountId
+  from: number
+  /** null enquanto o periodo for o atual. */
+  to: number | null
+}
+
+/**
+ * Periodos que tocam as ultimas `horas`. Cortamos no comeco da janela em
+ * vez de devolver o historico inteiro: o state.json acumula desde sempre e
+ * a UI so desenha o que cabe na faixa.
+ */
+export async function periodosRecentes(horas = 12): Promise<PeriodoResumo[]> {
+  const state = await loadState()
+  const inicio = Date.now() - horas * 60 * 60 * 1000
+  return state.periods
+    .filter((p) => p.to === null || p.to >= inicio)
+    .map((p) => ({ accountId: p.accountId, from: Math.max(p.from, inicio), to: p.to }))
+}
+
 export async function getAutoSwitch(): Promise<boolean> {
   return (await loadState()).autoSwitch
 }
