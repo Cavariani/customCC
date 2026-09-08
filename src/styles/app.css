@@ -364,7 +364,12 @@
 .acct__c-name { flex: 1; }
 .acct__c-v { width: 62px; text-align: right; }
 
-/* ── Uma conta ───────────────────────────────────────────────────────── */
+/* ── Uma conta ───────────────────────────────────────────────────────
+   Cada conta e uma grade de pares rotulo/valor. As colunas caem no mesmo
+   lugar nas tres, entao a simetria vem da estrutura e nao de ajuste fino.
+   Nenhum desenho por conta: o grafico de 30 fatias saiu porque tinha uma
+   fatia com dado em trinta nas contas paradas — 95% da area era trilho
+   vazio, e ele ainda era o elemento eleito para absorver a folga. */
 
 .acct__rows { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
@@ -373,9 +378,14 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-top: 11px;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 0;
   animation: bay-in 0.45s var(--ease) backwards;
 }
+
+/* Filete entre contas. Separa sem virar caixa. */
+.arow + .arow { border-top: 1px solid color-mix(in srgb, var(--color-muted) 14%, transparent); }
 
 .arow__1 { display: flex; align-items: baseline; }
 
@@ -412,150 +422,138 @@
   color: var(--fg);
   font-variant-numeric: tabular-nums;
 }
+.arow.is-on .arow__v { color: var(--red); }
 
-/* Linha 2: o medidor em bloco, sozinho na linha. O mesmo glifo em duas
-   cores alinha por construcao, e a meia unidade de espacamento faz o
-   serrilhado ler como segmento proposital. */
-.arow__2 {
-  display: flex;
-  align-items: baseline;
-  margin-top: 3px;
-  padding-left: 30px;
-}
-
-.arow__bar {
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  font-variant-ligatures: none;
-}
-
-.arow__bar-fill { color: var(--color-muted); }
-.arow__bar-rest { color: color-mix(in srgb, var(--color-muted) 22%, transparent); }
-.arow.is-on .arow__bar-fill { color: var(--red); }
-.arow--limited .arow__bar-fill { color: var(--color-error); }
-
-.arow__pct {
-  margin-left: 8px;
-  font-size: 10.5px;
-  color: var(--fg);
-  font-variant-numeric: tabular-nums;
-}
-
-.arow__reset {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  font-size: 10.5px;
-  color: var(--fg);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.arow__reset em { font-style: normal; color: var(--green); }
-
-/* Linha 3: o grafico de consumo. E ele que absorve a folga de altura,
-   entao o bloco preenche o painel sem que o texto precise inchar. */
-.arow__graph {
-  flex: 1;
-  min-height: 34px;
-  margin: 6px 0 0 30px;
-}
-
-/* Linha 4: a reparticao dos tokens, em colunas alinhadas. Entrada, saida
-   e cache vinham somados num numero so; medido nos transcripts reais o
-   cache e ~98% do total, entao o numero de cima sozinho dizia pouco. */
-.arow__split {
+/* A grade: duas colunas de pares, alinhadas entre as tres contas. */
+.arow__grade {
   display: grid;
-  grid-template-columns: 52px 58px 14px 52px 1fr;
-  margin: 5px 0 0 30px;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+  margin-left: 30px;
+}
+
+.par { display: flex; align-items: baseline; gap: 8px; font-size: 10.5px; }
+.par__k { color: var(--color-muted-alt); }
+.par__v {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.arow.is-on .par__v { color: var(--red); }
+
+/* Medidor da janela: barra que estica ate a borda, com as celulas
+   desenhadas em gradiente. Com o glifo repetido o numero de celulas era
+   fixo e a barra morria no meio da largura, deixando meia linha vazia. */
+.arow__medidor {
+  position: relative;
+  height: 11px;
+  margin-left: 30px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-muted) 22%, transparent) 0 6px,
+      transparent 6px 8px
+    );
+}
+
+.arow__bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background:
+    repeating-linear-gradient(90deg, var(--color-muted) 0 6px, transparent 6px 8px);
+}
+
+.arow.is-on .arow__bar-fill {
+  background: repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px);
+}
+
+.arow--limited .arow__bar-fill {
+  background: repeating-linear-gradient(90deg, var(--color-error) 0 6px, transparent 6px 8px);
+}
+
+/* Rodape de altura fixa nas tres contas: a ativa mostra o estado no lugar
+   exato onde as outras mostram o botao. Era a diferenca de altura entre
+   quem tinha botao e quem nao tinha que deixava a coluna torta. */
+.arow__rod {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  margin-left: 30px;
+}
+
+.arow__emuso {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+  border: 1px solid transparent;
+  padding: 2px 0;
+}
+
+.arow__acao {
+  padding: 2px 12px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+
+.arow__acao:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 22%, transparent);
+  border-color: var(--red);
+}
+
+.arow__acao:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Destino e ritmo ──────────────────────────────────────────────────
+   Para onde os tokens foram e a que velocidade. As duas coisas o painel
+   ja calculava e nunca mostrou; sao elas que ocupam o espaco que era do
+   grafico. */
+.destino {
+  flex: none;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+
+.destino__t {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+}
+
+.destino__kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1px 10px;
   font-size: 10.5px;
   color: var(--color-muted-alt);
 }
 
-.arow__split b {
+.destino__kv b {
   font-weight: 400;
   color: var(--fg);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-.arow__split .arow__l { text-align: left; padding-left: 8px; }
-.arow__split .arow__sp { text-align: center; opacity: 0.5; }
-
-/* Conta ativa: os numeros dela viram vermelhos em bloco, entao a linha
-   inteira se identifica sem precisar de caixa nem de fundo. */
-.arow.is-on .arow__n,
-.arow.is-on .arow__v,
-.arow.is-on .arow__pct,
-.arow.is-on .arow__reset,
-.arow.is-on .arow__split b {
-  color: var(--red);
-}
-
-/* Origem do gasto: modelo e projeto, numa linha so e no tom dos rotulos. */
-.arow__origem {
-  display: flex;
-  gap: 7px;
-  margin: 3px 0 0 30px;
-  font-size: 10.5px;
-  color: var(--color-muted-alt);
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.arow__origem b { font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
-.arow.is-on .arow__origem b { color: var(--red); }
-.arow__dim { opacity: 0.6; }
-
-.arow__do { margin: 7px 0 0 30px; }
-
-.arow__do button {
-  padding: 3px 11px;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--red);
-  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
-  background: color-mix(in srgb, var(--red) 8%, transparent);
-  transition: background 0.18s var(--ease), border-color 0.18s var(--ease);
-}
-
-.arow__do button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--red) 20%, transparent);
-  border-color: var(--red);
-}
-
-.arow__do button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ── O traco do consumo ──────────────────────────────────────────────── */
-
-.scope__svg { display: block; width: 100%; height: 100%; overflow: visible; }
-
-.scope__trace {
-  fill: none;
-  stroke-width: 1.25;
-  vector-effect: non-scaling-stroke;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 /* O traco se desenha uma vez, quando chega consumo novo. O que fica
    ciclando e so o feixe, devagar: sinal de vivo sem puxar o olho. Sem o
    drop-shadow de antes, que era o glow. */
-.scope__svg.is-live .scope__trace {
-  stroke-dasharray: 620;
-  animation: trace 1.1s var(--ease) 1;
-}
 
 @keyframes trace {
   from { stroke-dashoffset: 620; }
   to { stroke-dashoffset: 0; }
 }
-
-.scope__area { stroke: none; }
-.scope__now { stroke-width: 1; opacity: 0.3; vector-effect: non-scaling-stroke; }
 
 .spin { animation: spin 0.9s linear infinite; }
 
@@ -1340,7 +1338,6 @@
 
 .bars__slot.is-future { background: color-mix(in srgb, var(--fg) 4%, transparent); }
 
-
 .bars__fill {
   width: 100%;
   height: var(--h);
@@ -1657,22 +1654,16 @@
 .arow.is-switching { opacity: 0.75; }
 
 .arow.is-switching .arow__v,
-.arow.is-switching .arow__reset,
-.arow.is-switching .arow__split b {
+.arow.is-switching .par__v {
   opacity: 0.35;
   filter: blur(1px);
+}
+
+/* Os numeros voltam suave quando a troca termina. */
+.arow__v,
+.par__v {
   transition: opacity 0.2s var(--ease), filter 0.2s var(--ease);
 }
-
-.arow.is-switching .scope__trace { opacity: 0.3; }
-
-.arow__v,
-.arow__reset,
-.arow__split b {
-  transition: opacity 0.35s var(--ease), filter 0.35s var(--ease), color 0.3s var(--ease);
-}
-
-/* A baia que acabou de assumir passa o barramento uma vez, mais rapido. */
 
 /* O texto embaralhado nao pode empurrar o layout enquanto assenta. */
 .arow__name, .status__item { font-variant-ligatures: none; }

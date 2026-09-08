@@ -1,13 +1,13 @@
 import { useWorkspace } from '../../lib/workspace'
 import { useNow } from '../../lib/useNow'
 import { useCountUp } from '../../lib/useCountUp'
-import { WindowBars } from '../WindowBars'
 import { AccountTimeline } from '../AccountTimeline'
 import {
   STATUS_LABEL,
   formatAgo,
   formatTokens,
   getStatus,
+  ritmoDaJanela,
   windowRatio,
 } from '../../lib/format'
 import type { Account, Fatia } from '../../types'
@@ -17,9 +17,6 @@ const TOKEN_ISSUE: Record<string, string> = {
   malformed: 'token com espaco ou quebra de linha, ou sem prefixo sk-ant-oat',
   truncated: 'token curto demais, provavelmente cortado ao colar',
 }
-
-/** Celulas do medidor em bloco. */
-const CELULAS = 24
 
 // As animacoes ja tem interruptor global em [data-animations='false'], entao
 // o bloco nao precisa carregar a preferencia ate cada linha.
@@ -31,15 +28,14 @@ export function AccountsView() {
     return <div className="acct acct--empty">carregando contas...</div>
   }
 
+  const total = accounts.reduce((t, a) => t + a.tokensUsed, 0)
+
   return (
     <div className="acct">
-      <Total accounts={accounts} />
+      <Total accounts={accounts} total={total} />
 
-      {/* Quem esteve ativo ao longo do dia. O estado ja guardava isso para
-          atribuir os tokens; aqui ele finalmente aparece. */}
       <AccountTimeline periods={periods} now={now} />
 
-      {/* Regua de titulos, como a linha de cabecalho do `top`. */}
       <div className="acct__cols">
         <span className="acct__c-n">#</span>
         <span className="acct__c-name">conta</span>
@@ -52,22 +48,24 @@ export function AccountsView() {
             key={account.id}
             account={account}
             now={now}
+            total={total}
             switching={switching}
             onSwitch={() => switchAccount(account.id)}
           />
         ))}
       </div>
+
+      <Destino accounts={accounts} now={now} />
     </div>
   )
 }
 
 /**
- * O total das tres contas, que e o numero que resume o painel. Fica no
- * corpo normal: o peso vem da posicao e do contraste, nao de escala.
+ * O total das tres contas. Fica no corpo normal: o peso vem da posicao e
+ * do contraste, nao de escala de poster.
  */
-function Total({ accounts }: { accounts: Account[] }) {
+function Total({ accounts, total }: { accounts: Account[]; total: number }) {
   const soma = (pick: (a: Account) => number) => accounts.reduce((t, a) => t + pick(a), 0)
-  const total = soma((a) => a.tokensUsed)
   const cache = soma((a) => a.cacheTokens)
   const animado = useCountUp(total)
 
@@ -86,8 +84,6 @@ function Total({ accounts }: { accounts: Account[] }) {
         <span>
           saida <b>{formatTokens(soma((a) => a.outputTokens))}</b>
         </span>
-        {/* O cache e ~98% do total na pratica: mostrar a fatia evita ler o
-            numero de cima como se fosse consumo novo. */}
         <span>
           cache <b>{total === 0 ? '--' : `${Math.round((cache / total) * 100)}%`}</b>
         </span>
@@ -96,56 +92,40 @@ function Total({ accounts }: { accounts: Account[] }) {
   )
 }
 
-/** Ate duas origens, com fatia percentual so quando ha mais de uma. */
-function Origem({ fatias, total }: { fatias: Fatia[]; total: number }) {
-  if (fatias.length === 0) return <span className="arow__dim">--</span>
-  if (fatias.length === 1) return <span>{fatias[0].nome}</span>
-
-  const pct = (t: number) => Math.round((t / Math.max(total, 1)) * 100)
-  const resto = fatias.length - 2
-  return (
-    <span>
-      {fatias.slice(0, 2).map((f, i) => (
-        <span key={f.nome}>
-          {i > 0 && ' '}
-          {f.nome} <b>{pct(f.tokens)}%</b>
-        </span>
-      ))}
-      {resto > 0 && <span className="arow__dim"> +{resto}</span>}
-    </span>
-  )
-}
-
 /** Horario local no formato 24h, que e como o Pedro le a hora. */
 function clockOf(at: number): string {
   return new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
+/** Par rotulo/valor. A grade de duas colunas e feita destes. */
+function Par({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="par">
+      <span className="par__k">{k}</span>
+      <b className="par__v">{v}</b>
+    </div>
+  )
+}
+
 interface RowProps {
   account: Account
   now: number
+  total: number
   switching: boolean
   onSwitch: () => void
 }
 
-function Row({ account, now, switching, onSwitch }: RowProps) {
+function Row({ account, now, total, switching, onSwitch }: RowProps) {
   const status = getStatus(account, now)
   const elapsed = windowRatio(account, now)
   const tokens = useCountUp(account.tokensUsed)
   const isActive = account.active
-
-  // Uma cor por estado: o ativo e o destaque, os outros recuam para cinza
-  // em vez de disputarem atencao.
-  const accent =
-    status === 'limited' ? 'var(--color-error)' : isActive ? 'var(--red)' : 'var(--color-muted)'
-
-  const cheias = Math.round(Math.min(1, Math.max(0, elapsed)) * CELULAS)
+  const fatia = total === 0 ? 0 : (account.tokensUsed / total) * 100
 
   return (
     <div
       className={`arow arow--${status}${isActive ? ' is-on' : ''}${switching ? ' is-switching' : ''}`}
     >
-      {/* Linha 1: marca, indice, nome, estado e o total da janela. */}
       <div className="arow__1">
         <span className="arow__mark" aria-hidden="true">
           ▌
@@ -160,59 +140,45 @@ function Row({ account, now, switching, onSwitch }: RowProps) {
         <span className="arow__v">{formatTokens(Math.round(tokens))}</span>
       </div>
 
-      {/* Linha 2: o medidor em bloco, sozinho na linha. Mesmo glifo em duas
-          cores, entao as celulas alinham por construcao. */}
-      <div className="arow__2">
-        <span className="arow__bar" aria-hidden="true">
-          <span className="arow__bar-fill">{'█'.repeat(cheias)}</span>
-          <span className="arow__bar-rest">{'█'.repeat(CELULAS - cheias)}</span>
-        </span>
-        <span className="arow__pct">{Math.round(elapsed * 100)}%</span>
-        <span className="arow__reset">
-          {account.resetSource === 'observed' && <em title="reset lido do terminal">◎</em>}
-          {account.resetAt === null ? '↺ --:--' : `↺ ${clockOf(account.resetAt)}`}
-        </span>
+      {/* Grade de pares em duas colunas. As colunas caem no mesmo lugar nas
+          tres contas, entao a simetria vem da estrutura e nao de ajuste. */}
+      <div className="arow__grade">
+        <Par k="janela" v={`${Math.round(elapsed * 100)}%`} />
+        <Par k="reinicia" v={account.resetAt === null ? '--:--' : clockOf(account.resetAt)} />
+        <Par k="entrada" v={formatTokens(account.inputTokens)} />
+        <Par k="saida" v={formatTokens(account.outputTokens)} />
+        <Par k="cache" v={formatTokens(account.cacheTokens)} />
+        <Par
+          k="ultimo"
+          v={account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
+        />
+        <Par k="sessoes" v={String(account.sessions)} />
+        {/* A fatia no total e o dado que mais decide qual conta usar, e nao
+            aparecia em lugar nenhum do painel antigo. */}
+        <Par k="fatia" v={`${fatia.toFixed(1)}%`} />
       </div>
 
-      {/* Linha 3: o consumo por fatia da janela. Barras, e nao curva: o
-          gasto real vem em rajada, entao a curva suave virava um fio reto
-          com um pico numa das pontas. Cada fatia tem trilho proprio, entao
-          a janela zerada ainda le como escala graduada em vez de vao. E
-          ela que absorve a folga de altura do painel. */}
-      <div className="arow__graph">
-        <WindowBars series={account.series} progress={elapsed} accent={accent} />
+      {/* Medidor da janela ocupando a linha inteira. As celulas sao
+          desenhadas em gradiente, e nao com o glifo repetido: com glifo o
+          numero de celulas e fixo e a barra parava no meio da largura,
+          deixando a metade direita vazia. */}
+      <div className="arow__medidor" aria-hidden="true">
+        <span
+          className="arow__bar-fill"
+          style={{ width: `${Math.min(100, Math.max(0, elapsed * 100))}%` }}
+        />
       </div>
 
-      {/* Linha 4: a reparticao dos tokens, em colunas alinhadas. */}
-      <div className="arow__split">
-        <span>entrada</span>
-        <b>{formatTokens(account.inputTokens)}</b>
-        <span className="arow__sp">·</span>
-        <span>cache</span>
-        <b className="arow__l">{formatTokens(account.cacheTokens)}</b>
-
-        <span>saida</span>
-        <b>{formatTokens(account.outputTokens)}</b>
-        <span className="arow__sp">·</span>
-        <span>ultimo</span>
-        <b className="arow__l">
-          {account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
-        </b>
-      </div>
-
-      {/* De onde veio o gasto. Com uma origem so, a porcentagem seria
-          sempre 100% e viraria ruido; ela so aparece quando ha o que
-          comparar. */}
-      <div className="arow__origem">
-        <Origem fatias={account.porModelo} total={account.tokensUsed} />
-        <span className="arow__sp">·</span>
-        <Origem fatias={account.porProjeto} total={account.tokensUsed} />
-      </div>
-
-      {!isActive && (
-        <div className="arow__do">
+      {/* Altura fixa nas tres: a ativa mostra o estado no lugar exato onde
+          as outras mostram o botao. Sem isso as linhas tinham alturas
+          diferentes e a coluna inteira saia torta. */}
+      <div className="arow__rod">
+        {isActive ? (
+          <span className="arow__emuso">em uso</span>
+        ) : (
           <button
             type="button"
+            className="arow__acao"
             disabled={switching}
             onClick={onSwitch}
             title={
@@ -223,8 +189,57 @@ function Row({ account, now, switching, onSwitch }: RowProps) {
           >
             {account.tokenIssue === null ? 'ativar' : 'ativar (sem token)'}
           </button>
-        </div>
-      )}
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Junta as fatias das tres contas numa lista so, ordenada. */
+function junta(accounts: Account[], pick: (a: Account) => Fatia[]): Fatia[] {
+  const mapa = new Map<string, number>()
+  for (const conta of accounts) {
+    for (const f of pick(conta)) mapa.set(f.nome, (mapa.get(f.nome) ?? 0) + f.tokens)
+  }
+  return [...mapa.entries()]
+    .map(([nome, tokens]) => ({ nome, tokens }))
+    .sort((a, b) => b.tokens - a.tokens)
+}
+
+/**
+ * Para onde foi e a que ritmo. O painel ja calculava as duas coisas e
+ * nunca mostrou nenhuma; e o que ocupa o espaco que era do grafico.
+ */
+function Destino({ accounts, now }: { accounts: Account[]; now: number }) {
+  const total = accounts.reduce((t, a) => t + a.tokensUsed, 0)
+  const projetos = junta(accounts, (a) => a.porProjeto)
+  const modelos = junta(accounts, (a) => a.porModelo)
+  const ativa = accounts.find((a) => a.active)
+  const ritmo = ativa ? ritmoDaJanela(ativa, now) : null
+
+  const linha = (fatias: Fatia[]) =>
+    fatias.length === 0
+      ? '--'
+      : fatias
+          .slice(0, 2)
+          .map((f) => `${f.nome} ${total === 0 ? 0 : Math.round((f.tokens / total) * 100)}%`)
+          .join(' · ') + (fatias.length > 2 ? ` +${fatias.length - 2}` : '')
+
+  return (
+    <div className="destino">
+      <h5 className="destino__t">destino e ritmo</h5>
+      <div className="destino__kv">
+        <span>projeto</span>
+        <b>{linha(projetos)}</b>
+        <span>modelo</span>
+        <b>{linha(modelos)}</b>
+        <span>ritmo · projecao</span>
+        <b>
+          {ritmo
+            ? `${formatTokens(Math.round(ritmo.porHora))}/h → ${formatTokens(Math.round(ritmo.projetado))}`
+            : '--'}
+        </b>
+      </div>
     </div>
   )
 }
