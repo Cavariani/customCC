@@ -1,4 +1,4 @@
-import { GitBranch, SlidersHorizontal, SquareStack, Users } from 'lucide-react'
+import { GitBranch, History, SlidersHorizontal, SquareStack, Users } from 'lucide-react'
 import type { ViewName } from '../types'
 
 interface RailItem {
@@ -15,6 +15,7 @@ const ITEMS: RailItem[] = [
   { view: 'accounts', label: 'contas', Icon: Users, color: 'var(--blue)' },
   { view: 'git', label: 'git', Icon: GitBranch, color: 'var(--green)' },
   { view: 'diff', label: 'mudancas', Icon: SquareStack, color: 'var(--warn)' },
+  { view: 'history', label: 'historico', Icon: History, color: 'var(--violet)' },
   { view: 'settings', label: 'ajustes', Icon: SlidersHorizontal, color: 'var(--hl-keyword)' },
 ]
 

@@ -10,6 +10,7 @@ import { LimitToast } from './components/LimitToast'
 import { AccountsView } from './components/panels/AccountsView'
 import { GitView } from './components/panels/GitView'
 import { DiffView } from './components/panels/DiffView'
+import { HistoryView } from './components/panels/HistoryView'
 import { SettingsView } from './components/panels/SettingsView'
 import { useWorkspace } from './lib/workspace'
 import { useTheme } from './theme/useTheme'
@@ -26,6 +27,7 @@ const VIEW_TITLE: Record<ViewName, string> = {
   accounts: 'contas',
   git: 'git',
   diff: 'mudancas',
+  history: 'historico',
   settings: 'ajustes',
 }
 
@@ -198,6 +200,7 @@ export default function App() {
               {view === 'accounts' && <AccountsView />}
               {view === 'git' && <GitView />}
               {view === 'diff' && <DiffView />}
+              {view === 'history' && <HistoryView />}
               {view === 'settings' && (
                 <SettingsView theme={theme} onTheme={setTheme} prefs={prefs} onPref={set} />
               )}

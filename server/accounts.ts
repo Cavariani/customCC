@@ -296,9 +296,13 @@ async function usageTimeline(file: string, sessionId: string) {
  */
 export function nomeCurtoDoModelo(id: string | null): string {
   if (!id) return 'desconhecido'
-  const m = id.match(/(opus|sonnet|haiku)[-_]?([0-9.]+)?/i)
+  // A versao pode vir com um traco no meio (`haiku-4-5`) ou nao (`opus-5`),
+  // e vem seguida da data de treino em `claude-haiku-4-5-20251001`. Aceitar
+  // no maximo dois grupos de digitos pega a versao e para antes da data;
+  // um `[0-9.]+` simples devolvia "haiku 4".
+  const m = id.match(/(opus|sonnet|haiku)[-_]?([0-9]+(?:[-.][0-9]+)?)?/i)
   if (!m) return id.replace(/^claude-/, '').slice(0, 18)
-  return m[2] ? `${m[1].toLowerCase()} ${m[2]}` : m[1].toLowerCase()
+  return m[2] ? `${m[1].toLowerCase()} ${m[2].replace('-', '.')}` : m[1].toLowerCase()
 }
 
 /** Quanto uma origem consumiu na janela. Serve para modelo e para projeto. */

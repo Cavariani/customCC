@@ -894,6 +894,120 @@
   border-top: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
 }
 
+/* ── Historico de sessoes ─────────────────────────────────────────────
+   A unica tela que olha para tras. O dado ja estava no disco, na linha
+   cost-state de cada transcript, e nao era lido por ninguem. */
+
+.hv {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 14px 12px;
+}
+
+.hv__topo { flex: none; }
+.hv__linha { display: flex; align-items: baseline; gap: 7px; }
+
+.hv__v {
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 600;
+  color: var(--red);
+  font-variant-numeric: tabular-nums;
+}
+
+/* O cifrao fica menor e antes do numero, como em etiqueta de preco. */
+.hv__v::before { content: 'US$ '; font-size: 12px; color: var(--color-muted); }
+
+.hv__k { color: var(--color-muted); }
+
+.hv__split {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--color-muted-alt);
+}
+
+.hv__split b { font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
+
+.hv__periodo { display: flex; gap: 0; margin-top: 8px; }
+
+.hv__aba {
+  flex: 1;
+  padding: 3px 0;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  transition: color 0.16s var(--ease), background 0.16s var(--ease);
+}
+
+.hv__aba + .hv__aba { box-shadow: inset 1px 0 0 var(--panel); }
+.hv__aba:hover { color: var(--fg); }
+.hv__aba.is-on { color: var(--red); background: color-mix(in srgb, var(--red) 13%, transparent); }
+
+.hv__lista { flex: 1; min-height: 0; overflow-y: auto; }
+
+.hvs { display: flex; flex-direction: column; padding: 6px 0; min-width: 0; }
+.hvs + .hvs { border-top: 1px solid color-mix(in srgb, var(--color-muted) 12%, transparent); }
+
+.hvs__linha { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+
+.hvs__nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--fg);
+}
+
+.hvs__sem { color: var(--color-muted-alt); font-style: italic; }
+
+.hvs__v {
+  flex: none;
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.hvs__peso {
+  position: relative;
+  height: 5px;
+  margin-top: 3px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-muted) 18%, transparent) 0 6px,
+      transparent 6px 8px
+    );
+}
+
+.hvs__peso span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(90deg, var(--violet) 0 6px, transparent 6px 8px);
+}
+
+.hvs__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--color-muted-alt);
+}
+
+.hvs__proj { color: var(--color-muted); }
+.hvs__quando { margin-left: auto; font-variant-numeric: tabular-nums; }
+
 /* ── Blocos de um arquivo ─────────────────────────────────────────────
    O painel so movia arquivo inteiro. Com um arquivo que mistura o
    conserto e a experiencia ao lado, isso obrigava a commitar os dois

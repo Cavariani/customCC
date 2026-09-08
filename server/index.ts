@@ -9,6 +9,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import { DEFAULT_CWD, PORT, expandHome, resolveClaudeBin } from './config.js'
 import { readGitState } from './git.js'
 import { backupContentFor, readChanges } from './changes.js'
+import { lerHistorico } from './history.js'
 import { listHunks, stageHunk, unstageHunk } from './hunks.js'
 import {
   checkoutFile,
@@ -296,6 +297,19 @@ app.post('/api/changes/revert', async (req, res) => {
     })
   } catch (error) {
     res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/**
+ * Historico de sessoes de todos os projetos. O corte por dias evita
+ * devolver o diretorio inteiro, que acumula desde sempre.
+ */
+app.get('/api/history', async (req, res) => {
+  try {
+    const dias = Number(req.query.dias ?? 30)
+    res.json(await lerHistorico(Number.isFinite(dias) && dias > 0 ? Math.min(dias, 365) : 30))
+  } catch (error) {
+    res.status(500).json({ error: String(error instanceof Error ? error.message : error) })
   }
 })
 

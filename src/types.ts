@@ -118,4 +118,44 @@ export interface ChangesResult {
   totals: { added: number; removed: number }
 }
 
-export type ViewName = 'accounts' | 'git' | 'diff' | 'settings'
+export type ViewName = 'accounts' | 'git' | 'diff' | 'history' | 'settings'
+
+export interface ModeloDaSessao {
+  nome: string
+  tokens: number
+  custoUSD: number
+}
+
+export interface ResumoDeSessao {
+  sessionId: string
+  titulo: string | null
+  projeto: string
+  cwd: string
+  iniciadaEm: number
+  atualizadaEm: number
+  duracaoMs: number
+  /** Custo equivalente: no plano Pro nada disso e cobrado. */
+  custoUSD: number
+  entrada: number
+  saida: number
+  cache: number
+  tokens: number
+  linhasAdicionadas: number
+  linhasRemovidas: number
+  mensagens: number
+  modelos: ModeloDaSessao[]
+}
+
+export interface Historico {
+  sessoes: ResumoDeSessao[]
+  totais: {
+    sessoes: number
+    custoUSD: number
+    duracaoMs: number
+    tokens: number
+    entrada: number
+    saida: number
+    linhasAdicionadas: number
+  }
+  projetos: { nome: string; custoUSD: number; tokens: number; sessoes: number }[]
+}
