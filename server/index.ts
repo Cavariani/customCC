@@ -10,7 +10,14 @@ import { DEFAULT_CWD, PORT, expandHome, resolveClaudeBin } from './config.js'
 import { readGitState } from './git.js'
 import { backupContentFor, readChanges } from './changes.js'
 import { lerFrota } from './fleet.js'
-import { apagarConversa, lerConversas, lerHistorico } from './history.js'
+import {
+  apagarConversa,
+  esvaziarDaLixeira,
+  lerConversas,
+  lerHistorico,
+  lerLixeira,
+  restaurarConversa,
+} from './history.js'
 import { listHunks, stageHunk, unstageHunk } from './hunks.js'
 import {
   checkoutFile,
@@ -349,6 +356,34 @@ app.delete('/api/conversas/:id', async (req, res) => {
   try {
     const vivas = listSessions().map((s) => s.claudeSessionId)
     res.json({ ok: true, ...(await apagarConversa(req.params.id, vivas)) })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+app.get('/api/lixeira', async (_req, res) => {
+  try {
+    res.json({ itens: await lerLixeira() })
+  } catch (error) {
+    res.status(500).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/** Devolve a conversa ao projeto de onde ela saiu. */
+app.post('/api/lixeira/:arquivo/restaurar', async (req, res) => {
+  try {
+    await restaurarConversa(req.params.arquivo)
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/** Remove de vez. Sem volta. */
+app.delete('/api/lixeira/:arquivo', async (req, res) => {
+  try {
+    await esvaziarDaLixeira(req.params.arquivo)
+    res.json({ ok: true })
   } catch (error) {
     res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
   }

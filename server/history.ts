@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, stat } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { nomeCurtoDoModelo } from './accounts.js'
 import { homedir } from 'node:os'
@@ -444,6 +444,107 @@ export async function apagarConversa(
   }
 
   throw new Error('conversa nao encontrada')
+}
+
+export interface NaLixeira {
+  /** Nome do arquivo, que e como a UI se refere a ele. */
+  arquivo: string
+  sessionId: string
+  projeto: string
+  titulo: string | null
+  atualizadaEm: number
+  mensagens: number
+  /** Quando foi para a lixeira. */
+  apagadaEm: number
+}
+
+/**
+ * Nome de arquivo da lixeira, validado.
+ *
+ * Ele tem a forma `<slug>__<sessionId>.jsonl` e vem da URL, entao qualquer
+ * barra ou `..` aqui viraria travessia de diretorio no join seguinte.
+ */
+function parteDoNome(arquivo: string): { slug: string; sessionId: string } {
+  if (!/^[A-Za-z0-9._-]+__[A-Za-z0-9._-]+\.jsonl$/.test(arquivo)) {
+    throw new Error('nome de arquivo invalido')
+  }
+  if (arquivo.includes('..')) throw new Error('nome de arquivo invalido')
+  const [slug, resto] = arquivo.split('__')
+  return { slug, sessionId: resto.replace(/\.jsonl$/, '') }
+}
+
+/** O que esta na lixeira, da mais recente para a mais antiga. */
+export async function lerLixeira(): Promise<NaLixeira[]> {
+  let nomes: string[]
+  try {
+    nomes = await readdir(LIXEIRA)
+  } catch {
+    return []
+  }
+
+  const itens: NaLixeira[] = []
+  for (const arquivo of nomes) {
+    if (!arquivo.endsWith('.jsonl')) continue
+    let slug: string
+    let sessionId: string
+    try {
+      ;({ slug, sessionId } = parteDoNome(arquivo))
+    } catch {
+      // Arquivo que alguem pos ali na mao; nao e nosso para listar.
+      continue
+    }
+
+    const caminho = join(LIXEIRA, arquivo)
+    let apagadaEm = 0
+    try {
+      apagadaEm = (await stat(caminho)).mtimeMs
+    } catch {
+      continue
+    }
+
+    const resumo = await resumir(caminho, sessionId)
+    itens.push({
+      arquivo,
+      sessionId,
+      // O cwd de dentro do transcript e a fonte boa; o slug e so o resgate
+      // para quando ele nao existir, e vem lossy.
+      projeto: resumo?.projeto && resumo.projeto !== 'desconhecido' ? resumo.projeto : slug,
+      titulo: resumo?.titulo ?? null,
+      atualizadaEm: resumo?.atualizadaEm ?? 0,
+      mensagens: resumo?.mensagens ?? 0,
+      apagadaEm,
+    })
+  }
+
+  return itens.sort((a, b) => b.apagadaEm - a.apagadaEm)
+}
+
+/** Devolve o transcript ao diretorio de projetos de onde ele saiu. */
+export async function restaurarConversa(arquivo: string): Promise<void> {
+  const { slug, sessionId } = parteDoNome(arquivo)
+  const origem = join(LIXEIRA, arquivo)
+  const pasta = join(PROJECTS_DIR, slug)
+  const destino = join(pasta, `${sessionId}.jsonl`)
+
+  try {
+    await stat(destino)
+    // Ja existe um arquivo com esse id: sobrescrever apagaria uma conversa
+    // viva para trazer de volta uma morta.
+    throw new Error('ja existe uma conversa com este id no projeto')
+  } catch (erro) {
+    if ((erro as NodeJS.ErrnoException).code !== 'ENOENT') throw erro
+  }
+
+  await mkdir(pasta, { recursive: true })
+  await rename(origem, destino)
+  cache.delete(destino)
+}
+
+/** Remove de vez. Sem volta: e o unico registro daquela conversa. */
+export async function esvaziarDaLixeira(arquivo: string): Promise<void> {
+  const { slug } = parteDoNome(arquivo)
+  void slug
+  await rm(join(LIXEIRA, arquivo), { force: true })
 }
 
 function zerado() {

@@ -202,6 +202,16 @@ export interface ResumoDeSessao {
   modelos: ModeloDaSessao[]
 }
 
+export interface NaLixeira {
+  arquivo: string
+  sessionId: string
+  projeto: string
+  titulo: string | null
+  atualizadaEm: number
+  mensagens: number
+  apagadaEm: number
+}
+
 export interface ProjetoComConversas {
   nome: string
   cwd: string

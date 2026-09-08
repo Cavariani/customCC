@@ -373,3 +373,109 @@ describe('apagar uma conversa', () => {
     }
   })
 })
+
+describe('lixeira', () => {
+  /** HOME com um transcript, o servidor no ar, e o id ja apagado. */
+  async function comApagada() {
+    const base = pastaTemporaria()
+    criados.push(base)
+    const projeto = repo(base, 'projeto')
+    const dir = join(base, '.claude', 'projects', '-tmp-p')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      join(dir, 'alvo.jsonl'),
+      [cabecalho('/tmp/p', AGORA - MIN), titulo('conversa apagada'), assistant(AGORA - MIN)].join('\n') + '\n',
+      'utf8',
+    )
+    const servidor = await sobeServidor({ cwd: projeto, home: base })
+    await fetch(`${BASE}/api/conversas/alvo`, { method: 'DELETE' })
+    return { base, dir, servidor }
+  }
+
+  const lixeira = async () => (await get('/api/lixeira')).json.itens
+
+  it('lista o que foi apagado, com titulo e projeto', async () => {
+    const { servidor } = await comApagada()
+    try {
+      const itens = await lixeira()
+      assert.equal(itens.length, 1)
+      assert.equal(itens[0].titulo, 'conversa apagada')
+      assert.equal(itens[0].projeto, 'p')
+      assert.equal(itens[0].sessionId, 'alvo')
+      assert.ok(itens[0].apagadaEm > 0)
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+
+  it('restaurar devolve a conversa ao projeto', async () => {
+    const { dir, servidor } = await comApagada()
+    try {
+      const [item] = await lixeira()
+      const r = await fetch(`${BASE}/api/lixeira/${encodeURIComponent(item.arquivo)}/restaurar`, {
+        method: 'POST',
+      })
+      assert.equal(r.status, 200)
+
+      // Voltou ao lugar de origem e sumiu da lixeira.
+      assert.ok(readFileSync(join(dir, 'alvo.jsonl'), 'utf8').length > 0)
+      assert.equal((await lixeira()).length, 0)
+
+      // E volta a aparecer na lista de conversas.
+      const { json } = await get('/api/conversas?dias=90')
+      const titulos = json.projetos.flatMap((p) => p.conversas.map((c) => c.titulo))
+      assert.deepEqual(titulos, ['conversa apagada'])
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+
+  it('restaurar nao sobrescreve uma conversa que voltou a existir', async () => {
+    const { dir, servidor } = await comApagada()
+    try {
+      const [item] = await lixeira()
+      // Alguem criou outra conversa com o mesmo id enquanto esta estava fora.
+      writeFileSync(join(dir, 'alvo.jsonl'), 'conteudo novo e importante\n', 'utf8')
+
+      const r = await fetch(`${BASE}/api/lixeira/${encodeURIComponent(item.arquivo)}/restaurar`, {
+        method: 'POST',
+      })
+      assert.equal(r.status, 400)
+      assert.match((await r.json()).error, /ja existe/)
+      // O arquivo novo continua intacto, e a lixeira nao perdeu o dela.
+      assert.equal(readFileSync(join(dir, 'alvo.jsonl'), 'utf8'), 'conteudo novo e importante\n')
+      assert.equal((await lixeira()).length, 1)
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+
+  it('apagar de vez remove o arquivo', async () => {
+    const { base, servidor } = await comApagada()
+    try {
+      const [item] = await lixeira()
+      const r = await fetch(`${BASE}/api/lixeira/${encodeURIComponent(item.arquivo)}`, {
+        method: 'DELETE',
+      })
+      assert.equal(r.status, 200)
+      assert.equal((await lixeira()).length, 0)
+      assert.equal(readdirSync(join(base, '.claude-multi-account', 'lixeira')).length, 0)
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+
+  it('nome de arquivo com caminho dentro e recusado', async () => {
+    const { servidor } = await comApagada()
+    try {
+      for (const ruim of ['..__x.jsonl', 'a__..%2F..%2Fetc%2Fpasswd.jsonl', 'sem-separador.jsonl']) {
+        const r = await fetch(`${BASE}/api/lixeira/${ruim}/restaurar`, { method: 'POST' })
+        assert.notEqual(r.status, 200, `aceitou ${ruim}`)
+      }
+      // E o que estava la continua la.
+      assert.equal((await lixeira()).length, 1)
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+})

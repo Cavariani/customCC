@@ -1084,6 +1084,90 @@ button.arow__acao--bloq:hover:not(:disabled) {
 
 .cv__lista { flex: 1; min-height: 0; overflow-y: auto; margin-top: 10px; }
 
+/* Abas do painel: conversas e lixeira. Mesmo desenho das abas de periodo
+   do historico, para nao inventar um terceiro jeito de trocar de aba. */
+.cv__abas { flex: none; display: flex; margin-top: 10px; }
+
+.cv__aba {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  transition: color 0.16s var(--ease), background 0.16s var(--ease);
+}
+
+.cv__aba + .cv__aba { box-shadow: inset 1px 0 0 var(--panel); }
+.cv__aba:hover { color: var(--fg); }
+.cv__aba.is-on { color: var(--red); background: color-mix(in srgb, var(--red) 13%, transparent); }
+.cv__aba b { font-weight: 400; font-variant-numeric: tabular-nums; }
+
+/* ── Uma conversa na lixeira ──────────────────────────────────────────── */
+
+.cvl { padding: 8px 0; }
+.cvl + .cvl { border-top: 1px solid color-mix(in srgb, var(--color-muted) 12%, transparent); }
+
+.cvl__linha { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+
+.cvl__titulo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.cvl__quando {
+  flex: none;
+  font-size: 11px;
+  color: var(--color-muted-alt);
+  font-variant-numeric: tabular-nums;
+}
+
+.cvl__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-muted-alt);
+}
+
+.cvl__proj { color: var(--red); font-weight: 600; }
+.cvl__acoes { margin-left: auto; display: flex; gap: 6px; }
+
+.cvl__voltar,
+.cvl__sumir {
+  padding: 2px 9px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  transition: color 0.16s var(--ease), background 0.16s var(--ease);
+}
+
+.cvl__voltar {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+}
+
+.cvl__voltar:hover { color: var(--panel); background: var(--green); }
+
+/* Apagar de vez pede dois toques; restaurar, um. So um dos dois nao volta. */
+.cvl__sumir { color: var(--color-muted-alt); }
+.cvl__sumir:hover { color: var(--color-error); }
+
+.cvl__sumir.is-armada {
+  color: var(--panel);
+  background: var(--color-error);
+}
+
 /* ── Um projeto ───────────────────────────────────────────────────────── */
 
 .cvp + .cvp { margin-top: 10px; }
