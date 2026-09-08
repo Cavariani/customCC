@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>customCC · o que entra no lugar das duas faixas</title>
+<style>
+:root {
+  --bg: #282c34; --fg: #9cdef2; --panel: #111111; --red: #e06c75;
+  --green: #50fa7b; --warn: #f0ad4e; --color-error: #ff4444;
+  --color-muted: #a8b1bf; --color-muted-alt: #929bab;
+  --mono: 'Fira Code', ui-monospace, Menlo, monospace;
+  --ease: cubic-bezier(.22,.61,.36,1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:20px; background:var(--bg); color:var(--fg);
+  font-family:var(--mono); font-size:12.5px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+h1 { margin:0 0 4px; font-size:14px; font-weight:600; }
+.lede { margin:0 0 20px; max-width:100ch; font-size:11.5px; line-height:1.6; color:var(--color-muted); }
+.lede b { color:var(--fg); font-weight:600; }
+.fila { display:flex; gap:18px; align-items:flex-start; overflow-x:auto; padding-bottom:16px; }
+.col { flex:none; width:372px; }
+.cab { margin:0 0 6px; font-size:11.5px; font-weight:600; color:var(--red); letter-spacing:.08em; text-transform:uppercase; }
+.nota { margin:0 0 8px; font-size:11px; line-height:1.55; color:var(--color-muted-alt); min-height:76px; }
+.dock { width:372px; height:640px; background:var(--panel); display:flex; flex-direction:column; overflow:hidden; }
+.dt { flex:none; height:34px; display:flex; align-items:center; padding:0 12px; font-size:11px;
+  font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--color-muted); border-bottom:1px solid #1c2128; }
+.corpo { flex:1; min-height:0; display:flex; flex-direction:column; padding:10px 14px 12px; }
+
+.tot { flex:none; }
+.tot__l { display:flex; align-items:baseline; gap:7px; }
+.tot__v { font-size:21px; font-weight:600; color:var(--red); font-variant-numeric:tabular-nums; }
+.tot__k { color:var(--color-muted); }
+.cols { flex:none; display:flex; margin-top:12px; padding-bottom:6px; font-size:11px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--color-muted-alt);
+  border-bottom:1px solid color-mix(in srgb,var(--color-muted) 18%,transparent); }
+.cols i { font-style:normal; }
+.cols .r { margin-left:auto; }
+
+.linhas { flex:1; min-height:0; display:flex; flex-direction:column; }
+.l { flex:1; min-height:0; display:flex; flex-direction:column; padding:8px 0; }
+.l + .l { border-top:1px solid color-mix(in srgb,var(--color-muted) 14%,transparent); }
+.l1 { display:flex; align-items:baseline; }
+.n { width:24px; color:var(--fg); font-variant-numeric:tabular-nums; }
+.l.on .n { color:var(--red); }
+.nome { flex:1; color:var(--color-muted); }
+.l.on .nome { color:var(--fg); }
+.est { margin-right:9px; font-size:11px; color:var(--color-muted-alt); }
+.l.on .est { color:var(--red); }
+.v { width:66px; text-align:right; color:var(--fg); font-variant-numeric:tabular-nums; }
+.l.on .v { color:var(--red); }
+
+.grade { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; margin-top:2px; }
+.par { display:flex; align-items:baseline; gap:8px; font-size:11px; }
+.par span { color:var(--color-muted-alt); }
+.par b { margin-left:auto; font-weight:400; color:var(--fg); font-variant-numeric:tabular-nums; }
+.l.on .par b { color:var(--red); }
+
+/* O contador regressivo, pedido: o relogio do reset com o quanto falta ao
+   lado, descendo ate 00:00. Verde nos ultimos minutos, que e quando a
+   conta esta prestes a voltar. */
+.conta-regressiva { font-variant-numeric:tabular-nums; }
+.cr-longe { color:var(--color-muted-alt); }
+.cr-perto { color:var(--warn); }
+.cr-quase { color:var(--green); }
+
+/* A acao ocupa a folga: e ela que estica, nao o texto. */
+.acao {
+  flex:1; min-height:34px; display:flex; align-items:center; justify-content:center;
+  margin-top:6px; font:inherit; font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--red); background:color-mix(in srgb,var(--red) 13%,transparent);
+  border:none; cursor:pointer; transition:background .16s var(--ease), color .16s var(--ease);
+}
+.acao:hover { color:var(--panel); background:var(--red); }
+.acao--uso { color:var(--color-muted-alt); background:color-mix(in srgb,var(--fg) 5%,transparent); cursor:default; }
+.acao--bloq { color:var(--color-error); background:color-mix(in srgb,var(--color-error) 10%,transparent); cursor:not-allowed; }
+.acao small { display:block; margin-top:3px; font-size:10px; letter-spacing:.06em; text-transform:none; opacity:.85; }
+.acao__col { display:flex; flex-direction:column; align-items:center; }
+
+/* Faixa fina de tempo dentro do botao, opcao D. */
+.acao--barra { position:relative; overflow:hidden; }
+.acao--barra .fundo { position:absolute; left:0; top:0; bottom:0;
+  background:color-mix(in srgb,var(--red) 14%,transparent); }
+.acao--barra span.txt { position:relative; }
+
+.bar { font-size:11px; letter-spacing:.5px; white-space:nowrap; }
+.bar .f { color:var(--color-muted); }
+.bar .r { color:color-mix(in srgb,var(--color-muted) 22%,transparent); }
+.l.on .bar .f { color:var(--red); }
+.med { display:flex; align-items:center; gap:8px; font-size:11px; margin-top:3px; }
+.med span.k { width:46px; color:var(--color-muted-alt); }
+.med b { margin-left:auto; font-weight:400; color:var(--fg); font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<h1>customCC · o que entra no lugar das duas faixas</h1>
+<p class="lede">
+Nos dados de agora as tres contas marcam <b>tempo ~96–100%</b>: as janelas abriram juntas e
+vencem juntas, entao a barra e a mesma nas tres e nao distingue nada. O <b>gasto</b> compara as
+contas entre si, numa dimensao pela qual ninguem escolhe conta — escolhe-se pela que esta livre.
+Em todas as opcoes o <b>relogio do reset ganha o contador regressivo</b> ao lado, descendo ate
+00:00, e a <b>acao estica</b> para ocupar a folga da linha.
+</p>
+<div class="fila" id="fila"></div>
+
+<script>
+const CONTAS = [
+  { n:1, nome:'Pessoal',        est:'janela em uso', on:false, trabalho:538_706, entrada:'1.0k', saida:'545.0k',
+    cache:'211.03M', sessoes:3, reset:'14:53', restaMin:0,  pct:1.00, limitada:false },
+  { n:2, nome:'MLEGATE',        est:'janela em uso', on:false, trabalho:8_772,  entrada:'22',   saida:'8.8k',
+    cache:'4.09M',   sessoes:3, reset:'15:05', restaMin:11, pct:.96,  limitada:false },
+  { n:3, nome:'MLEGATE Backup', est:'ativa',         on:true,  trabalho:221_457, entrada:'464', saida:'221.0k',
+    cache:'130.12M', sessoes:3, reset:'15:05', restaMin:11, pct:.96,  limitada:false },
+]
+const TRAB = CONTAS.reduce((a,c)=>a+c.trabalho,0)
+const fmt = v => v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'k':String(v)
+const CEL=24
+const barra=p=>{const f=Math.round(p*CEL);return `<span class="bar"><span class="f">${'█'.repeat(f)}</span><span class="r">${'█'.repeat(CEL-f)}</span></span>`}
+
+/* mm:ss descendo. Verde nos ultimos 10 min: e quando ela vai voltar. */
+function regressivo(min){
+  const cls = min<=10 ? 'cr-quase' : min<=45 ? 'cr-perto' : 'cr-longe'
+  const h=Math.floor(min/60), m=min%60
+  const txt = h>0 ? `${h}:${String(m).padStart(2,'0')}:00` : `${String(m).padStart(2,'0')}:00`
+  return `<span class="conta-regressiva ${cls}">${txt}</span>`
+}
+
+const topo = `
+  <div class="tot"><div class="tot__l">
+    <span class="tot__v">${fmt(TRAB)}</span><span class="tot__k">entrada e saida nas tres contas</span>
+  </div></div>
+  <div class="cols"><i>#</i><i style="margin-left:8px">conta</i><i class="r">tokens</i></div>`
+
+const cabeca = c => `
+  <div class="l1"><span class="n">${String(c.n).padStart(2,'0')}</span>
+    <span class="nome">${c.nome}</span><span class="est">${c.est}</span>
+    <span class="v">${fmt(c.trabalho)}</span></div>`
+
+/* A grade, com o reset ja carregando o contador. */
+const grade = c => `
+  <div class="grade">
+    <div class="par"><span>reinicia</span><b>${c.reset} ${regressivo(c.restaMin)}</b></div>
+    <div class="par"><span>ultimo</span><b>1h</b></div>
+    <div class="par"><span>entrada</span><b>${c.entrada}</b></div>
+    <div class="par"><span>saida</span><b>${c.saida}</b></div>
+    <div class="par"><span>cache</span><b>${c.cache}</b></div>
+    <div class="par"><span>sessoes</span><b>${c.sessoes}</b></div>
+  </div>`
+
+const acaoSimples = c => c.on
+  ? `<div class="acao acao--uso">em uso</div>`
+  : `<button class="acao">ativar</button>`
+
+/* A — sem faixa nenhuma. O contador diz o tempo, a acao pega a folga. */
+const A = c => `${cabeca(c)}${grade(c)}${acaoSimples(c)}`
+
+/* B — a acao carrega o estado por escrito, em duas linhas. */
+const B = c => `${cabeca(c)}${grade(c)}` + (c.on
+  ? `<div class="acao acao--uso"><span class="acao__col">em uso<small>reinicia em ${c.restaMin}min</small></span></div>`
+  : `<button class="acao"><span class="acao__col">ativar<small>${c.restaMin===0?'janela virando agora':`livre por ${c.restaMin}min`}</small></span></button>`)
+
+/* C — uma faixa so, e do que falta, nao do que passou. */
+const C = c => `${cabeca(c)}${grade(c)}
+  <div class="med"><span class="k">restante</span>${barra(c.restaMin/300)}<b>${c.restaMin}min</b></div>
+  ${acaoSimples(c)}`
+
+/* D — o proprio botao e a barra: o preenchimento mostra a janela. */
+const D = c => `${cabeca(c)}${grade(c)}` + (c.on
+  ? `<div class="acao acao--uso acao--barra"><span class="fundo" style="width:${c.pct*100}%"></span><span class="txt">em uso</span></div>`
+  : `<button class="acao acao--barra"><span class="fundo" style="width:${c.pct*100}%"></span><span class="txt">ativar</span></button>`)
+
+const VARIANTES = [
+  ['A · sem faixa','As duas somem. O contador regressivo ao lado do relogio ja diz o tempo, com muito mais precisao que uma barra em 96%. A acao estica e fica grande.', A],
+  ['B · estado escrito na acao','Como a A, mas o botao carrega em texto o que a barra tentava dizer: por quanto tempo aquela conta ainda serve. Palavra em vez de proporcao.', B],
+  ['C · uma faixa, do que falta','Mantem uma barra, mas invertida: mostra o tempo restante esvaziando, e nao o decorrido enchendo. Com todas quase vencidas, as tres ficam quase vazias.', C],
+  ['D · a barra dentro do botao','O botao e a barra: o preenchimento mostra a janela sem ocupar linha propria. Junta a acao grande com o indicador, mas exige aprender a ler.', D],
+]
+
+document.getElementById('fila').innerHTML = VARIANTES.map(([t,nota,fn])=>`
+  <div class="col">
+    <p class="cab">${t}</p><p class="nota">${nota}</p>
+    <div class="dock"><div class="dt">contas</div><div class="corpo">
+      ${topo}<div class="linhas">${CONTAS.map(c=>`<div class="l ${c.on?'on':''}">${fn(c)}</div>`).join('')}</div>
+    </div></div>
+  </div>`).join('')
+</script>
+</body>
+</html>
