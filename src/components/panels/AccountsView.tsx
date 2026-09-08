@@ -157,18 +157,15 @@ function Trilho({
   velha: boolean
   idade: number
 }) {
-  // Acima de 80% a barra muda de cor: e o unico lugar do painel onde da
-  // para dizer "esta acabando", porque e o unico com teto conhecido.
-  const tom = l.usadoPct >= 80 ? 'alto' : l.usadoPct >= 50 ? 'medio' : 'baixo'
   const resta = l.resetaEm === null ? null : Math.max(0, l.resetaEm - agora)
 
   return (
     <div className="cota__linha">
       <span className="cota__k">{k}</span>
       <span className="cota__trilho">
-        <span className={`cota__fill cota__fill--${tom}`} style={{ width: `${l.usadoPct}%` }} />
+        <span className="cota__fill" style={{ width: `${l.usadoPct}%` }} />
       </span>
-      <b className={`cota__v cota__v--${tom}`}>{Math.round(l.usadoPct)}%</b>
+      <b className="cota__v">{Math.round(l.usadoPct)}%</b>
       {/* Leitura parada ha mais de cinco minutos mostra a idade no lugar
           do contador: fingir que e de agora seria pior que nao mostrar. */}
       <span className="cota__reset">

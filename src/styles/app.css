@@ -336,10 +336,16 @@
     );
 }
 
-.cota__fill { position: absolute; top: 0; left: 0; bottom: 0; }
-.cota__fill--baixo { background: repeating-linear-gradient(90deg, var(--green) 0 6px, transparent 6px 8px); }
-.cota__fill--medio { background: repeating-linear-gradient(90deg, var(--warn) 0 6px, transparent 6px 8px); }
-.cota__fill--alto { background: repeating-linear-gradient(90deg, var(--color-error) 0 6px, transparent 6px 8px); }
+/* Sempre o acento do tema, e nao uma escada verde-ambar-vermelho: verde e
+   ambar sao fixos e nao acompanham a troca de tema, e o painel inteiro
+   usa o acento para o que importa. A severidade fica no numero. */
+.cota__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px);
+}
 
 .cota__v {
   width: 38px;
@@ -348,11 +354,8 @@
   font-weight: 600;
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
+  color: var(--red);
 }
-
-.cota__v--baixo { color: var(--green); }
-.cota__v--medio { color: var(--warn); }
-.cota__v--alto { color: var(--color-error); }
 
 .cota__reset {
   width: 62px;
