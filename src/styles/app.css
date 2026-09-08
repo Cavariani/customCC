@@ -1534,10 +1534,19 @@ button.arow__acao--bloq:hover:not(:disabled) {
 .status__zona { display: flex; align-items: center; gap: 8px; padding: 0 12px; min-width: 0; }
 .status__zona--local { flex: 1; }
 
+/* A zona da conta tem exatamente a largura do dock e fica encostada a
+   direita, entao ela comeca na mesma coluna do painel de contas la em
+   cima. Alinhar por proporcao nao servia: `flex: 1` acompanha a largura
+   da janela e a divisa passeava. */
+.status__zona--conta { flex: none; width: var(--dock-w); }
+
+/* Com o painel recolhido, a zona voltaria a 46px e nao caberia nada. Ali a
+   barra e o unico lugar que mostra a conta, entao ela volta a esticar. */
+:root[data-dock='collapsed'] .status__zona--conta { flex: 1; width: auto; }
+
 /* A do meio ganha fundo proprio: e o que faz a conta ativa se ler de longe
    sem precisar de mais uma cor no texto. */
 .status__zona--conta {
-  flex: 1;
   background: color-mix(in srgb, var(--red) 7%, transparent);
   box-shadow: inset 1px 0 0 color-mix(in srgb, var(--color-muted) 16%, transparent);
 }
