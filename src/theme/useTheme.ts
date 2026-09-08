@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { DEFAULT_THEME, THEMES, type ThemeName } from './themes'
+import { paintFavicon } from './favicon'
 
 const LS_KEY = 'customcc-theme'
 
@@ -12,6 +13,8 @@ function applyColors(name: ThemeName) {
   root.style.setProperty('--border', colors.border)
   root.style.setProperty('--red', colors.red)
   root.dataset.theme = name
+  // O mascote da aba acompanha a troca junto com o resto.
+  paintFavicon(colors.red)
 }
 
 export function useTheme() {

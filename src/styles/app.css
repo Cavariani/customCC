@@ -201,6 +201,13 @@
 .pane__surface .xterm { height: 100%; }
 .pane__surface .xterm-viewport { background: transparent !important; }
 
+/* A barra de rolagem global e vermelha e de 8px; sobre o terminal ela
+   aparecia e sumia conforme o buffer crescia, piscando uma listra
+   vermelha ao lado do texto. O xterm rola na roda do mouse do mesmo
+   jeito, entao aqui ela sai de vez. */
+.pane__surface .xterm-viewport { scrollbar-width: none; }
+.pane__surface .xterm-viewport::-webkit-scrollbar { width: 0; height: 0; }
+
 /* ── Dock lateral ────────────────────────────────────────────────────── */
 
 .dock {

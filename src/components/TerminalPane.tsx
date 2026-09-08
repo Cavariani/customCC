@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { WebglAddon } from '@xterm/addon-webgl'
 import { THEMES, xtermTheme, type ThemeName } from '../theme/themes'
 import { usePtySocket, type Activity, type PtyStatus } from '../lib/usePtySocket'
 import type { TerminalTab } from '../types'
@@ -58,7 +59,7 @@ export function TerminalPane({
     const term = new Terminal({
       fontFamily: "'Fira Code', ui-monospace, Menlo, monospace",
       fontSize,
-      lineHeight: 1.45,
+      lineHeight: 1.25,
       cursorBlink: true,
       scrollback: 10_000,
       allowProposedApi: true,
@@ -67,6 +68,47 @@ export function TerminalPane({
     const fit = new FitAddon()
     term.loadAddon(fit)
     term.open(container)
+
+    // O renderer WebGL desenha os caracteres de bloco e de moldura como
+    // geometria do tamanho exato da celula. O renderer DOM, que e o padrao,
+    // desenha como texto: o glifo cobre so a caixa em da fonte e, com
+    // lineHeight 1.45, sobra faixa vazia entre as linhas — era isso que
+    // fatiava o mascote do Claude Code em tiras.
+    // Sem WebGL2 o addon lanca de dentro do proprio activate, fora do
+    // alcance deste try, e a excecao derruba o painel inteiro. Perguntar
+    // antes custa um canvas descartavel e evita a tela cinza.
+    const temWebgl = (() => {
+      try {
+        return !!document.createElement('canvas').getContext('webgl2')
+      } catch {
+        return false
+      }
+    })()
+
+    let webgl: WebglAddon | null = null
+    try {
+      if (!temWebgl) throw new Error('sem contexto webgl2')
+      const addon = new WebglAddon()
+      // loadAddon primeiro: o onContextLoss so existe depois que o addon e
+      // ativado. Registrar antes lia o renderer ainda indefinido e lancava
+      // "Cannot read properties of undefined (reading '_isDisposed')", que
+      // derrubava o TerminalPane e levava a tela inteira junto.
+      term.loadAddon(addon)
+      // Contexto de WebGL pode ser perdido (memoria de video, aba dormindo).
+      // Sem soltar o addon aqui o terminal congela em vez de voltar para o
+      // renderer DOM.
+      addon.onContextLoss(() => {
+        addon.dispose()
+        webgl = null
+      })
+      webgl = addon
+    } catch (error) {
+      // Sem WebGL o terminal continua funcionando no renderer DOM; so os
+      // blocos voltam a ficar fatiados.
+      console.warn('[customcc] WebGL indisponivel, usando o renderer DOM:', error)
+      webgl = null
+    }
+
     fit.fit()
     termRef.current = term
     fitRef.current = fit
@@ -80,6 +122,7 @@ export function TerminalPane({
     return () => {
       setReady(false)
       observer.disconnect()
+      webgl?.dispose()
       term.dispose()
       termRef.current = null
       fitRef.current = null
