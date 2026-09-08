@@ -1,16 +1,12 @@
-import { AlertTriangle, KeyRound, Radio, Zap } from 'lucide-react'
 import { useWorkspace } from '../../lib/workspace'
 import { useNow } from '../../lib/useNow'
 import { useCountUp } from '../../lib/useCountUp'
-import { useScramble } from '../../lib/useScramble'
-import { ScopeTrace } from '../ScopeTrace'
+import { WindowBars } from '../WindowBars'
 import {
   STATUS_LABEL,
   formatAgo,
-  formatDuration,
   formatTokens,
   getStatus,
-  msUntilReset,
   windowRatio,
 } from '../../lib/format'
 import type { Account } from '../../types'
@@ -21,27 +17,76 @@ const TOKEN_ISSUE: Record<string, string> = {
   truncated: 'token curto demais, provavelmente cortado ao colar',
 }
 
-export function AccountsView({ animations }: { animations: boolean }) {
+/** Celulas do medidor em bloco. */
+const CELULAS = 24
+
+// As animacoes ja tem interruptor global em [data-animations='false'], entao
+// o bloco nao precisa carregar a preferencia ate cada linha.
+export function AccountsView() {
   const { accounts, switching, switchAccount } = useWorkspace()
   const now = useNow()
 
   if (accounts.length === 0) {
-    return <div className="bays bays--empty">carregando contas...</div>
+    return <div className="acct acct--empty">carregando contas...</div>
   }
 
   return (
-    <div className="bays">
-      {accounts.map((account, i) => (
-        <AccountBay
-          key={account.id}
-          account={account}
-          now={now}
-          index={i}
-          switching={switching}
-          animations={animations}
-          onSwitch={() => switchAccount(account.id)}
-        />
-      ))}
+    <div className="acct">
+      <Total accounts={accounts} />
+
+      {/* Regua de titulos, como a linha de cabecalho do `top`. */}
+      <div className="acct__cols">
+        <span className="acct__c-n">#</span>
+        <span className="acct__c-name">conta</span>
+        <span className="acct__c-v">tokens</span>
+      </div>
+
+      <div className="acct__rows">
+        {accounts.map((account) => (
+          <Row
+            key={account.id}
+            account={account}
+            now={now}
+            switching={switching}
+            onSwitch={() => switchAccount(account.id)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * O total das tres contas, que e o numero que resume o painel. Fica no
+ * corpo normal: o peso vem da posicao e do contraste, nao de escala.
+ */
+function Total({ accounts }: { accounts: Account[] }) {
+  const soma = (pick: (a: Account) => number) => accounts.reduce((t, a) => t + pick(a), 0)
+  const total = soma((a) => a.tokensUsed)
+  const cache = soma((a) => a.cacheTokens)
+  const animado = useCountUp(total)
+
+  return (
+    <div className="acct__total">
+      <div className="acct__total-line">
+        <span className="acct__total-v">{formatTokens(Math.round(animado))}</span>
+        <span className="acct__total-k">
+          tokens {accounts.length === 3 ? 'nas tres contas' : `em ${accounts.length} contas`}
+        </span>
+      </div>
+      <div className="acct__split">
+        <span>
+          entrada <b>{formatTokens(soma((a) => a.inputTokens))}</b>
+        </span>
+        <span>
+          saida <b>{formatTokens(soma((a) => a.outputTokens))}</b>
+        </span>
+        {/* O cache e ~98% do total na pratica: mostrar a fatia evita ler o
+            numero de cima como se fosse consumo novo. */}
+        <span>
+          cache <b>{total === 0 ? '--' : `${Math.round((cache / total) * 100)}%`}</b>
+        </span>
+      </div>
     </div>
   )
 }
@@ -51,114 +96,89 @@ function clockOf(at: number): string {
   return new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
-/**
- * Numero pequeno com rotulo. A cor e fixa por tipo de dado, entao o olho
- * aprende que roxo e sempre pico e verde e sempre recencia.
- */
-function Stat({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return (
-    <div className={`stat-cell stat-cell--${tone}`}>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
-  )
-}
-
-interface BayProps {
+interface RowProps {
   account: Account
   now: number
-  index: number
   switching: boolean
-  animations: boolean
   onSwitch: () => void
 }
 
-function AccountBay({ account, now, index, switching, animations, onSwitch }: BayProps) {
+function Row({ account, now, switching, onSwitch }: RowProps) {
   const status = getStatus(account, now)
-  const remaining = msUntilReset(account, now)
   const elapsed = windowRatio(account, now)
   const tokens = useCountUp(account.tokensUsed)
   const isActive = account.active
-  // O nome se remonta a cada troca: o card mostra que acabou de assumir.
-  const label = useScramble(account.label, {
-    enabled: animations,
-    trigger: isActive,
-    skipFirst: true,
-  })
 
-  // Uma serie por card: a cor carrega estado, nao identidade. O ativo e o
-  // destaque; os outros recuam para cinza em vez de disputarem atencao.
+  // Uma cor por estado: o ativo e o destaque, os outros recuam para cinza
+  // em vez de disputarem atencao.
   const accent =
     status === 'limited' ? 'var(--color-error)' : isActive ? 'var(--red)' : 'var(--color-muted)'
 
+  const cheias = Math.round(Math.min(1, Math.max(0, elapsed)) * CELULAS)
+
   return (
-    <article
-      className={`bay bay--${status}${switching ? ' is-switching' : ''}`}
-      style={{ animationDelay: `${index * 90}ms` }}
+    <div
+      className={`arow arow--${status}${isActive ? ' is-on' : ''}${switching ? ' is-switching' : ''}`}
     >
-      <span className="bay__grid" aria-hidden="true" />
-      <span className="bay__bracket bay__bracket--tl" aria-hidden="true" />
-      <span className="bay__bracket bay__bracket--br" aria-hidden="true" />
-
-      <header className="bay__head">
-        <span className="bay__n">{String(account.id).padStart(2, '0')}</span>
-
-        <div className="bay__id">
-          <h3 className="bay__label">{label}</h3>
-          <p className="bay__email" title={account.email ?? undefined}>
-            {account.email ?? 'email nao informado'}
-          </p>
-        </div>
-
-        <span className={`led led--${status}`} title={account.limitEvidence ?? undefined}>
-          <span className="led__dot" />
-          {status === 'limited' && <AlertTriangle size={10} strokeWidth={2.4} />}
+      {/* Linha 1: marca, indice, nome, estado e o total da janela. */}
+      <div className="arow__1">
+        <span className="arow__mark" aria-hidden="true">
+          ▌
+        </span>
+        <span className="arow__n">{String(account.id).padStart(2, '0')}</span>
+        <span className="arow__name" title={account.email ?? undefined}>
+          {account.label}
+        </span>
+        <span className="arow__state" title={account.limitEvidence ?? undefined}>
           {STATUS_LABEL[status]}
         </span>
-      </header>
-
-      <div className="scope">
-        <div className="scope__readout">
-          <span className="scope__big">{formatTokens(Math.round(tokens))}</span>
-          <span className="scope__small">tokens na janela</span>
-        </div>
-        <ScopeTrace
-          series={account.series}
-          progress={elapsed}
-          accent={accent}
-          live={isActive && animations}
-        />
+        <span className="arow__v">{formatTokens(Math.round(tokens))}</span>
       </div>
 
-      <footer className="bay__foot">
-        <Stat label="sessoes" value={String(account.sessions)} tone="blue" />
-        <Stat
-          label="pico 10m"
-          value={account.peakTokens > 0 ? formatTokens(account.peakTokens) : '--'}
-          tone="violet"
-        />
-        <Stat
-          label="ultimo"
-          value={account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
-          tone="green"
-        />
+      {/* Linha 2: o medidor em bloco, sozinho na linha. Mesmo glifo em duas
+          cores, entao as celulas alinham por construcao. */}
+      <div className="arow__2">
+        <span className="arow__bar" aria-hidden="true">
+          <span className="arow__bar-fill">{'█'.repeat(cheias)}</span>
+          <span className="arow__bar-rest">{'█'.repeat(CELULAS - cheias)}</span>
+        </span>
+        <span className="arow__pct">{Math.round(elapsed * 100)}%</span>
+        <span className="arow__reset">
+          {account.resetSource === 'observed' && <em title="reset lido do terminal">◎</em>}
+          {account.resetAt === null ? '↺ --:--' : `↺ ${clockOf(account.resetAt)}`}
+        </span>
+      </div>
 
-        <div className="bay__reset">
-          <span className="bay__clock">
-            {account.resetAt === null ? '--:--' : clockOf(account.resetAt)}
-          </span>
-          <span className="bay__rel">
-            {account.resetSource === 'observed' && (
-              <Radio size={9} strokeWidth={2.6} style={{ color: 'var(--green)' }} />
-            )}
-            {remaining === null ? 'nao iniciada' : `em ${formatDuration(remaining)}`}
-          </span>
-        </div>
+      {/* Linha 3: o consumo por fatia da janela. Barras, e nao curva: o
+          gasto real vem em rajada, entao a curva suave virava um fio reto
+          com um pico numa das pontas. Cada fatia tem trilho proprio, entao
+          a janela zerada ainda le como escala graduada em vez de vao. E
+          ela que absorve a folga de altura do painel. */}
+      <div className="arow__graph">
+        <WindowBars series={account.series} progress={elapsed} accent={accent} />
+      </div>
 
-        {!isActive && (
+      {/* Linha 4: a reparticao dos tokens, em colunas alinhadas. */}
+      <div className="arow__split">
+        <span>entrada</span>
+        <b>{formatTokens(account.inputTokens)}</b>
+        <span className="arow__sp">·</span>
+        <span>cache</span>
+        <b className="arow__l">{formatTokens(account.cacheTokens)}</b>
+
+        <span>saida</span>
+        <b>{formatTokens(account.outputTokens)}</b>
+        <span className="arow__sp">·</span>
+        <span>ultimo</span>
+        <b className="arow__l">
+          {account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
+        </b>
+      </div>
+
+      {!isActive && (
+        <div className="arow__do">
           <button
             type="button"
-            className="bay__action"
             disabled={switching}
             onClick={onSwitch}
             title={
@@ -167,15 +187,10 @@ function AccountBay({ account, now, index, switching, animations, onSwitch }: Ba
                 : `sem token valido: ${TOKEN_ISSUE[account.tokenIssue]}`
             }
           >
-            {account.tokenIssue === null ? (
-              <Zap size={11} strokeWidth={2.4} />
-            ) : (
-              <KeyRound size={11} strokeWidth={2.4} />
-            )}
-            ativar
+            {account.tokenIssue === null ? 'ativar' : 'ativar (sem token)'}
           </button>
-        )}
-      </footer>
-    </article>
+        </div>
+      )}
+    </div>
   )
 }

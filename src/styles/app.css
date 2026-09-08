@@ -243,201 +243,243 @@
   color: var(--color-muted);
 }
 
-/* ── Baias de conta: osciloscopio ────────────────────────────────────── */
+/* ── Contas: saida de terminal ──────────────────────────────────────────
+   Sem caixa, sem borda e sem glow. O que separa uma conta da outra e o
+   espaco e a coluna do indice, como as linhas de um `top`. As larguras de
+   coluna sao fixas e iguais nas tres contas, entao os numeros caem uns
+   embaixo dos outros — e isso que faz o bloco ler como tabela, e nao como
+   tres cartoes empilhados. */
 
-.bays {
-  display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+.acct {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  padding: 12px;
+  min-height: 0;
+  padding: 10px 14px 12px;
 }
 
-.bays--empty {
+.acct--empty {
   display: grid;
   place-items: center;
-  height: 100%;
   font-size: 11px;
   color: var(--color-muted);
 }
 
-.bay {
-  position: relative;
+/* ── Total das tres contas ────────────────────────────────────────────
+   O numero que resume o painel. Fica no corpo normal: o peso vem da
+   posicao e do contraste, nao de escala de poster. */
+.acct__total { flex: none; }
+
+.acct__total-line { display: flex; align-items: baseline; gap: 7px; }
+
+.acct__total-v {
+  font-weight: 600;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.acct__total-k { color: var(--color-muted); }
+
+.acct__split {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--color-muted-alt);
+}
+
+/* Numero nunca sai apagado: ou azul claro, ou vermelho na conta ativa.
+   O rotulo ao lado e que recua — o contraste fica no valor. */
+.acct__split b {
+  font-weight: 400;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Regua de titulos, como a linha de cabecalho do `top`. */
+.acct__cols {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  margin-top: 9px;
+  padding-bottom: 5px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+
+.acct__c-n { width: 30px; }
+.acct__c-name { flex: 1; }
+.acct__c-v { width: 62px; text-align: right; }
+
+/* ── Uma conta ───────────────────────────────────────────────────────── */
+
+.acct__rows { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.arow {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  container-type: size;
-  container-name: bay;
-  overflow: hidden;
-  padding: 11px 12px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  /* Fundo mais escuro que o painel: a baia e a tela do instrumento. */
-  background: color-mix(in srgb, var(--bg) 72%, #000);
-  animation: bay-in 0.5s var(--ease) backwards;
-  transition: border-color 0.25s var(--ease);
+  padding-top: 11px;
+  animation: bay-in 0.45s var(--ease) backwards;
 }
 
-.bay:hover { border-color: color-mix(in srgb, var(--fg) 26%, var(--border)); }
+.arow__1 { display: flex; align-items: baseline; }
 
-.bay--active {
-  border-color: color-mix(in srgb, var(--red) 60%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red) 14%, transparent),
-    0 10px 34px -20px color-mix(in srgb, var(--red) 90%, transparent);
-}
+.arow__mark { width: 8px; color: transparent; }
+.arow.is-on .arow__mark { color: var(--red); }
 
-.bay--limited { border-color: color-mix(in srgb, var(--color-error) 65%, transparent); }
-
-/* Grade de fosforo ao fundo, como retícula de tela de instrumento. */
-.bay__grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--fg) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--fg) 6%, transparent) 1px, transparent 1px);
-  background-size: 26px 22px;
-}
-
-.bay--active .bay__grid {
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--red) 9%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--red) 9%, transparent) 1px, transparent 1px);
-}
-
-.bay__bracket {
-  position: absolute;
-  width: 9px;
-  height: 9px;
-  border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent);
-  animation: bracket-in 0.5s var(--ease) 0.15s backwards;
-  pointer-events: none;
-}
-
-.bay__bracket--tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.bay__bracket--br { right: -1px; bottom: -1px; border-left: none; border-top: none; }
-.bay--active .bay__bracket { border-color: var(--red); }
-
-/* ── Cabecalho ───────────────────────────────────────────────────────── */
-
-.bay__head { position: relative; flex: none; display: flex; align-items: center; gap: 8px; }
-
-.bay__n {
-  flex: none;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: color-mix(in srgb, var(--fg) 42%, transparent);
-  transition: color 0.25s var(--ease);
-}
-
-.bay--active .bay__n { color: var(--red); }
-
-.bay__id { flex: 1; min-width: 0; }
-
-.bay__label {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.arow__n {
+  width: 22px;
   color: var(--fg);
+  font-variant-numeric: tabular-nums;
 }
+.arow.is-on .arow__n { color: var(--red); }
 
-.bay__email {
-  margin: 1px 0 0;
-  font-size: 9.5px;
-  color: var(--color-muted);
+.arow__name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.led {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  font-size: 8.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--color-muted);
+  font-variant-ligatures: none;
+}
+.arow.is-on .arow__name { color: var(--fg); }
+
+.arow__state { margin-right: 9px; font-size: 10.5px; color: var(--color-muted-alt); }
+.arow--active .arow__state { color: var(--red); }
+.arow--ready .arow__state { color: var(--green); }
+.arow--cooling .arow__state { color: var(--warn); }
+.arow--limited .arow__state { color: var(--color-error); }
+
+.arow__v {
+  width: 62px;
+  text-align: right;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
 }
 
-.led__dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
-}
-
-.led--active { color: var(--red); }
-.led--active .led__dot { animation: led 1.8s ease-in-out infinite; }
-.led--ready { color: var(--green); }
-.led--cooling { color: var(--warn); }
-.led--limited { color: var(--color-error); }
-.led--limited .led__dot { animation: led 0.9s ease-in-out infinite; }
-
-/* ── Tela ────────────────────────────────────────────────────────────── */
-
-.scope { position: relative; flex: 1; min-height: 0; margin-top: 8px; }
-
-.scope__readout {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 2;
+/* Linha 2: o medidor em bloco, sozinho na linha. O mesmo glifo em duas
+   cores alinha por construcao, e a meia unidade de espacamento faz o
+   serrilhado ler como segmento proposital. */
+.arow__2 {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  pointer-events: none;
+  align-items: baseline;
+  margin-top: 3px;
+  padding-left: 30px;
 }
 
-.scope__big {
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  font-variant-numeric: slashed-zero;
-  color: color-mix(in srgb, var(--fg) 70%, transparent);
-  transition: color 0.3s var(--ease), text-shadow 0.3s var(--ease);
+.arow__bar {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  font-variant-ligatures: none;
 }
 
-.bay--active .scope__big {
+.arow__bar-fill { color: var(--color-muted); }
+.arow__bar-rest { color: color-mix(in srgb, var(--color-muted) 22%, transparent); }
+.arow.is-on .arow__bar-fill { color: var(--red); }
+.arow--limited .arow__bar-fill { color: var(--color-error); }
+
+.arow__pct {
+  margin-left: 8px;
+  font-size: 10.5px;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.arow__reset {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.arow__reset em { font-style: normal; color: var(--green); }
+
+/* Linha 3: o grafico de consumo. E ele que absorve a folga de altura,
+   entao o bloco preenche o painel sem que o texto precise inchar. */
+.arow__graph {
+  flex: 1;
+  min-height: 34px;
+  margin: 6px 0 0 30px;
+}
+
+/* Linha 4: a reparticao dos tokens, em colunas alinhadas. Entrada, saida
+   e cache vinham somados num numero so; medido nos transcripts reais o
+   cache e ~98% do total, entao o numero de cima sozinho dizia pouco. */
+.arow__split {
+  display: grid;
+  grid-template-columns: 52px 58px 14px 52px 1fr;
+  margin: 5px 0 0 30px;
+  font-size: 10.5px;
+  color: var(--color-muted-alt);
+}
+
+.arow__split b {
+  font-weight: 400;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.arow__split .arow__l { text-align: left; padding-left: 8px; }
+.arow__split .arow__sp { text-align: center; opacity: 0.5; }
+
+/* Conta ativa: os numeros dela viram vermelhos em bloco, entao a linha
+   inteira se identifica sem precisar de caixa nem de fundo. */
+.arow.is-on .arow__n,
+.arow.is-on .arow__v,
+.arow.is-on .arow__pct,
+.arow.is-on .arow__reset,
+.arow.is-on .arow__split b {
   color: var(--red);
-  text-shadow: 0 0 24px color-mix(in srgb, var(--red) 55%, transparent);
 }
 
-.bay--limited .scope__big { color: var(--color-error); }
+.arow__do { margin: 7px 0 0 30px; }
 
-.scope__small {
-  margin-top: 2px;
-  font-size: 8px;
-  letter-spacing: 0.16em;
+.arow__do button {
+  padding: 3px 11px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--red);
+  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease);
 }
 
-.scope__svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.arow__do button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 20%, transparent);
+  border-color: var(--red);
+}
+
+.arow__do button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── O traco do consumo ──────────────────────────────────────────────── */
+
+.scope__svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
 .scope__trace {
   fill: none;
-  stroke-width: 2;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-  transition: stroke 0.3s var(--ease);
 }
 
 /* O traco se desenha uma vez, quando chega consumo novo. O que fica
-   ciclando e so o feixe, devagar: sinal de vivo sem puxar o olho. */
+   ciclando e so o feixe, devagar: sinal de vivo sem puxar o olho. Sem o
+   drop-shadow de antes, que era o glow. */
 .scope__svg.is-live .scope__trace {
-  filter: drop-shadow(0 0 5px currentColor);
   stroke-dasharray: 620;
   animation: trace 1.1s var(--ease) 1;
 }
@@ -447,115 +489,10 @@
   to { stroke-dashoffset: 0; }
 }
 
+.scope__area { stroke: none; }
 .scope__now { stroke-width: 1; opacity: 0.3; vector-effect: non-scaling-stroke; }
 
-.scope__beam { opacity: 0.9; }
-
-.scope__svg.is-live .scope__beam {
-  animation: beam 2.8s ease-in-out infinite;
-  filter: drop-shadow(0 0 6px currentColor);
-}
-
-@keyframes beam {
-  0%, 100% { opacity: 1; r: 3.4; }
-  50% { opacity: 0.45; r: 2.6; }
-}
-
-/* ── Rodape ──────────────────────────────────────────────────────────── */
-
-.bay__foot {
-  position: relative;
-  flex: none;
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--fg) 10%, transparent);
-}
-
-.stat-cell { min-width: 0; }
-
-.stat-cell dt {
-  font-size: 8px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.stat-cell dd {
-  margin: 1px 0 0;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums slashed-zero;
-  color: var(--tone, var(--fg));
-}
-
-.stat-cell--blue { --tone: var(--blue); }
-.stat-cell--violet { --tone: var(--violet); }
-.stat-cell--green { --tone: var(--green); }
-
-.bay__reset { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; }
-
-.bay__clock {
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--fg);
-}
-
-.bay__rel {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-top: 2px;
-  font-size: 8px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.bay__action {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border: 1px solid color-mix(in srgb, var(--fg) 22%, transparent);
-  border-radius: 3px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--fg);
-  transition: border-color 0.18s, color 0.18s, background 0.18s, transform 0.18s var(--ease-spring);
-}
-
-.bay__action:hover:not(:disabled) {
-  border-color: var(--red);
-  color: var(--red);
-  background: color-mix(in srgb, var(--red) 14%, transparent);
-  transform: translateY(-1px);
-}
-
-.bay__action:disabled { opacity: 0.4; cursor: not-allowed; }
-
 .spin { animation: spin 0.9s linear infinite; }
-
-/* Ordem de sacrificio quando o terco fica baixo demais. */
-@container bay (max-height: 200px) {
-  .bay__email { display: none; }
-  .scope__big { font-size: 24px; }
-}
-
-@container bay (max-height: 160px) {
-  .stat-cell { display: none; }
-  .bay__grid { display: none; }
-}
 
 /* ── Git ─────────────────────────────────────────────────────────────── */
 
@@ -1169,7 +1106,7 @@
   flex: 1;
   min-height: 26px;
   width: 100%;
-  margin-top: 10px;
+  height: 100%;
 }
 
 .bars__slot {
@@ -1178,22 +1115,19 @@
   height: 100%;
   display: flex;
   align-items: flex-end;
-  border-radius: 2px;
   /* Cada fatia tem trilho proprio: com a janela zerada o instrumento ainda
-     le como escala graduada, e nao como um risco solto. */
+     le como escala graduada, e nao como um risco solto. Canto reto: a
+     celula tem que ler como caractere de terminal, nao como pilula. */
   background: color-mix(in srgb, var(--fg) 9%, transparent);
 }
 
 .bars__slot.is-future { background: color-mix(in srgb, var(--fg) 4%, transparent); }
 
-.bay--active .bars__slot { background: color-mix(in srgb, var(--red) 12%, transparent); }
-.bay--active .bars__slot.is-future { background: color-mix(in srgb, var(--red) 5%, transparent); }
 
 .bars__fill {
   width: 100%;
   height: var(--h);
   min-height: 2px;
-  border-radius: 2px;
   opacity: 0.85;
   transform-origin: bottom;
   animation: bar-rise 0.5s var(--ease) backwards;
@@ -1201,7 +1135,8 @@
   transition: height 0.5s var(--ease);
 }
 
-.bars__slot.is-peak .bars__fill { opacity: 1; box-shadow: 0 0 8px 0 currentColor; }
+/* O pico se marca por opacidade cheia. O box-shadow daqui era glow. */
+.bars__slot.is-peak .bars__fill { opacity: 1; }
 .bars__slot.is-future .bars__fill { display: none; }
 
 @keyframes bar-rise {
@@ -1382,8 +1317,8 @@
 }
 
 :root[data-density='compacta'] { --topbar-h: 32px; }
-:root[data-density='compacta'] .bays { gap: 6px; padding: 8px; }
-:root[data-density='compacta'] .bay { padding: 8px 10px; }
+:root[data-density='compacta'] .acct { padding: 8px 10px; }
+:root[data-density='compacta'] .arow { padding-top: 7px; }
 :root[data-density='compacta'] .view { gap: 10px; padding: 10px; }
 :root[data-density='compacta'] .readout__value { font-size: 30px; }
 :root[data-density='compacta'] .projectbar { padding: 4px 10px; }
@@ -1500,30 +1435,28 @@
 /* Enquanto a troca acontece, as baias recuam de leve e o dado esmaece: o
    painel inteiro comunica que o estado esta sendo remontado, em vez de os
    numeros piscarem de um valor para outro. */
-.bay.is-switching { border-color: color-mix(in srgb, var(--fg) 18%, var(--border)); }
+.arow.is-switching { opacity: 0.75; }
 
-.bay.is-switching .scope__big,
-.bay.is-switching .bay__clock,
-.bay.is-switching .stat-cell dd {
+.arow.is-switching .arow__v,
+.arow.is-switching .arow__reset,
+.arow.is-switching .arow__split b {
   opacity: 0.35;
   filter: blur(1px);
   transition: opacity 0.2s var(--ease), filter 0.2s var(--ease);
 }
 
-.bay.is-switching .scope__trace { opacity: 0.3; }
+.arow.is-switching .scope__trace { opacity: 0.3; }
 
-.scope__big,
-.bay__clock,
-.stat-cell dd {
+.arow__v,
+.arow__reset,
+.arow__split b {
   transition: opacity 0.35s var(--ease), filter 0.35s var(--ease), color 0.3s var(--ease);
 }
 
 /* A baia que acabou de assumir passa o barramento uma vez, mais rapido. */
-.bay--active .bay__sweep::after { animation: bus 2.6s linear infinite; }
-.bay--active.is-switching .bay__sweep::after { animation-duration: 0.9s; }
 
 /* O texto embaralhado nao pode empurrar o layout enquanto assenta. */
-.bay__label, .status__item { font-variant-ligatures: none; }
+.arow__name, .status__item { font-variant-ligatures: none; }
 
 /* Os numeros de linha nunca encolhem; quem cede largura e o caminho. */
 .delta { flex: none; }

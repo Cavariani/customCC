@@ -17,6 +17,10 @@ export interface Account {
   /** 'observed' = lido do terminal; 'estimated' = inicio da janela mais 5h. */
   resetSource: 'observed' | 'estimated'
   tokensUsed: number
+  /** O mesmo total repartido: entrada, saida e cache somam tokensUsed. */
+  inputTokens: number
+  outputTokens: number
+  cacheTokens: number
   /** Consumo por fatia da janela de 5h, para o sparkline. */
   series: number[]
   /** Quando a conta foi cobrada pela ultima vez nesta janela. */

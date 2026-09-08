@@ -193,7 +193,7 @@ export default function App() {
             <DockRail onExpand={toggleDock} />
           ) : (
             <>
-              {view === 'accounts' && <AccountsView animations={prefs.animations} />}
+              {view === 'accounts' && <AccountsView />}
               {view === 'git' && <GitView />}
               {view === 'diff' && <DiffView />}
               {view === 'settings' && (

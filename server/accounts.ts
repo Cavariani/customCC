@@ -185,9 +185,18 @@ export async function registerTranscript(
   await saveState(state)
 }
 
+/** Um ponto de consumo: o total e a reparticao dele. */
+export interface UsagePoint {
+  timestamp: number
+  tokens: number
+  input: number
+  output: number
+  cache: number
+}
+
 interface TranscriptCacheEntry {
   mtime: number
-  totals: { timestamp: number; tokens: number }[]
+  totals: UsagePoint[]
 }
 
 const transcriptCache = new Map<string, TranscriptCacheEntry>()
@@ -209,6 +218,12 @@ async function usageTimeline(file: string, sessionId: string) {
     timestamp: u.timestamp,
     // Cache de leitura entra no total porque tambem conta para o limite.
     tokens: u.inputTokens + u.outputTokens + u.cacheReadTokens + u.cacheCreationTokens,
+    // Os quatro seguem separados tambem: medido nos transcripts reais, o
+    // cache de leitura e ~98% do total, entao o numero somado sozinho diz
+    // pouco sobre o que a conta realmente gastou.
+    input: u.inputTokens,
+    output: u.outputTokens,
+    cache: u.cacheReadTokens + u.cacheCreationTokens,
   }))
   transcriptCache.set(file, { mtime, totals })
   return totals
@@ -226,6 +241,10 @@ export interface AccountSummary {
   /** Se o reset veio do terminal ou e a estimativa de inicio mais 5h. */
   resetSource: 'observed' | 'estimated'
   tokensUsed: number
+  /** O mesmo total repartido: entrada, saida e cache somam tokensUsed. */
+  inputTokens: number
+  outputTokens: number
+  cacheTokens: number
   /** Consumo por fatia da janela, para o sparkline. */
   series: number[]
   /** Quando a conta foi cobrada pela ultima vez nesta janela. */
@@ -246,7 +265,7 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
   // dela, sem filtrar por janela ainda. Filtrar antes era o bug: a conta
   // recem-ativada nao tinha janela aberta, e todo o consumo dela era
   // descartado em silencio.
-  const pontos: Record<number, { timestamp: number; tokens: number; sessionId: string }[]> = {
+  const pontos: Record<number, (UsagePoint & { sessionId: string })[]> = {
     1: [], 2: [], 3: [],
   }
 
@@ -291,6 +310,9 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
 
   // Passo 3: somar so o que cai dentro da janela de cada conta.
   const used: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
+  const usedIn: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
+  const usedOut: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
+  const usedCache: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
   const lastAt: Record<number, number | null> = { 1: null, 2: null, 3: null }
   const sessionCount: Record<number, Set<string>> = { 1: new Set(), 2: new Set(), 3: new Set() }
   const buckets: Record<number, number[]> = {
@@ -307,6 +329,9 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
     for (const ponto of pontos[id]) {
       if (ponto.timestamp < janela.start || ponto.timestamp > fim) continue
       used[id] += ponto.tokens
+      usedIn[id] += ponto.input
+      usedOut[id] += ponto.output
+      usedCache[id] += ponto.cache
       sessionCount[id].add(ponto.sessionId)
       if (lastAt[id] === null || ponto.timestamp > lastAt[id]!) lastAt[id] = ponto.timestamp
 
@@ -344,6 +369,9 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
           ? ('observed' as const)
           : ('estimated' as const),
       tokensUsed: used[id],
+      inputTokens: usedIn[id],
+      outputTokens: usedOut[id],
+      cacheTokens: usedCache[id],
       series: buckets[id],
       lastUsedAt: lastAt[id],
       peakTokens: Math.max(0, ...buckets[id]),

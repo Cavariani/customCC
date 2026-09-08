@@ -35,8 +35,13 @@ export function ScopeTrace({ series, progress, accent, live }: Props) {
     path += ` C ${mx} ${py}, ${mx} ${y}, ${x} ${y}`
   }
 
+  // A mesma curva fechada ate a base. Sem ela, uma janela de consumo baixo
+  // (ou uma conta zerada) vira um fio solto no meio de um vao, que le como
+  // painel quebrado; com o preenchimento, o vazio vira uma faixa rasa, que
+  // e a leitura certa: consumiu pouco.
+  const area = `${path} L ${W} ${H} L 0 ${H} Z`
+
   const beamX = progress * W
-  const beamIndex = Math.min(points.length - 1, Math.round(progress * (points.length - 1)))
 
   return (
     <svg
@@ -49,29 +54,28 @@ export function ScopeTrace({ series, progress, accent, live }: Props) {
           redesenha. Antes ele varria em loop, o que virava ruido no canto
           do olho sem dizer nada. */}
       <path
+        className="scope__area"
+        d={area}
+        style={{ fill: accent, opacity: hasData ? 0.16 : 0.07 }}
+      />
+      <path
         key={`${series.length}:${total}`}
         className="scope__trace"
         d={path}
         style={{ stroke: accent, opacity: hasData ? 1 : 0.4 }}
       />
+      {/* Sem circulo no feixe: o viewBox estica em x e y de forma
+          diferente, entao o ponto saia como uma elipse deformada. A linha
+          vertical ja diz onde a janela esta. */}
       {progress > 0.01 && (
-        <>
-          <line
-            className="scope__now"
-            x1={beamX}
-            y1={0}
-            x2={beamX}
-            y2={H}
-            style={{ stroke: accent }}
-          />
-          <circle
-            className="scope__beam"
-            cx={beamX}
-            cy={points[beamIndex][1]}
-            r={3.4}
-            style={{ fill: accent }}
-          />
-        </>
+        <line
+          className="scope__now"
+          x1={beamX}
+          y1={0}
+          x2={beamX}
+          y2={H}
+          style={{ stroke: accent }}
+        />
       )}
     </svg>
   )
