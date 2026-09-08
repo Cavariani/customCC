@@ -3,6 +3,12 @@ export type AccountId = 1 | 2 | 3
 export const WINDOW_MS = 5 * 60 * 60 * 1000
 
 /** Espelha o AccountSummary do servidor. */
+/** Quanto uma origem consumiu na janela: serve para modelo e para projeto. */
+export interface Fatia {
+  nome: string
+  tokens: number
+}
+
 export interface Account {
   id: AccountId
   label: string
@@ -21,6 +27,10 @@ export interface Account {
   inputTokens: number
   outputTokens: number
   cacheTokens: number
+  /** Consumo por modelo na janela, do maior para o menor. */
+  porModelo: Fatia[]
+  /** Consumo por projeto na janela, do maior para o menor. */
+  porProjeto: Fatia[]
   /** Consumo por fatia da janela de 5h, para o sparkline. */
   series: number[]
   /** Quando a conta foi cobrada pela ultima vez nesta janela. */

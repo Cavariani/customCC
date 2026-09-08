@@ -46,6 +46,8 @@ export interface UsageEntry {
   outputTokens: number
   cacheReadTokens: number
   cacheCreationTokens: number
+  /** Modelo que atendeu. Opus e Sonnet pesam diferente na mesma janela. */
+  model: string | null
 }
 
 /**
@@ -167,7 +169,9 @@ export async function readTranscript(
 
 function collectUsage(entry: Record<string, unknown>, ts: number, data: TranscriptData) {
   if (entry.type !== 'assistant') return
-  const message = entry.message as { usage?: Record<string, number> } | undefined
+  const message = entry.message as
+    | { usage?: Record<string, number>; model?: unknown }
+    | undefined
   const usage = message?.usage
   if (!usage) return
   data.usage.push({
@@ -176,6 +180,7 @@ function collectUsage(entry: Record<string, unknown>, ts: number, data: Transcri
     outputTokens: usage.output_tokens ?? 0,
     cacheReadTokens: usage.cache_read_input_tokens ?? 0,
     cacheCreationTokens: usage.cache_creation_input_tokens ?? 0,
+    model: typeof message?.model === 'string' ? message.model : null,
   })
 }
 

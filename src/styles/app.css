@@ -451,6 +451,21 @@
   color: var(--red);
 }
 
+/* Origem do gasto: modelo e projeto, numa linha so e no tom dos rotulos. */
+.arow__origem {
+  display: flex;
+  gap: 7px;
+  margin: 3px 0 0 30px;
+  font-size: 10.5px;
+  color: var(--color-muted-alt);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.arow__origem b { font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
+.arow.is-on .arow__origem b { color: var(--red); }
+.arow__dim { opacity: 0.6; }
+
 .arow__do { margin: 7px 0 0 30px; }
 
 .arow__do button {

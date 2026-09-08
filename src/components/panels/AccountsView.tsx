@@ -9,7 +9,7 @@ import {
   getStatus,
   windowRatio,
 } from '../../lib/format'
-import type { Account } from '../../types'
+import type { Account, Fatia } from '../../types'
 
 const TOKEN_ISSUE: Record<string, string> = {
   missing: 'CLAUDE_TOKEN nao encontrado no arquivo',
@@ -88,6 +88,26 @@ function Total({ accounts }: { accounts: Account[] }) {
         </span>
       </div>
     </div>
+  )
+}
+
+/** Ate duas origens, com fatia percentual so quando ha mais de uma. */
+function Origem({ fatias, total }: { fatias: Fatia[]; total: number }) {
+  if (fatias.length === 0) return <span className="arow__dim">--</span>
+  if (fatias.length === 1) return <span>{fatias[0].nome}</span>
+
+  const pct = (t: number) => Math.round((t / Math.max(total, 1)) * 100)
+  const resto = fatias.length - 2
+  return (
+    <span>
+      {fatias.slice(0, 2).map((f, i) => (
+        <span key={f.nome}>
+          {i > 0 && ' '}
+          {f.nome} <b>{pct(f.tokens)}%</b>
+        </span>
+      ))}
+      {resto > 0 && <span className="arow__dim"> +{resto}</span>}
+    </span>
   )
 }
 
@@ -173,6 +193,15 @@ function Row({ account, now, switching, onSwitch }: RowProps) {
         <b className="arow__l">
           {account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
         </b>
+      </div>
+
+      {/* De onde veio o gasto. Com uma origem so, a porcentagem seria
+          sempre 100% e viraria ruido; ela so aparece quando ha o que
+          comparar. */}
+      <div className="arow__origem">
+        <Origem fatias={account.porModelo} total={account.tokensUsed} />
+        <span className="arow__sp">·</span>
+        <Origem fatias={account.porProjeto} total={account.tokensUsed} />
       </div>
 
       {!isActive && (

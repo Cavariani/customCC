@@ -249,6 +249,7 @@ export interface UsagePoint {
   input: number
   output: number
   cache: number
+  model: string | null
 }
 
 interface TranscriptCacheEntry {
@@ -282,10 +283,28 @@ async function usageTimeline(file: string, sessionId: string) {
     input: u.inputTokens,
     output: u.outputTokens,
     cache: u.cacheReadTokens + u.cacheCreationTokens,
+    model: u.model,
   }))
   const entrada: TranscriptCacheEntry = { mtime, totals, quota: transcript?.quota ?? [] }
   transcriptCache.set(file, entrada)
   return entrada
+}
+
+/**
+ * Nome do modelo em duas palavras. O id completo (`claude-opus-5-20260101`)
+ * nao cabe na coluna e nao acrescenta nada: o que interessa e a familia.
+ */
+export function nomeCurtoDoModelo(id: string | null): string {
+  if (!id) return 'desconhecido'
+  const m = id.match(/(opus|sonnet|haiku)[-_]?([0-9.]+)?/i)
+  if (!m) return id.replace(/^claude-/, '').slice(0, 18)
+  return m[2] ? `${m[1].toLowerCase()} ${m[2]}` : m[1].toLowerCase()
+}
+
+/** Quanto uma origem consumiu na janela. Serve para modelo e para projeto. */
+export interface Fatia {
+  nome: string
+  tokens: number
 }
 
 export interface AccountSummary {
@@ -304,6 +323,10 @@ export interface AccountSummary {
   inputTokens: number
   outputTokens: number
   cacheTokens: number
+  /** Consumo por modelo na janela, do maior para o menor. */
+  porModelo: Fatia[]
+  /** Consumo por projeto na janela, do maior para o menor. */
+  porProjeto: Fatia[]
   /** Consumo por fatia da janela, para o sparkline. */
   series: number[]
   /** Quando a conta foi cobrada pela ultima vez nesta janela. */
@@ -324,7 +347,7 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
   // dela, sem filtrar por janela ainda. Filtrar antes era o bug: a conta
   // recem-ativada nao tinha janela aberta, e todo o consumo dela era
   // descartado em silencio.
-  const pontos: Record<number, (UsagePoint & { sessionId: string })[]> = {
+  const pontos: Record<number, (UsagePoint & { sessionId: string; projeto: string })[]> = {
     1: [], 2: [], 3: [],
   }
 
@@ -336,7 +359,7 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
     for (const point of totals) {
       const dono = accountAt(state, point.timestamp)
       if (dono === null) continue
-      pontos[dono].push({ ...point, sessionId })
+      pontos[dono].push({ ...point, sessionId, projeto: ref.cwd })
     }
     for (const evento of quota) {
       const dono = accountAt(state, evento.timestamp)
@@ -402,6 +425,8 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
   const usedIn: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
   const usedOut: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
   const usedCache: Record<number, number> = { 1: 0, 2: 0, 3: 0 }
+  const porModelo: Record<number, Map<string, number>> = { 1: new Map(), 2: new Map(), 3: new Map() }
+  const porProjeto: Record<number, Map<string, number>> = { 1: new Map(), 2: new Map(), 3: new Map() }
   const lastAt: Record<number, number | null> = { 1: null, 2: null, 3: null }
   const sessionCount: Record<number, Set<string>> = { 1: new Set(), 2: new Set(), 3: new Set() }
   const buckets: Record<number, number[]> = {
@@ -421,6 +446,13 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       usedIn[id] += ponto.input
       usedOut[id] += ponto.output
       usedCache[id] += ponto.cache
+      const modelo = nomeCurtoDoModelo(ponto.model)
+      porModelo[id].set(modelo, (porModelo[id].get(modelo) ?? 0) + ponto.tokens)
+      // O projeto sai do cwd que o transcript registrou, e nao do diretorio
+      // da aba: uma sessao retomada noutra pasta continua contando onde
+      // realmente rodou.
+      const projeto = nomeDoProjeto(ponto.projeto)
+      porProjeto[id].set(projeto, (porProjeto[id].get(projeto) ?? 0) + ponto.tokens)
       sessionCount[id].add(ponto.sessionId)
       if (lastAt[id] === null || ponto.timestamp > lastAt[id]!) lastAt[id] = ponto.timestamp
 
@@ -461,6 +493,8 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       inputTokens: usedIn[id],
       outputTokens: usedOut[id],
       cacheTokens: usedCache[id],
+      porModelo: ordena(porModelo[id]),
+      porProjeto: ordena(porProjeto[id]),
       series: buckets[id],
       lastUsedAt: lastAt[id],
       peakTokens: Math.max(0, ...buckets[id]),
@@ -469,6 +503,20 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       limitEvidence: aindaLimitada ? record.evidence : null,
     }
   })
+}
+
+/** Mapa vira lista ordenada do maior consumo para o menor. */
+function ordena(mapa: Map<string, number>): Fatia[] {
+  return [...mapa.entries()]
+    .map(([nome, tokens]) => ({ nome, tokens }))
+    .sort((a, b) => b.tokens - a.tokens)
+}
+
+/** Ultimo trecho do caminho: o nome que a pessoa reconhece. */
+function nomeDoProjeto(cwd: string | undefined): string {
+  if (!cwd) return 'desconhecido'
+  const partes = cwd.replace(/[/\\]+$/, '').split(/[/\\]/)
+  return partes[partes.length - 1] || cwd
 }
 
 export async function getAutoSwitch(): Promise<boolean> {
