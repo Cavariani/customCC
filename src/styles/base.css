@@ -38,8 +38,9 @@
   --rail-w: 46px;
   --dock-w: 372px;
   /* Altura unica da faixa superior: e o que mantem a regua da aba e a do
-     painel na mesma linha em vez de uma pisando dois pixels abaixo. */
-  --topbar-h: 38px;
+     painel na mesma linha em vez de uma pisando dois pixels abaixo. Era
+     38px no modo confortavel; com a densidade unica, vale o compacto. */
+  --topbar-h: 32px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -99,6 +100,13 @@ button {
 @keyframes masc-pe-b {
   0%, 100% { transform: translateY(-1px); }
   50% { transform: translateY(0); }
+}
+
+/* A varredura da conta em uso: entra pela esquerda, atravessa e espera.
+   A pausa no fim e o que a deixa leve — sem ela vira estrobo. */
+@keyframes varrer {
+  0% { transform: translateX(-100%); }
+  55%, 100% { transform: translateX(100%); }
 }
 
 @keyframes row-flash {

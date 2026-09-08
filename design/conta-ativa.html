@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>customCC · seis jeitos de dizer que a conta esta em uso</title>
+<style>
+:root {
+  --bg: #282c34; --fg: #9cdef2; --panel: #111111; --red: #e06c75;
+  --green: #50fa7b; --warn: #f0ad4e; --color-error: #ff4444;
+  --color-muted: #a8b1bf; --color-muted-alt: #929bab;
+  --mono: 'Fira Code', ui-monospace, Menlo, monospace;
+  --ease: cubic-bezier(.22,.61,.36,1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:20px; background:var(--bg); color:var(--fg);
+  font-family:var(--mono); font-size:12.5px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+h1 { margin:0 0 4px; font-size:14px; font-weight:600; }
+.lede { margin:0 0 8px; max-width:104ch; font-size:11.5px; line-height:1.6; color:var(--color-muted); }
+.lede b { color:var(--fg); font-weight:600; }
+.aviso { margin:0 0 20px; font-size:11.5px; color:var(--warn); }
+
+.grade { display:grid; grid-template-columns:repeat(3, 372px); gap:20px; }
+.col__cab { margin:0 0 5px; font-size:11.5px; font-weight:600; color:var(--red); letter-spacing:.08em; text-transform:uppercase; }
+.col__nota { margin:0 0 8px; font-size:11px; line-height:1.55; color:var(--color-muted-alt); min-height:58px; }
+.dock { background:var(--panel); padding:12px 14px; }
+
+/* ── a linha da conta, igual a do painel ─────────────────────────────── */
+.l { display:flex; flex-direction:column; padding:8px 0; }
+.l1 { display:flex; align-items:baseline; }
+.n { width:24px; color:var(--red); font-variant-numeric:tabular-nums; }
+.nome { flex:1; color:var(--fg); }
+.est { margin-right:9px; font-size:11px; color:var(--red); }
+.v { width:66px; text-align:right; color:var(--red); font-variant-numeric:tabular-nums; }
+.grade2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; margin-top:2px; }
+.par { display:flex; align-items:baseline; gap:8px; font-size:11px; }
+.par span { color:var(--color-muted-alt); }
+.par b { margin-left:auto; font-weight:400; color:var(--red); font-variant-numeric:tabular-nums; }
+.cota { margin-top:4px; }
+.cl { display:flex; align-items:center; gap:8px; margin-top:3px; }
+.cl .k { width:26px; font-size:11px; color:var(--color-muted-alt); }
+.tr { position:relative; flex:1; height:9px;
+  background:repeating-linear-gradient(90deg, color-mix(in srgb,var(--color-muted) 20%,transparent) 0 6px, transparent 6px 8px); }
+.fi { position:absolute; inset:0 auto 0 0;
+  background:repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px); }
+.cl b { width:38px; text-align:right; font-weight:600; font-size:12.5px; color:var(--red); font-variant-numeric:tabular-nums; }
+.cl .rs { width:62px; text-align:right; font-size:11px; color:var(--color-muted-alt); font-variant-numeric:tabular-nums; }
+.rod { display:flex; height:44px; margin-top:6px; }
+.uso { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  color:var(--color-muted-alt); background:color-mix(in srgb,var(--fg) 5%,transparent); }
+.uso b { font-weight:400; font-size:11px; letter-spacing:.18em; text-transform:uppercase; }
+.uso small { font-size:10.5px; font-variant-numeric:tabular-nums; opacity:.85; }
+
+/* ═══════════ A · cursor de terminal ═══════════
+   Um bloco piscando depois do nome, no ritmo de cursor de shell. */
+.a-cursor::after { content:'▌'; margin-left:6px; color:var(--red);
+  animation: piscar 1.1s steps(1, end) infinite; }
+@keyframes piscar { 0%,50% { opacity:1 } 50.01%,100% { opacity:0 } }
+
+/* ═══════════ B · reticencias que contam ═══════════
+   O rotulo do estado ganha pontos que avancam, como um processo pensando. */
+.b-pontos::after { content:''; animation: pontos 1.6s steps(1, end) infinite; }
+@keyframes pontos {
+  0%   { content:'' }
+  25%  { content:'.' }
+  50%  { content:'..' }
+  75%  { content:'...' }
+}
+
+/* ═══════════ C · trilho que respira ═══════════
+   As celulas vazias da barra de cota clareiam devagar, da esquerda para a
+   direita, como um sinal percorrendo o trilho. */
+.c-trilho { background-size:200% 100%; animation: correr 3.2s linear infinite;
+  background-image: repeating-linear-gradient(90deg,
+    color-mix(in srgb,var(--color-muted) 20%,transparent) 0 6px, transparent 6px 8px),
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb,var(--red) 14%,transparent) 50%, transparent 100%); }
+@keyframes correr { from { background-position: 0 0, 100% 0 } to { background-position: 0 0, -100% 0 } }
+
+/* ═══════════ D · marca lateral ═══════════
+   Uma barra fina a esquerda da linha inteira, pulsando devagar. */
+.d-marca { position:relative; padding-left:10px; }
+.d-marca::before { content:''; position:absolute; left:0; top:4px; bottom:4px; width:2px;
+  background:var(--red); animation: respirar 2.4s ease-in-out infinite; }
+@keyframes respirar { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+
+/* ═══════════ E · ultimo segmento vivo ═══════════
+   So a celula da ponta da barra pisca: a que avanca quando o gasto sobe. */
+.e-ponta { position:relative; }
+.e-ponta::after { content:''; position:absolute; right:-1px; top:0; bottom:0; width:6px;
+  background:var(--red); animation: respirar 1.4s ease-in-out infinite; }
+
+/* ═══════════ F · faixa varrida ═══════════
+   A faixa "em uso" recebe um clarao muito fraco que atravessa devagar. */
+.f-faixa { position:relative; overflow:hidden; }
+.f-faixa::after { content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(90deg, transparent 0%, color-mix(in srgb,var(--fg) 7%,transparent) 50%, transparent 100%);
+  transform:translateX(-100%); animation: varrer 3.6s ease-in-out infinite; }
+@keyframes varrer { 0% { transform:translateX(-100%) } 60%,100% { transform:translateX(100%) } }
+</style>
+</head>
+<body>
+<h1>customCC · seis jeitos de dizer que a conta esta em uso</h1>
+<p class="lede">
+Todas <b>sem glow</b> e sem caixa nova, usando so o acento do tema. Cada uma mexe num lugar
+diferente do card, entao a escolha e mais sobre <b>onde</b> o olho vai que sobre o efeito.
+</p>
+<p class="aviso">Abra este arquivo no navegador: as animacoes nao aparecem em captura de tela.</p>
+
+<div class="grade" id="grade"></div>
+
+<script>
+const CARD = (extra = {}) => `
+  <div class="l ${extra.linha ?? ''}">
+    <div class="l1">
+      <span class="n">03</span>
+      <span class="nome ${extra.nome ?? ''}">MLEGATE Backup</span>
+      <span class="est ${extra.est ?? ''}">ativa</span>
+      <span class="v">255.6k</span>
+    </div>
+    <div class="grade2">
+      <div class="par"><span>reinicia</span><b>20:20 4:44:01</b></div>
+      <div class="par"><span>ultimo</span><b>18s</b></div>
+      <div class="par"><span>entrada</span><b>48</b></div>
+      <div class="par"><span>saida</span><b>25.3k</b></div>
+      <div class="par"><span>cache</span><b>16.13M</b></div>
+      <div class="par"><span>sessoes</span><b>4</b></div>
+    </div>
+    <div class="cota">
+      <div class="cl"><span class="k">5h</span>
+        <span class="tr ${extra.trilho ?? ''}"><span class="fi ${extra.fill ?? ''}" style="width:30%"></span></span>
+        <b>30%</b><span class="rs">4:13:27</span></div>
+      <div class="cl"><span class="k">7d</span>
+        <span class="tr"><span class="fi" style="width:14%"></span></span>
+        <b>14%</b><span class="rs">74:23:27</span></div>
+    </div>
+    <div class="rod">
+      <span class="uso ${extra.faixa ?? ''}"><b>em uso</b><small>reseta em 4:44:01</small></span>
+    </div>
+  </div>`
+
+const OPCOES = [
+  ['A · cursor de terminal',
+   'Um bloco piscando depois do nome, no ritmo de cursor de shell. E a linguagem da casa e o olho ja sabe ler.',
+   CARD({ nome:'a-cursor' })],
+  ['B · reticencias que contam',
+   'O rotulo do estado ganha pontos que avancam. Diz "esta acontecendo agora" sem mover nada de lugar.',
+   CARD({ est:'b-pontos' })],
+  ['C · trilho que respira',
+   'Um sinal fraco percorre a barra de cota da esquerda para a direita. Anima o dado, e nao um enfeite ao lado dele.',
+   CARD({ trilho:'c-trilho' })],
+  ['D · marca lateral',
+   'Uma barra fina a esquerda da linha inteira, pulsando devagar. Marca a conta toda, nao um pedaco.',
+   CARD({ linha:'d-marca' })],
+  ['E · ponta viva',
+   'So a celula da ponta da barra pisca: justamente a que vai avancar quando o gasto subir.',
+   CARD({ fill:'e-ponta' })],
+  ['F · faixa varrida',
+   'Um clarao muito fraco atravessa a faixa "em uso" de vez em quando. O movimento mais discreto dos seis.',
+   CARD({ faixa:'f-faixa' })],
+]
+
+document.getElementById('grade').innerHTML = OPCOES.map(([t,nota,card])=>`
+  <div>
+    <p class="col__cab">${t}</p>
+    <p class="col__nota">${nota}</p>
+    <div class="dock">${card}</div>
+  </div>`).join('')
+</script>
+</body>
+</html>

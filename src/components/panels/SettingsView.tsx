@@ -57,13 +57,6 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
       <section className="group">
         <h4 className="group__title">interface</h4>
 
-        <Choice
-          label="densidade"
-          value={prefs.density}
-          options={['compacta', 'confortavel']}
-          onPick={(v) => onPref('density', v as Prefs['density'])}
-        />
-
         <Toggle
           label="animacoes"
           hint="pulsos, varreduras e transicoes"
@@ -81,13 +74,6 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
             const resposta = await pedirPermissaoDeAviso()
             onPref('notify', resposta === 'granted')
           }}
-        />
-
-        <Toggle
-          label="grao no fundo"
-          hint="textura fina sobre o preto"
-          on={prefs.grain}
-          onToggle={() => onPref('grain', !prefs.grain)}
         />
 
         <div className="field">
@@ -193,32 +179,3 @@ function Toggle({
   )
 }
 
-function Choice({
-  label,
-  value,
-  options,
-  onPick,
-}: {
-  label: string
-  value: string
-  options: string[]
-  onPick: (value: string) => void
-}) {
-  return (
-    <div className="field">
-      <span className="field__label">{label}</span>
-      <div className="segmented">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={option === value ? 'is-on' : undefined}
-            onClick={() => onPick(option)}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}

@@ -3,9 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 export interface Prefs {
   /** Painel de contas recolhido na largura do rail. */
   dockCollapsed: boolean
-  density: 'compacta' | 'confortavel'
   animations: boolean
-  grain: boolean
   /** Corpo da fonte do terminal, em px. */
   terminalFontSize: number
   /** Entrelinha do terminal. O xterm nao centraliza o glifo na celula: a
@@ -20,9 +18,7 @@ const KEY = 'customcc-prefs'
 
 const DEFAULTS: Prefs = {
   dockCollapsed: false,
-  density: 'confortavel',
   animations: true,
-  grain: true,
   terminalFontSize: 12.5,
   terminalLineHeight: 1.15,
   notify: false,
@@ -42,9 +38,7 @@ export function usePrefs() {
 
   useEffect(() => {
     const root = document.documentElement
-    root.dataset.density = prefs.density
     root.dataset.animations = String(prefs.animations)
-    root.dataset.grain = String(prefs.grain)
     root.dataset.dock = prefs.dockCollapsed ? 'collapsed' : 'open'
     try {
       localStorage.setItem(KEY, JSON.stringify(prefs))

@@ -500,11 +500,34 @@
 button.arow__acao:hover:not(:disabled) { color: var(--panel); background: var(--red); }
 button.arow__acao:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* Em uso: mesma caixa, sem convite a clicar. */
+/* Em uso: mesma caixa, sem convite a clicar, com uma varredura no acento
+   atravessando devagar. E o unico movimento do painel, e vive no lugar
+   onde ja se olha para saber quem esta ativo. Sem glow: e um degrade que
+   passa, nao um brilho parado. */
 .arow__acao--uso {
+  position: relative;
+  overflow: hidden;
   color: var(--color-muted-alt);
   background: color-mix(in srgb, var(--fg) 5%, transparent);
 }
+
+.arow__acao--uso::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--red) 26%, transparent) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: varrer 3.4s ease-in-out infinite;
+}
+
+/* O texto fica acima da varredura, senao ela lava por cima dele. */
+.arow__acao--uso > * { position: relative; }
 
 /* No limite: a acao continua ali, mas dizendo que nao adianta agora. */
 .arow__acao--bloq {
@@ -2068,18 +2091,6 @@ button.arow__acao--bloq:hover:not(:disabled) {
 
 .field input[type='range']:focus-visible { outline: 1px solid var(--red); outline-offset: 2px; }
 
-.segmented { display: flex; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
-
-.segmented button {
-  flex: 1;
-  padding: 5px 8px;
-  font-size: 10.5px;
-  color: var(--color-muted);
-  transition: background 0.15s, color 0.15s;
-}
-
-.segmented button.is-on { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
-.segmented button:hover:not(.is-on) { background: color-mix(in srgb, var(--fg) 8%, transparent); }
 
 .switch {
   display: flex;
@@ -2122,8 +2133,6 @@ button.arow__acao--bloq:hover:not(:disabled) {
 
 /* ── Preferencias globais ────────────────────────────────────────────── */
 
-:root[data-grain='false'] body::before { display: none; }
-
 :root[data-animations='false'] *,
 :root[data-animations='false'] *::before,
 :root[data-animations='false'] *::after {
@@ -2131,12 +2140,10 @@ button.arow__acao--bloq:hover:not(:disabled) {
   transition: none !important;
 }
 
-:root[data-density='compacta'] { --topbar-h: 32px; }
-:root[data-density='compacta'] .acct { padding: 8px 10px; }
-:root[data-density='compacta'] .arow { padding-top: 7px; }
-:root[data-density='compacta'] .view { gap: 10px; padding: 10px; }
-:root[data-density='compacta'] .readout__value { font-size: 30px; }
-:root[data-density='compacta'] .projectbar { padding: 4px 10px; }
+/* O compacto virou o unico: era a densidade que o Pedro usava, e manter as
+   duas so somava um seletor para uma escolha que ninguem refazia. A altura
+   da faixa superior foi junto para o token, em base.css. */
+.projectbar { padding: 4px 10px; }
 
 /* ── Cabecalho das telas ─────────────────────────────────────────────── */
 
