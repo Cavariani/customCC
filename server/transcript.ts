@@ -48,6 +48,21 @@ export interface UsageEntry {
   cacheCreationTokens: number
 }
 
+/**
+ * Recusa por limite registrada pelo proprio Claude Code na linha do
+ * transcript. E a unica fonte autoritativa de reset que temos: o resto do
+ * app estima (inicio da janela mais 5h) ou raspa do texto do terminal.
+ * Aparece so no 429 — medido, em 0,2% das mensagens.
+ */
+export interface QuotaEvent {
+  timestamp: number
+  /** Epoch em milissegundos. O campo do arquivo vem em segundos. */
+  resetsAt: number | null
+  /** 'five_hour' na janela normal; guardado cru para nao mentir se mudar. */
+  rateLimitType: string | null
+  status: string | null
+}
+
 export interface ToolTouch {
   path: string
   tool: 'Edit' | 'Write' | 'NotebookEdit'
@@ -62,6 +77,8 @@ export interface TranscriptData {
   startedAt: number
   updatedAt: number
   usage: UsageEntry[]
+  /** Recusas por limite, com o reset que a propria API informou. */
+  quota: QuotaEvent[]
   /** Backup de menor versao por arquivo: o estado antes da primeira edicao. */
   backups: Map<string, BackupRef>
   touches: ToolTouch[]
@@ -116,6 +133,7 @@ export async function readTranscript(
     startedAt: 0,
     updatedAt: 0,
     usage: [],
+    quota: [],
     backups: new Map(),
     touches: [],
   }
@@ -139,6 +157,7 @@ export async function readTranscript(
     if (typeof entry.gitBranch === 'string') data.gitBranch = entry.gitBranch
 
     collectUsage(entry, ts, data)
+    collectQuota(entry, ts, data)
     collectTouches(entry, ts, data)
     collectBackups(entry, data)
   }
@@ -157,6 +176,24 @@ function collectUsage(entry: Record<string, unknown>, ts: number, data: Transcri
     outputTokens: usage.output_tokens ?? 0,
     cacheReadTokens: usage.cache_read_input_tokens ?? 0,
     cacheCreationTokens: usage.cache_creation_input_tokens ?? 0,
+  })
+}
+
+function collectQuota(entry: Record<string, unknown>, ts: number, data: TranscriptData) {
+  const quota = entry.quotaLimits
+  if (typeof quota !== 'object' || quota === null) return
+  const q = quota as { resetsAt?: unknown; rateLimitType?: unknown; status?: unknown }
+
+  // resetsAt vem em segundos; o resto do app trabalha em milissegundos.
+  // Multiplicar sem conferir transformaria um valor ausente em 1 de janeiro
+  // de 1970, que passaria por "reset no passado" e limparia o estado.
+  const segundos = typeof q.resetsAt === 'number' && Number.isFinite(q.resetsAt) ? q.resetsAt : null
+
+  data.quota.push({
+    timestamp: ts,
+    resetsAt: segundos === null ? null : segundos * 1000,
+    rateLimitType: typeof q.rateLimitType === 'string' ? q.rateLimitType : null,
+    status: typeof q.status === 'string' ? q.status : null,
   })
 }
 

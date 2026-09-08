@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { readTranscript } from './transcript.js'
+import { readTranscript, type QuotaEvent } from './transcript.js'
 
 export const STATE_DIR = join(homedir(), '.claude-multi-account')
 const STATE_FILE = join(STATE_DIR, 'state.json')
@@ -244,6 +244,7 @@ export interface UsagePoint {
 interface TranscriptCacheEntry {
   mtime: number
   totals: UsagePoint[]
+  quota: QuotaEvent[]
 }
 
 const transcriptCache = new Map<string, TranscriptCacheEntry>()
@@ -254,11 +255,11 @@ async function usageTimeline(file: string, sessionId: string) {
   try {
     mtime = (await stat(file)).mtimeMs
   } catch {
-    return []
+    return { mtime: 0, totals: [], quota: [] }
   }
 
   const cached = transcriptCache.get(file)
-  if (cached && cached.mtime === mtime) return cached.totals
+  if (cached && cached.mtime === mtime) return cached
 
   const transcript = await readTranscript(file, sessionId)
   const totals = (transcript?.usage ?? []).map((u) => ({
@@ -272,8 +273,9 @@ async function usageTimeline(file: string, sessionId: string) {
     output: u.outputTokens,
     cache: u.cacheReadTokens + u.cacheCreationTokens,
   }))
-  transcriptCache.set(file, { mtime, totals })
-  return totals
+  const entrada: TranscriptCacheEntry = { mtime, totals, quota: transcript?.quota ?? [] }
+  transcriptCache.set(file, entrada)
+  return entrada
 }
 
 export interface AccountSummary {
@@ -316,19 +318,49 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
     1: [], 2: [], 3: [],
   }
 
+  const recusas: Record<number, QuotaEvent[]> = { 1: [], 2: [], 3: [] }
+  let mudouPorQuota = false
+
   for (const [sessionId, ref] of Object.entries(state.transcripts)) {
-    for (const point of await usageTimeline(ref.file, sessionId)) {
+    const { totals, quota } = await usageTimeline(ref.file, sessionId)
+    for (const point of totals) {
       const dono = accountAt(state, point.timestamp)
       if (dono === null) continue
       pontos[dono].push({ ...point, sessionId })
     }
+    for (const evento of quota) {
+      const dono = accountAt(state, evento.timestamp)
+      if (dono === null) continue
+      recusas[dono].push(evento)
+    }
+  }
+
+  // Passo 1.5: o reset que a propria API informou vale mais que qualquer
+  // estimativa nossa. Precisa entrar antes do passo 2, que decide a janela
+  // lendo justamente o observedResetAt.
+  //
+  // So conta recusa cujo reset ainda esta no futuro: um 429 de tres dias
+  // atras nao diz nada sobre a janela de agora.
+  for (const id of ACCOUNT_IDS) {
+    const valida = recusas[id]
+      .filter((e) => e.status === 'rejected' && e.resetsAt !== null && e.resetsAt > now)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]
+    if (!valida) continue
+
+    const record = state.accounts[id] ?? blank()
+    if (record.observedResetAt === valida.resetsAt && record.rateLimitedAt !== null) continue
+    record.observedResetAt = valida.resetsAt
+    record.rateLimitedAt = valida.timestamp
+    record.evidence = `recusa ${valida.rateLimitType ?? 'de limite'} registrada pelo proprio Claude Code`
+    state.accounts[id] = record
+    mudouPorQuota = true
   }
 
   // Passo 2: decidir a janela de cada conta. Quando ha consumo recente sem
   // janela aberta (troca de conta retomando uma sessao ja descoberta, que
   // nunca passa por registerTranscript de novo), a janela comeca na
   // mensagem mais antiga ainda dentro das ultimas 5h.
-  let mudou = false
+  let mudou = mudouPorQuota
   const janelas = new Map<AccountId, { start: number | null; end: number | null }>()
 
   for (const id of ACCOUNT_IDS) {
