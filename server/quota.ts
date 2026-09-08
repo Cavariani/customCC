@@ -22,8 +22,6 @@ export interface QuotaDaSessao {
 }
 
 export interface Quota {
-  /** A leitura mais recente entre todas as sessoes. */
-  atual: QuotaDaSessao | null
   sessoes: QuotaDaSessao[]
   /** Falso quando o hook do statusline nunca escreveu nada. */
   disponivel: boolean
@@ -62,13 +60,20 @@ function limite(v: unknown): Limite | null {
  * Consequencia de vir dali: o valor so se atualiza quando alguma sessao
  * desenha a barra de status. Sem sessao aberta, ele envelhece — por isso
  * `lidaEm` acompanha cada leitura.
+ *
+ * O JSON nao diz de qual conta a cota e: nao ha email nem id de conta
+ * dentro dele. Quem faz essa ligacao e o accounts, cruzando o instante da
+ * leitura com o periodo em que cada conta esteve ativa. Sem isso o painel
+ * mostrava a cota de uma conta ao lado do nome de outra — medido: duas
+ * sessoes escrevendo com sete segundos de diferenca traziam 5h=0%/7d=41%
+ * e 5h=14%/7d=12%.
  */
 export async function lerQuota(): Promise<Quota> {
   let nomes: string[] = []
   try {
     nomes = await readdir(QUOTA_DIR)
   } catch {
-    return { atual: null, sessoes: [], disponivel: false }
+    return { sessoes: [], disponivel: false }
   }
 
   const sessoes: QuotaDaSessao[] = []
@@ -100,9 +105,5 @@ export async function lerQuota(): Promise<Quota> {
   }
 
   sessoes.sort((a, b) => b.lidaEm - a.lidaEm)
-
-  // A leitura boa e a mais recente que traz limite: uma sessao pode ter
-  // escrito depois sem que a API tivesse informado a cota naquele momento.
-  const atual = sessoes.find((s) => s.cincoHoras !== null || s.seteDias !== null) ?? null
-  return { atual, sessoes, disponivel: sessoes.length > 0 }
+  return { sessoes, disponivel: sessoes.length > 0 }
 }

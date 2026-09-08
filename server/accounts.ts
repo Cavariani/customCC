@@ -2,6 +2,7 @@ import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { readTranscript, type QuotaEvent } from './transcript.js'
+import { lerQuota, type QuotaDaSessao } from './quota.js'
 
 export const STATE_DIR = join(homedir(), '.claude-multi-account')
 const STATE_FILE = join(STATE_DIR, 'state.json')
@@ -471,6 +472,22 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
     }
   }
 
+  // A cota vem do statusline, que nao diz de qual conta ela e. A ligacao
+  // sai daqui: cada leitura cai na conta que estava ativa no instante em
+  // que ela foi escrita. So entram sessoes que este servidor conhece —
+  // uma sessao aberta fora do painel usa o login padrao da maquina, e
+  // atribui-la a conta ativa daria a cota errada com cara de certa.
+  const quotaPorConta = new Map<AccountId, QuotaDaSessao>()
+  const leituras = await lerQuota()
+  for (const leitura of leituras.sessoes) {
+    if (!state.transcripts[leitura.sessionId]) continue
+    if (leitura.cincoHoras === null && leitura.seteDias === null) continue
+    const dono = accountAt(state, leitura.lidaEm)
+    if (dono === null) continue
+    const anterior = quotaPorConta.get(dono)
+    if (!anterior || leitura.lidaEm > anterior.lidaEm) quotaPorConta.set(dono, leitura)
+  }
+
   return ACCOUNT_IDS.map((id) => {
     const record = state.accounts[id] ?? blank()
     const janela = janelas.get(id)!
@@ -505,6 +522,7 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       sessions: sessionCount[id].size,
       rateLimited: aindaLimitada,
       limitEvidence: aindaLimitada ? record.evidence : null,
+      quota: quotaPorConta.get(id) ?? null,
     }
   })
 }

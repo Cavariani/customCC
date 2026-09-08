@@ -24,12 +24,6 @@ export interface QuotaDaSessao {
   contextoPct: number | null
 }
 
-export interface Quota {
-  atual: QuotaDaSessao | null
-  sessoes: QuotaDaSessao[]
-  disponivel: boolean
-}
-
 /** Quanto uma origem consumiu na janela: serve para modelo e para projeto. */
 export interface Fatia {
   nome: string
@@ -68,6 +62,8 @@ export interface Account {
   rateLimited: boolean
   /** Trecho do terminal que disparou o alerta. */
   limitEvidence: string | null
+  /** Cota real desta conta, do statusline. Null sem leitura atribuivel. */
+  quota: QuotaDaSessao | null
 }
 
 export interface TerminalTab {
