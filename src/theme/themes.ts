@@ -13,13 +13,17 @@ export interface ThemeColors {
 
 export const THEMES: Record<string, ThemeColors> = {
   original: { bg: '#282c34', fg: '#9cdef2', panel: '#111111', border: '#355a66', red: '#e06c75' },
-  claude: { bg: '#262624', fg: '#f5f4f0', panel: '#30302e', border: '#4a4a47', red: '#c6613f' },
-  midnight: { bg: '#0d1117', fg: '#c9d1d9', panel: '#161b22', border: '#30363d', red: '#f85149' },
-  terminal: { bg: '#000000', fg: '#00ff41', panel: '#0a0a0a', border: '#003b00', red: '#00ff41' },
-  cyberpunk: { bg: '#0a0a0f', fg: '#0ff0fc', panel: '#12101a', border: '#9b30ff', red: '#e040fb' },
-  ocean: { bg: '#0b1a2c', fg: '#64d2ff', panel: '#091422', border: '#1e5074', red: '#4facfe' },
-  copper: { bg: '#1c1410', fg: '#e8c39e', panel: '#140f0a', border: '#7a5533', red: '#d4764e' },
-  organs: { bg: '#0a0406', fg: '#efe1c8', panel: '#15080a', border: '#3a1519', red: '#c83240' },
+  // Laranja oficial do Claude.
+  claude: { bg: '#262624', fg: '#f5f4f0', panel: '#30302e', border: '#4a4a47', red: '#d77757' },
+  // Dracula oficial (draculatheme.com/spec): fundo #282a36, texto #f8f8f2,
+  // vermelho #ff5555. O painel usa o #21222c da propria paleta, e a borda
+  // o #44475a que o tema chama de "current line".
+  dracula: { bg: '#282a36', fg: '#f8f8f2', panel: '#21222c', border: '#44475a', red: '#ff5555' },
+  // Feito para este projeto, e nao portado: os outros tres sao um cinza-azul
+  // frio, um cinza quente e um roxo — nenhum ocupa a faixa petroleo. O
+  // acento vai para o ambar, que e a unica cor de destaque aqui que nao
+  // disputa com o vermelho de erro.
+  ambar: { bg: '#101719', fg: '#d6dcd8', panel: '#0a0f11', border: '#26383d', red: '#e0a244' },
 }
 
 export type ThemeName = keyof typeof THEMES

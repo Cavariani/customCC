@@ -443,36 +443,53 @@
 }
 .arow.is-on .par__v { color: var(--red); }
 
-/* Medidor da janela: barra que estica ate a borda, com as celulas
-   desenhadas em gradiente. Com o glifo repetido o numero de celulas era
-   fixo e a barra morria no meio da largura, deixando meia linha vazia. */
-.arow__medidor {
+/* Dois medidores por conta, com rotulo, trilho e valor sempre nas mesmas
+   colunas — a simetria e o que deixa comparar uma conta com a outra de
+   relance. Uma barra sozinha era lida como "cota gasta" quando media so a
+   passagem do tempo. */
+.arow__medidores { display: flex; flex-direction: column; gap: 3px; }
+
+.med { display: flex; align-items: center; gap: 8px; font-size: 10.5px; }
+.med__k { width: 42px; flex: none; color: var(--color-muted-alt); }
+
+.med__trilho {
   position: relative;
-  height: 11px;
+  flex: 1;
+  height: 9px;
   background:
     repeating-linear-gradient(
       90deg,
-      color-mix(in srgb, var(--color-muted) 22%, transparent) 0 6px,
+      color-mix(in srgb, var(--color-muted) 20%, transparent) 0 6px,
       transparent 6px 8px
     );
 }
 
-.arow__bar-fill {
+.med__fill {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
-  background:
-    repeating-linear-gradient(90deg, var(--color-muted) 0 6px, transparent 6px 8px);
+  background: repeating-linear-gradient(90deg, var(--color-muted) 0 6px, transparent 6px 8px);
 }
 
-.arow.is-on .arow__bar-fill {
+.arow.is-on .med__fill {
   background: repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px);
 }
 
-.arow--limited .arow__bar-fill {
+.arow--limited .med__fill {
   background: repeating-linear-gradient(90deg, var(--color-error) 0 6px, transparent 6px 8px);
 }
+
+.med__v {
+  width: 46px;
+  flex: none;
+  text-align: right;
+  font-weight: 400;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.arow.is-on .med__v { color: var(--red); }
 
 /* Rodape de altura fixa nas tres contas: a ativa mostra o estado no lugar
    exato onde as outras mostram a acao. Era a diferenca de altura entre
@@ -1132,15 +1149,15 @@
   white-space: nowrap;
 }
 
+/* Aviso de limite: cor e posicao bastam. A versao anterior era uma caixa
+   com borda que pulsava com glow — a unica coisa piscando na tela, para um
+   estado que nao muda de segundo em segundo e ja aparece na conta la
+   embaixo. Piscar aqui so roubava o olho do que estava sendo lido. */
 .dock__alarm {
   margin-left: auto;
-  padding: 2px 7px;
-  border: 1px solid var(--color-error);
-  border-radius: 2px;
   color: var(--color-error);
   font-size: 8.5px;
   letter-spacing: 0.14em;
-  animation: led 1.2s ease-in-out infinite;
 }
 
 /* ── Linha de estatisticas da baia ───────────────────────────────────── */

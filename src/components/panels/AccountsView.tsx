@@ -28,11 +28,16 @@ export function AccountsView() {
     return <div className="acct acct--empty">carregando contas...</div>
   }
 
-  const total = accounts.reduce((t, a) => t + a.tokensUsed, 0)
+  // Duas contas diferentes, e o painel precisa das duas:
+  //  - trabalho = entrada + saida, o que de fato foi escrito e lido de novo;
+  //  - quota    = trabalho + cache, que e o que consome a janela de 5h.
+  // Medido nesta maquina, o cache e ~99,7% da quota, entao o numero unico de
+  // antes era, na pratica, "cache relido" — nao o trabalho.
+  const trabalho = accounts.reduce((t, a) => t + a.inputTokens + a.outputTokens, 0)
 
   return (
     <div className="acct">
-      <Total accounts={accounts} total={total} />
+      <Total accounts={accounts} trabalho={trabalho} />
 
       <AccountTimeline periods={periods} now={now} />
 
@@ -48,7 +53,7 @@ export function AccountsView() {
             key={account.id}
             account={account}
             now={now}
-            total={total}
+            trabalho={trabalho}
             switching={switching}
             onSwitch={() => switchAccount(account.id)}
           />
@@ -64,18 +69,16 @@ export function AccountsView() {
  * O total das tres contas. Fica no corpo normal: o peso vem da posicao e
  * do contraste, nao de escala de poster.
  */
-function Total({ accounts, total }: { accounts: Account[]; total: number }) {
+function Total({ accounts, trabalho }: { accounts: Account[]; trabalho: number }) {
   const soma = (pick: (a: Account) => number) => accounts.reduce((t, a) => t + pick(a), 0)
-  const cache = soma((a) => a.cacheTokens)
-  const animado = useCountUp(total)
+  const animado = useCountUp(trabalho)
+  const onde = accounts.length === 3 ? 'nas tres contas' : `em ${accounts.length} contas`
 
   return (
     <div className="acct__total">
       <div className="acct__total-line">
         <span className="acct__total-v">{formatTokens(Math.round(animado))}</span>
-        <span className="acct__total-k">
-          tokens {accounts.length === 3 ? 'nas tres contas' : `em ${accounts.length} contas`}
-        </span>
+        <span className="acct__total-k">entrada e saida {onde}</span>
       </div>
       <div className="acct__split">
         <span>
@@ -84,8 +87,11 @@ function Total({ accounts, total }: { accounts: Account[]; total: number }) {
         <span>
           saida <b>{formatTokens(soma((a) => a.outputTokens))}</b>
         </span>
-        <span>
-          cache <b>{total === 0 ? '--' : `${Math.round((cache / total) * 100)}%`}</b>
+        {/* O cache fica ao lado, e nao no numero grande: ele domina a soma
+            sem ser trabalho novo. Mas continua a vista porque e ele que
+            enche a janela. */}
+        <span title="cache relido; conta para o limite, mas nao e trabalho novo">
+          cache <b>{formatTokens(soma((a) => a.cacheTokens))}</b>
         </span>
       </div>
     </div>
@@ -95,6 +101,29 @@ function Total({ accounts, total }: { accounts: Account[]; total: number }) {
 /** Horario local no formato 24h, que e como o Pedro le a hora. */
 function clockOf(at: number): string {
   return new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+
+/** Barra rotulada, com o valor a direita. As duas de uma conta alinham. */
+function Medidor({
+  k,
+  pct,
+  valor,
+  titulo,
+}: {
+  k: string
+  pct: number
+  valor: string
+  titulo: string
+}) {
+  return (
+    <div className="med" title={titulo}>
+      <span className="med__k">{k}</span>
+      <span className="med__trilho">
+        <span className="med__fill" style={{ width: `${Math.min(100, Math.max(0, pct * 100))}%` }} />
+      </span>
+      <b className="med__v">{valor}</b>
+    </div>
+  )
 }
 
 /** Par rotulo/valor. A grade de duas colunas e feita destes. */
@@ -110,17 +139,22 @@ function Par({ k, v }: { k: string; v: string }) {
 interface RowProps {
   account: Account
   now: number
-  total: number
+  /** Entrada + saida somada das tres contas, base da fatia. */
+  trabalho: number
   switching: boolean
   onSwitch: () => void
 }
 
-function Row({ account, now, total, switching, onSwitch }: RowProps) {
+function Row({ account, now, trabalho, switching, onSwitch }: RowProps) {
   const status = getStatus(account, now)
   const elapsed = windowRatio(account, now)
-  const tokens = useCountUp(account.tokensUsed)
   const isActive = account.active
-  const fatia = total === 0 ? 0 : (account.tokensUsed / total) * 100
+  // A conta mostra o mesmo que o numero grande: entrada + saida. O cache
+  // fica na grade, para a quota continuar derivavel sem dominar a leitura.
+  const meuTrabalho = account.inputTokens + account.outputTokens
+  const tokens = useCountUp(meuTrabalho)
+  const fatia = trabalho === 0 ? 0 : (meuTrabalho / trabalho) * 100
+  const estimado = account.resetSource !== 'observed'
 
   return (
     <div
@@ -144,29 +178,42 @@ function Row({ account, now, total, switching, onSwitch }: RowProps) {
       {/* Grade de pares em duas colunas. As colunas caem no mesmo lugar nas
           tres contas, entao a simetria vem da estrutura e nao de ajuste. */}
       <div className="arow__grade">
-        <Par k="janela" v={`${Math.round(elapsed * 100)}%`} />
         <Par k="reinicia" v={account.resetAt === null ? '--:--' : clockOf(account.resetAt)} />
-        <Par k="entrada" v={formatTokens(account.inputTokens)} />
-        <Par k="saida" v={formatTokens(account.outputTokens)} />
-        <Par k="cache" v={formatTokens(account.cacheTokens)} />
         <Par
           k="ultimo"
           v={account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
         />
+        <Par k="entrada" v={formatTokens(account.inputTokens)} />
+        <Par k="saida" v={formatTokens(account.outputTokens)} />
+        <Par k="cache" v={formatTokens(account.cacheTokens)} />
         <Par k="sessoes" v={String(account.sessions)} />
-        {/* A fatia no total e o dado que mais decide qual conta usar, e nao
-            aparecia em lugar nenhum do painel antigo. */}
-        <Par k="fatia" v={`${fatia.toFixed(1)}%`} />
       </div>
 
-      {/* Medidor da janela ocupando a linha inteira. As celulas sao
-          desenhadas em gradiente, e nao com o glifo repetido: com glifo o
-          numero de celulas e fixo e a barra parava no meio da largura,
-          deixando a metade direita vazia. */}
-      <div className="arow__medidor" aria-hidden="true">
-        <span
-          className="arow__bar-fill"
-          style={{ width: `${Math.min(100, Math.max(0, elapsed * 100))}%` }}
+      {/* Dois medidores, e nao um. O de cima e tempo decorrido da janela;
+          o de baixo e quanto do consumo das tres contas e desta. Uma barra
+          sozinha ao lado de numeros de token era lida como "cota gasta",
+          quando media so a passagem do tempo — a conta podia estar com a
+          barra cheia sem ter gasto quase nada.
+
+          O til marca estimativa: o inicio da janela e deduzido da mensagem
+          mais antiga das ultimas 5h, e so vira medida quando um 429 grava
+          o resetsAt de verdade no transcript. */}
+      <div className="arow__medidores">
+        <Medidor
+          k="tempo"
+          pct={elapsed}
+          valor={`${estimado ? '~' : ''}${Math.round(elapsed * 100)}%`}
+          titulo={
+            estimado
+              ? 'inicio da janela deduzido do uso mais antigo; vira medida quando a API informa o reset'
+              : 'reset informado pela propria API'
+          }
+        />
+        <Medidor
+          k="gasto"
+          pct={fatia / 100}
+          valor={`${fatia.toFixed(1)}%`}
+          titulo="fatia desta conta no consumo das tres"
         />
       </div>
 
@@ -212,7 +259,13 @@ function junta(accounts: Account[], pick: (a: Account) => Fatia[]): Fatia[] {
  * nunca mostrou nenhuma; e o que ocupa o espaco que era do grafico.
  */
 function Destino({ accounts, now }: { accounts: Account[]; now: number }) {
-  const total = accounts.reduce((t, a) => t + a.tokensUsed, 0)
+  // Duas contas diferentes, e o painel precisa das duas:
+  //  - trabalho = entrada + saida, o que de fato foi escrito e lido de novo;
+  //  - quota    = trabalho + cache, que e o que consome a janela de 5h.
+  // Medido nesta maquina, o cache e ~99,7% da quota, entao o numero unico de
+  // antes era, na pratica, "cache relido" — nao o trabalho.
+  const trabalho = accounts.reduce((t, a) => t + a.inputTokens + a.outputTokens, 0)
+  const quota = accounts.reduce((t, a) => t + a.tokensUsed, 0)
   const projetos = junta(accounts, (a) => a.porProjeto)
   const modelos = junta(accounts, (a) => a.porModelo)
   const ativa = accounts.find((a) => a.active)
@@ -223,7 +276,7 @@ function Destino({ accounts, now }: { accounts: Account[]; now: number }) {
       ? '--'
       : fatias
           .slice(0, 2)
-          .map((f) => `${f.nome} ${total === 0 ? 0 : Math.round((f.tokens / total) * 100)}%`)
+          .map((f) => `${f.nome} ${quota === 0 ? 0 : Math.round((f.tokens / quota) * 100)}%`)
           .join(' · ') + (fatias.length > 2 ? ` +${fatias.length - 2}` : '')
 
   return (
@@ -234,6 +287,14 @@ function Destino({ accounts, now }: { accounts: Account[]; now: number }) {
         <b>{linha(projetos)}</b>
         <span>modelo</span>
         <b>{linha(modelos)}</b>
+        {/* A quota fica aqui, longe do numero grande: e ela que enche a
+            janela de 5h, mas nao e trabalho novo. */}
+        <span title="entrada + saida + cache; e o que consome a janela de 5h">
+          quota usada
+        </span>
+        <b>{formatTokens(quota)}</b>
+        <span>trabalho</span>
+        <b>{formatTokens(trabalho)}</b>
         <span>ritmo · projecao</span>
         <b>
           {ritmo
