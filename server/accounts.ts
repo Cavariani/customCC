@@ -14,11 +14,30 @@ const SERIES_BUCKETS = 30
 export const ACCOUNT_IDS = [1, 2, 3] as const
 export type AccountId = (typeof ACCOUNT_IDS)[number]
 
+/** Ultima cota conhecida de uma conta, copiada da leitura do statusline. */
+interface CotaGuardada {
+  lidaEm: number
+  cincoHorasPct: number | null
+  cincoHorasReset: number | null
+  seteDiasPct: number | null
+  seteDiasReset: number | null
+}
+
 interface AccountRecord {
   windowStartedAt: number | null
   rateLimitedAt: number | null
   /** Reset lido do proprio terminal, mais confiavel que a estimativa. */
   observedResetAt: number | null
+  /**
+   * Ultima cota vista desta conta.
+   *
+   * Precisa ser guardada aqui porque o arquivo de onde ela vem nao dura:
+   * o statusline reescreve o mesmo arquivo por sessao a cada render, entao
+   * na troca de conta a leitura da anterior e sobrescrita e some. Sem esta
+   * copia, so a conta em uso tinha cota, e as outras apareciam e sumiam
+   * conforme uma sessao ociosa por acaso ainda segurasse um arquivo antigo.
+   */
+  cota?: CotaGuardada | null
   /** Trecho que disparou a deteccao, para a UI justificar o alerta. */
   evidence: string | null
 }
@@ -62,7 +81,13 @@ const EMPTY_STATE: State = {
 }
 
 function blank(): AccountRecord {
-  return { windowStartedAt: null, rateLimitedAt: null, observedResetAt: null, evidence: null }
+  return {
+    windowStartedAt: null,
+    rateLimitedAt: null,
+    observedResetAt: null,
+    evidence: null,
+    cota: null,
+  }
 }
 
 let cache: State | null = null
@@ -477,16 +502,29 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
   // que ela foi escrita. So entram sessoes que este servidor conhece —
   // uma sessao aberta fora do painel usa o login padrao da maquina, e
   // atribui-la a conta ativa daria a cota errada com cara de certa.
-  const quotaPorConta = new Map<AccountId, QuotaDaSessao>()
   const leituras = await lerQuota()
+  let cotaMudou = false
   for (const leitura of leituras.sessoes) {
     if (!state.transcripts[leitura.sessionId]) continue
     if (leitura.cincoHoras === null && leitura.seteDias === null) continue
     const dono = accountAt(state, leitura.lidaEm)
     if (dono === null) continue
-    const anterior = quotaPorConta.get(dono)
-    if (!anterior || leitura.lidaEm > anterior.lidaEm) quotaPorConta.set(dono, leitura)
+
+    const record = state.accounts[dono] ?? blank()
+    // So avanca: uma leitura mais velha nao pode apagar a mais nova.
+    if (record.cota && record.cota.lidaEm >= leitura.lidaEm) continue
+
+    record.cota = {
+      lidaEm: leitura.lidaEm,
+      cincoHorasPct: leitura.cincoHoras?.usadoPct ?? null,
+      cincoHorasReset: leitura.cincoHoras?.resetaEm ?? null,
+      seteDiasPct: leitura.seteDias?.usadoPct ?? null,
+      seteDiasReset: leitura.seteDias?.resetaEm ?? null,
+    }
+    state.accounts[dono] = record
+    cotaMudou = true
   }
+  if (cotaMudou) await saveState(state)
 
   return ACCOUNT_IDS.map((id) => {
     const record = state.accounts[id] ?? blank()
@@ -522,9 +560,23 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       sessions: sessionCount[id].size,
       rateLimited: aindaLimitada,
       limitEvidence: aindaLimitada ? record.evidence : null,
-      quota: quotaPorConta.get(id) ?? null,
+      quota: daGuardada(record.cota),
     }
   })
+}
+
+/** A copia guardada de volta no formato que a UI consome. */
+function daGuardada(c: CotaGuardada | null | undefined): QuotaDaSessao | null {
+  if (!c) return null
+  return {
+    sessionId: '',
+    lidaEm: c.lidaEm,
+    cincoHoras:
+      c.cincoHorasPct === null ? null : { usadoPct: c.cincoHorasPct, resetaEm: c.cincoHorasReset },
+    seteDias:
+      c.seteDiasPct === null ? null : { usadoPct: c.seteDiasPct, resetaEm: c.seteDiasReset },
+    contextoPct: null,
+  }
 }
 
 /** Mapa vira lista ordenada do maior consumo para o menor. */
