@@ -48,6 +48,12 @@ app.use((error: unknown, _req: express.Request, res: express.Response, next: exp
   if (error && typeof error === 'object' && 'type' in error && error.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'corpo nao e JSON valido' })
   }
+  // Corpo acima do limite do body-parser tem resposta propria: 413 diz que o
+  // pedido era grande demais, enquanto o 500 generico acusava falha nossa e
+  // mandava procurar bug no servidor.
+  if (error && typeof error === 'object' && 'type' in error && error.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'corpo grande demais para esta rota' })
+  }
   if (error) {
     console.error('[customcc] erro nao tratado:', error)
     return res.status(500).json({ error: 'erro interno' })
@@ -125,6 +131,24 @@ function bodyCwd(value: unknown): string {
   return cwd
 }
 
+/**
+ * Campo de texto vindo do corpo. `String(valor)` aceitava qualquer coisa:
+ * um objeto virava a mensagem de commit "[object Object]" e uma lista
+ * virava "a,b" — os dois entravam no historico como se fossem o que o
+ * Pedro digitou. Aqui o tipo errado vira erro, nao texto inventado.
+ */
+function bodyText(value: unknown, campo: string, max: number): string {
+  if (typeof value !== 'string') throw new Error(`${campo} precisa ser texto`)
+  if (value.includes('\0')) throw new Error(`${campo} com byte nulo`)
+  const text = value.trim()
+  if (!text) throw new Error(`${campo} nao pode ficar vazio`)
+  if (text.length > max) throw new Error(`${campo} passa do limite: ${text.length} caracteres`)
+  return text
+}
+
+/** Teto da mensagem de commit: acima disso e colagem acidental. */
+const MAX_MESSAGE = 20000
+
 app.post('/api/git/stage', async (req, res) => {
   try {
     await stage(bodyCwd(req.body?.cwd), req.body?.paths ?? [])
@@ -147,7 +171,7 @@ app.post('/api/git/commit', async (req, res) => {
   try {
     const result = await commit(
       bodyCwd(req.body?.cwd),
-      String(req.body?.message ?? ''),
+      bodyText(req.body?.message, 'mensagem', MAX_MESSAGE),
       Boolean(req.body?.all),
     )
     res.json({ ok: true, ...result })
@@ -169,8 +193,13 @@ app.post('/api/changes/revert', async (req, res) => {
     return res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
   }
 
-  const path = String(req.body?.path ?? '')
-  if (!path || !insideCwd(cwd, path)) {
+  let path: string
+  try {
+    path = bodyText(req.body?.path, 'caminho', 4096)
+  } catch (error) {
+    return res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+  if (!insideCwd(cwd, path)) {
     return res.status(400).json({ error: `caminho fora do projeto: ${path}` })
   }
 

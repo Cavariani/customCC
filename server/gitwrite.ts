@@ -15,9 +15,21 @@ export function insideCwd(cwd: string, path: string): boolean {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
 }
 
-function assertPaths(cwd: string, paths: string[]): void {
+/** Teto de caminhos por chamada: acima disso e engano, nao intencao. */
+const MAX_PATHS = 500
+
+/**
+ * Valida o formato antes de qualquer coisa. Sem a checagem de array, uma
+ * string escorregava: `for (const p of "a.txt")` percorre os caracteres, e o
+ * comando saia como `git add -- a . t x t`.
+ */
+function assertPaths(cwd: string, paths: unknown): asserts paths is string[] {
+  if (!Array.isArray(paths)) throw new Error('paths precisa ser uma lista de caminhos')
   if (paths.length === 0) throw new Error('nenhum arquivo informado')
+  if (paths.length > MAX_PATHS) throw new Error(`caminhos demais numa chamada so: ${paths.length}`)
   for (const path of paths) {
+    if (typeof path !== 'string' || !path.trim()) throw new Error('caminho vazio ou nao textual')
+    if (path.includes('\0')) throw new Error('caminho com byte nulo')
     if (!insideCwd(cwd, path)) throw new Error(`caminho fora do projeto: ${path}`)
   }
 }
