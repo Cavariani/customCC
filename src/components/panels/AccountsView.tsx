@@ -6,8 +6,8 @@ import {
   formatAgo,
   formatTokens,
   getStatus,
+  msUntilReset,
   ritmoDaJanela,
-  windowRatio,
 } from '../../lib/format'
 import type { Account, Fatia } from '../../types'
 
@@ -50,7 +50,6 @@ export function AccountsView() {
             key={account.id}
             account={account}
             now={now}
-            trabalho={trabalho}
             switching={switching}
             onSwitch={() => switchAccount(account.id)}
           />
@@ -95,30 +94,49 @@ function Total({ accounts, trabalho }: { accounts: Account[]; trabalho: number }
   )
 }
 
+/**
+ * Quanto falta para a janela virar, em h:mm:ss descendo ate 00:00.
+ *
+ * O relogio do reset sozinho obriga a fazer a conta de cabeca; o contador
+ * responde direto. E ele que substituiu a barra de tempo: com as tres
+ * janelas abrindo juntas, todas marcavam entre 96% e 100% e a barra nao
+ * distinguia uma da outra, enquanto os minutos restantes distinguem.
+ */
+function regressivo(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const sec = total % 60
+  const mm = String(m).padStart(2, '0')
+  const ss = String(sec).padStart(2, '0')
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
+}
+
+/** Verde nos ultimos minutos: e quando a conta esta prestes a voltar. */
+function tomDoContador(ms: number): string {
+  const min = ms / 60000
+  if (min <= 10) return 'quase'
+  if (min <= 45) return 'perto'
+  return 'longe'
+}
+
 /** Horario local no formato 24h, que e como o Pedro le a hora. */
 function clockOf(at: number): string {
   return new Date(at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
-/** Barra rotulada, com o valor a direita. As duas de uma conta alinham. */
-function Medidor({
-  k,
-  pct,
-  valor,
-  titulo,
-}: {
-  k: string
-  pct: number
-  valor: string
-  titulo: string
-}) {
+/** O reset com o contador ao lado, que e o par mais lido da grade. */
+function Reinicia({ account, now }: { account: Account; now: number }) {
+  const resta = msUntilReset(account, now)
   return (
-    <div className="med" title={titulo}>
-      <span className="med__k">{k}</span>
-      <span className="med__trilho">
-        <span className="med__fill" style={{ width: `${Math.min(100, Math.max(0, pct * 100))}%` }} />
-      </span>
-      <b className="med__v">{valor}</b>
+    <div className="par">
+      <span className="par__k">reinicia</span>
+      <b className="par__v">
+        {account.resetAt === null ? '--:--' : clockOf(account.resetAt)}
+        {resta !== null && (
+          <span className={`par__cr par__cr--${tomDoContador(resta)}`}> {regressivo(resta)}</span>
+        )}
+      </b>
     </div>
   )
 }
@@ -136,22 +154,30 @@ function Par({ k, v }: { k: string; v: string }) {
 interface RowProps {
   account: Account
   now: number
-  /** Entrada + saida somada das tres contas, base da fatia. */
-  trabalho: number
   switching: boolean
   onSwitch: () => void
 }
 
-function Row({ account, now, trabalho, switching, onSwitch }: RowProps) {
+function Row({ account, now, switching, onSwitch }: RowProps) {
   const status = getStatus(account, now)
-  const elapsed = windowRatio(account, now)
   const isActive = account.active
   // A conta mostra o mesmo que o numero grande: entrada + saida. O cache
   // fica na grade, para a quota continuar derivavel sem dominar a leitura.
-  const meuTrabalho = account.inputTokens + account.outputTokens
-  const tokens = useCountUp(meuTrabalho)
-  const fatia = trabalho === 0 ? 0 : (meuTrabalho / trabalho) * 100
-  const estimado = account.resetSource !== 'observed'
+  const tokens = useCountUp(account.inputTokens + account.outputTokens)
+  const resta = msUntilReset(account, now)
+  const bloqueada = account.rateLimited
+
+  // A linha de baixo da acao. "livre por X" estava errado e dizia o
+  // oposto do que acontece: no reset o consumo da janela volta a zero, ou
+  // seja, a conta melhora — nao para de servir. Numa conta bloqueada o
+  // mesmo instante e quando ela volta, entao o texto muda com o estado.
+  const legenda = bloqueada
+    ? resta === null
+      ? 'no limite'
+      : `volta em ${regressivo(resta)}`
+    : resta === null
+      ? 'janela fechada'
+      : `reseta em ${regressivo(resta)}`
 
   return (
     <div
@@ -175,7 +201,7 @@ function Row({ account, now, trabalho, switching, onSwitch }: RowProps) {
       {/* Grade de pares em duas colunas. As colunas caem no mesmo lugar nas
           tres contas, entao a simetria vem da estrutura e nao de ajuste. */}
       <div className="arow__grade">
-        <Par k="reinicia" v={account.resetAt === null ? '--:--' : clockOf(account.resetAt)} />
+        <Reinicia account={account} now={now} />
         <Par
           k="ultimo"
           v={account.lastUsedAt === null ? '--' : formatAgo(now - account.lastUsedAt)}
@@ -186,44 +212,21 @@ function Row({ account, now, trabalho, switching, onSwitch }: RowProps) {
         <Par k="sessoes" v={String(account.sessions)} />
       </div>
 
-      {/* Dois medidores, e nao um. O de cima e tempo decorrido da janela;
-          o de baixo e quanto do consumo das tres contas e desta. Uma barra
-          sozinha ao lado de numeros de token era lida como "cota gasta",
-          quando media so a passagem do tempo — a conta podia estar com a
-          barra cheia sem ter gasto quase nada.
-
-          O til marca estimativa: o inicio da janela e deduzido da mensagem
-          mais antiga das ultimas 5h, e so vira medida quando um 429 grava
-          o resetsAt de verdade no transcript. */}
-      <div className="arow__medidores">
-        <Medidor
-          k="tempo"
-          pct={elapsed}
-          valor={`${estimado ? '~' : ''}${Math.round(elapsed * 100)}%`}
-          titulo={
-            estimado
-              ? 'inicio da janela deduzido do uso mais antigo; vira medida quando a API informa o reset'
-              : 'reset informado pela propria API'
-          }
-        />
-        <Medidor
-          k="gasto"
-          pct={fatia / 100}
-          valor={`${fatia.toFixed(1)}%`}
-          titulo="fatia desta conta no consumo das tres"
-        />
-      </div>
-
-      {/* Altura fixa nas tres: a ativa mostra o estado no lugar exato onde
-          as outras mostram o botao. Sem isso as linhas tinham alturas
-          diferentes e a coluna inteira saia torta. */}
+      {/* A acao ocupa a folga da linha, em vez de ser uma tira de 18px, e
+          leva embaixo o que a barra tentava dizer: por quanto tempo aquela
+          conta ainda serve. Palavra em vez de proporcao — "livre por 11min"
+          se le sem decodificar, "96%" nao. A ativa mostra o estado no mesmo
+          lugar, entao as tres linhas continuam com a mesma altura. */}
       <div className="arow__rod">
         {isActive ? (
-          <span className="arow__emuso">em uso</span>
+          <span className="arow__acao arow__acao--uso">
+            <b>em uso</b>
+            <small>{legenda}</small>
+          </span>
         ) : (
           <button
             type="button"
-            className="arow__acao"
+            className={`arow__acao${bloqueada ? ' arow__acao--bloq' : ''}`}
             disabled={switching}
             onClick={onSwitch}
             title={
@@ -232,7 +235,8 @@ function Row({ account, now, trabalho, switching, onSwitch }: RowProps) {
                 : `sem token valido: ${TOKEN_ISSUE[account.tokenIssue]}`
             }
           >
-            {account.tokenIssue === null ? 'ativar' : 'ativar (sem token)'}
+            <b>{account.tokenIssue === null ? 'ativar' : 'ativar sem token'}</b>
+            <small>{legenda}</small>
           </button>
         )}
       </div>

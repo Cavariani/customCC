@@ -406,101 +406,68 @@
 }
 .arow.is-on .par__v { color: var(--red); }
 
-/* Dois medidores por conta, com rotulo, trilho e valor sempre nas mesmas
-   colunas — a simetria e o que deixa comparar uma conta com a outra de
-   relance. Uma barra sozinha era lida como "cota gasta" quando media so a
-   passagem do tempo. */
-.arow__medidores { display: flex; flex-direction: column; gap: 3px; }
+/* A acao ocupa a folga da linha, e nao uma tira fixa de 18px: era a
+   parte mais escondida do painel justamente sendo o unico lugar
+   clicavel. `flex: 1` aqui e o que faz a conta inteira respirar, porque
+   a linha ja distribui a altura por igual entre as tres.
 
-.med { display: flex; align-items: center; gap: 8px; font-size: 10.5px; }
-.med__k { width: 42px; flex: none; color: var(--color-muted-alt); }
+   A segunda linha carrega o que a barra de tempo tentava dizer. Palavra
+   em vez de proporcao: "livre por 11:02" se le sem decodificar, e "96%"
+   nao dizia nem se era bom ou ruim. */
+.arow__rod { display: flex; flex: 1; min-height: 40px; margin-top: 6px; }
 
-.med__trilho {
-  position: relative;
-  flex: 1;
-  height: 9px;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--color-muted) 20%, transparent) 0 6px,
-      transparent 6px 8px
-    );
-}
-
-.med__fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(90deg, var(--color-muted) 0 6px, transparent 6px 8px);
-}
-
-.arow.is-on .med__fill {
-  background: repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px);
-}
-
-.arow--limited .med__fill {
-  background: repeating-linear-gradient(90deg, var(--color-error) 0 6px, transparent 6px 8px);
-}
-
-.med__v {
-  width: 46px;
-  flex: none;
-  text-align: right;
-  font-weight: 400;
-  color: var(--fg);
-  font-variant-numeric: tabular-nums;
-}
-
-.arow.is-on .med__v { color: var(--red); }
-
-/* Rodape de altura fixa nas tres contas: a ativa mostra o estado no lugar
-   exato onde as outras mostram a acao. Era a diferenca de altura entre
-   quem tinha botao e quem nao tinha que deixava a coluna torta.
-
-   A faixa ocupa a largura toda e alinha com o medidor logo acima. O botao
-   com borda de antes era a unica caixa do painel — num sistema que nao usa
-   caixa em lugar nenhum — e, encolhido a esquerda, nao alinhava com a
-   grade nem com a barra. */
-.arow__rod {
-  display: flex;
-  align-items: stretch;
-  height: 18px;
-}
-
-.arow__acao,
-.arow__emuso {
+.arow__acao {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  gap: 3px;
   border: none;
-}
-
-/* Acao: fundo no tom da conta, que e o mesmo vermelho do resto do estado. */
-.arow__acao {
   color: var(--red);
   background: color-mix(in srgb, var(--red) 13%, transparent);
-  cursor: pointer;
   transition: background 0.16s var(--ease), color 0.16s var(--ease);
 }
 
-.arow__acao:hover:not(:disabled) {
-  color: var(--panel);
-  background: var(--red);
+.arow__acao b {
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
-.arow__acao:disabled { opacity: 0.35; cursor: not-allowed; }
+.arow__acao small {
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
 
-/* Estado: mesma faixa, sem convite a clicar. Fundo quase invisivel e
-   texto recuado, para nao competir com a acao das outras contas. */
-.arow__emuso {
+button.arow__acao:hover:not(:disabled) { color: var(--panel); background: var(--red); }
+button.arow__acao:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Em uso: mesma caixa, sem convite a clicar. */
+.arow__acao--uso {
   color: var(--color-muted-alt);
-  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
 }
+
+/* No limite: a acao continua ali, mas dizendo que nao adianta agora. */
+.arow__acao--bloq {
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+}
+
+button.arow__acao--bloq:hover:not(:disabled) {
+  color: var(--panel);
+  background: var(--color-error);
+}
+
+/* Contador ao lado do relogio do reset. */
+.par__cr { font-variant-numeric: tabular-nums; }
+.par__cr--longe { color: var(--color-muted-alt); }
+.par__cr--perto { color: var(--warn); }
+.par__cr--quase { color: var(--green); }
 
 /* ── Destino e ritmo ──────────────────────────────────────────────────
    Para onde os tokens foram e a que velocidade. As duas coisas o painel
