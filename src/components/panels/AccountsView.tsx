@@ -126,10 +126,11 @@ function Row({ account, now, total, switching, onSwitch }: RowProps) {
     <div
       className={`arow arow--${status}${isActive ? ' is-on' : ''}${switching ? ' is-switching' : ''}`}
     >
+      {/* Sem marca antes do numero: ela empurrava a linha 8px para a
+          direita enquanto o lado direito ia ate a borda, entao o bloco
+          inteiro ficava fora do centro. Quem esta em uso ja se identifica
+          pela cor do numero e do nome. */}
       <div className="arow__1">
-        <span className="arow__mark" aria-hidden="true">
-          ▌
-        </span>
         <span className="arow__n">{String(account.id).padStart(2, '0')}</span>
         <span className="arow__name" title={account.email ?? undefined}>
           {account.label}

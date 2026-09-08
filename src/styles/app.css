@@ -279,7 +279,12 @@
 
 .acct__total-line { display: flex; align-items: baseline; gap: 7px; }
 
+/* O total e a primeira coisa que se le no painel, entao ganha um degrau de
+   tamanho. Um degrau, e nao um salto: o numero em escala de poster foi
+   justamente o que a versao antiga fazia de errado. */
 .acct__total-v {
+  font-size: 20px;
+  line-height: 1.15;
   font-weight: 600;
   color: var(--fg);
   font-variant-numeric: tabular-nums;
@@ -360,7 +365,7 @@
   border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
 }
 
-.acct__c-n { width: 30px; }
+.acct__c-n { width: 22px; }
 .acct__c-name { flex: 1; }
 .acct__c-v { width: 62px; text-align: right; }
 
@@ -388,9 +393,6 @@
 .arow + .arow { border-top: 1px solid color-mix(in srgb, var(--color-muted) 14%, transparent); }
 
 .arow__1 { display: flex; align-items: baseline; }
-
-.arow__mark { width: 8px; color: transparent; }
-.arow.is-on .arow__mark { color: var(--red); }
 
 .arow__n {
   width: 22px;
@@ -429,7 +431,6 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 14px;
-  margin-left: 30px;
 }
 
 .par { display: flex; align-items: baseline; gap: 8px; font-size: 10.5px; }
@@ -448,7 +449,6 @@
 .arow__medidor {
   position: relative;
   height: 11px;
-  margin-left: 30px;
   background:
     repeating-linear-gradient(
       90deg,
@@ -486,7 +486,6 @@
   display: flex;
   align-items: stretch;
   height: 18px;
-  margin-left: 30px;
 }
 
 .arow__acao,
