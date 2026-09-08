@@ -144,7 +144,6 @@ export default function App() {
         view={view}
         onView={setView}
         badges={{ git: git?.files.length ?? 0, diff: changes?.files.length ?? 0 }}
-        alert={anyLimited}
       />
 
       <main className="main">

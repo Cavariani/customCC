@@ -53,11 +53,13 @@
   transition: color 0.15s, background 0.15s;
 }
 
-.rail__btn:hover { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.rail__btn:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 10%, transparent); }
 
+/* Sem vermelho no rail: navegacao nao e alerta. Quem esta aberto usa a
+   cor do texto do tema, que ja destaca contra o cinza dos outros. */
 .rail__btn.is-active {
-  color: var(--red);
-  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 12%, transparent);
 }
 
 .rail__btn.is-active::before {
@@ -68,13 +70,14 @@
   bottom: 6px;
   width: 2px;
   border-radius: 0 2px 2px 0;
-  background: var(--red);
+  background: var(--fg);
 }
 
-/* Limite atingido: so a cor. Antes o icone pulsava um halo em loop, e
-   limite e um estado parado — fica horas igual. O que muda de segundo em
-   segundo merece animacao; isto nao. */
-.rail__btn.is-alert { color: var(--color-error); }
+/* Limite atingido nao pinta mais o icone. O estado ja aparece em dois
+   lugares — a palavra no titulo do painel e a propria conta na lista — e
+   aqui ele ficava vermelho por horas seguidas, porque limite e um estado
+   parado. Um icone de navegacao permanentemente vermelho le como defeito
+   do app, nao como aviso. */
 
 .rail__badge {
   position: absolute;

@@ -8,9 +8,9 @@ interface RailItem {
 }
 
 const ITEMS: RailItem[] = [
-  // Sem cor por secao: quatro icones em quatro cores era um codigo de
-  // identidade, e neste painel a cor carrega estado. Quem esta aberto usa
-  // o acento do tema; o resto fica neutro.
+  // Sem cor por secao e sem vermelho: quatro icones em quatro cores era um
+  // codigo de identidade, e navegacao nao e alerta. Quem esta aberto usa a
+  // cor do texto do tema; o resto fica neutro.
   { view: 'accounts', label: 'contas', Icon: Users },
   { view: 'git', label: 'git', Icon: GitBranch },
   { view: 'diff', label: 'mudancas', Icon: SquareStack },
@@ -21,20 +21,18 @@ interface Props {
   view: ViewName
   onView: (view: ViewName) => void
   badges: Partial<Record<ViewName, string | number>>
-  alert: boolean
 }
 
-export function Sidebar({ view, onView, badges, alert }: Props) {
+export function Sidebar({ view, onView, badges }: Props) {
   return (
     <nav className="rail" aria-label="Secoes">
       {ITEMS.map(({ view: v, label, Icon }) => {
         const badge = badges[v]
-        const isAlert = v === 'accounts' && alert
         return (
           <button
             key={v}
             type="button"
-            className={`rail__btn${view === v ? ' is-active' : ''}${isAlert ? ' is-alert' : ''}`}
+            className={`rail__btn${view === v ? ' is-active' : ''}`}
             aria-label={label}
             aria-current={view === v || undefined}
             onClick={() => onView(v)}
