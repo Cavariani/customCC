@@ -11,6 +11,17 @@ interface Props {
   onPref: <K extends keyof Prefs>(key: K, value: Prefs[K]) => void
 }
 
+/**
+ * Fracao percorrida do slider, para o CSS pintar a parte preenchida.
+ * O input de intervalo nao expoe isso sozinho, e a alternativa — uma sombra
+ * gigante presa ao cursor — pintava alem do inicio do trilho quando o valor
+ * estava no minimo.
+ */
+function fatiaDo(valor: number, min: number, max: number): React.CSSProperties {
+  const pct = ((valor - min) / (max - min)) * 100
+  return { '--pct': `${Math.min(100, Math.max(0, pct))}%` } as React.CSSProperties
+}
+
 export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
   const { markRateLimited, accounts, activeAccountId, info, autoSwitch, setAutoSwitch } =
     useWorkspace()
@@ -89,6 +100,7 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
             max={18}
             step={0.5}
             value={prefs.terminalFontSize}
+            style={fatiaDo(prefs.terminalFontSize, 10, 18)}
             onChange={(e) => onPref('terminalFontSize', Number(e.target.value))}
           />
         </div>
@@ -103,6 +115,7 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
             max={1.6}
             step={0.05}
             value={prefs.terminalLineHeight}
+            style={fatiaDo(prefs.terminalLineHeight, 1, 1.6)}
             onChange={(e) => onPref('terminalLineHeight', Number(e.target.value))}
           />
         </div>

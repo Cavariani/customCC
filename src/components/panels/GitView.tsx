@@ -6,13 +6,10 @@ import {
   FilePlus2,
   FileQuestion,
   FileSymlink,
-  GitBranch,
-  GitCommitHorizontal,
   GitMerge,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useWorkspace } from '../../lib/workspace'
-import { Delta } from '../Delta'
 import { HunkList } from '../HunkList'
 import type { GitFile, GitFileStatus, GitState } from '../../types'
 
@@ -77,76 +74,85 @@ export function GitView() {
   )
 
   return (
-    <div className="view">
-      <header className="hero">
-        <span className="hero__bracket hero__bracket--tl" aria-hidden="true" />
-        <span className="hero__bracket hero__bracket--br" aria-hidden="true" />
-
-        <div className="hero__main">
-          <GitBranch
-            size={15}
-            strokeWidth={2}
-            style={{ color: git.detached ? 'var(--warn)' : 'var(--green)' }}
-          />
-          <span className="hero__value">{git.branch}</span>
-          {/* Sem estas marcas, HEAD destacado aparecia como um ramo chamado
-              "HEAD" e repo sem commit derrubava a leitura inteira. */}
-          {git.detached && <span className="hero__tag">HEAD destacado</span>}
-          {git.unborn && <span className="hero__tag">sem commits ainda</span>}
-        </div>
-
-        <div className="hero__side">
-          <Delta added={totals.added} removed={totals.removed} size="md" bar />
-          <span className="hero__sync">
-            <ArrowUp size={10} strokeWidth={2.6} />
+    <div className="gv">
+      {/* Cabecalho na mesma forma do painel de contas: o nome em destaque,
+          e a linha de baixo com os secundarios. Antes era uma caixa com
+          borda e colchetes, a unica na tela depois que as contas
+          perderam as suas. */}
+      <div className="gv__topo">
+        <div className="gv__linha">
+          <span className="gv__ramo">{git.branch}</span>
+          {git.detached && <span className="gv__marca">HEAD destacado</span>}
+          {git.unborn && <span className="gv__marca">sem commits</span>}
+          <span className="gv__sync">
+            <ArrowUp size={9} strokeWidth={2.6} />
             {git.ahead}
-            <ArrowDown size={10} strokeWidth={2.6} />
+            <ArrowDown size={9} strokeWidth={2.6} />
             {git.behind}
           </span>
         </div>
-      </header>
+        <div className="gv__split">
+          <span>
+            adicionadas <b className="gv__mais">{totals.added}</b>
+          </span>
+          <span>
+            removidas <b className="gv__menos">{totals.removed}</b>
+          </span>
+          <span>
+            arquivos <b>{git.files.length}</b>
+          </span>
+        </div>
+      </div>
 
       {git.operation !== null && (
-        <p className="view__aviso">
+        <p className="gv__aviso">
           {OPERACAO[git.operation]}
           {conflitados.length > 0 && ` · ${conflitados.length} arquivo(s) em conflito`}
         </p>
       )}
 
       {git.files.length === 0 && (
-        <Empty>{git.unborn ? 'repositorio novo, sem nada para commitar.' : 'nada mudou desde o ultimo commit.'}</Empty>
+        <p className="gv__vazio">
+          {git.unborn ? 'repositorio novo, sem nada para commitar.' : 'nada mudou desde o ultimo commit.'}
+        </p>
       )}
 
-      <Group
-        title="staged"
-        files={staged}
-        tone="green"
-        action={{ label: 'tirar', run: (p) => acao(() => unstage(p)) }}
-        busy={busy}
-        cwd={activeTab?.cwd ?? ''}
-        staged
-        onMoved={refreshGit}
-      />
-      <Group
-        title="nao staged"
-        files={unstaged}
-        tone="warn"
-        action={{ label: 'stage', run: (p) => acao(() => stage(p)) }}
-        busy={busy}
-        cwd={activeTab?.cwd ?? ''}
-        staged={false}
-        onMoved={refreshGit}
-      />
+      <div className="gv__lista">
+        <Group
+          title="staged"
+          files={staged}
+          action={{ label: 'tirar', run: (p) => acao(() => unstage(p)) }}
+          busy={busy}
+          cwd={activeTab?.cwd ?? ''}
+          staged
+          onMoved={refreshGit}
+        />
+        <Group
+          title="nao staged"
+          files={unstaged}
+          action={{ label: 'stage', run: (p) => acao(() => stage(p)) }}
+          busy={busy}
+          cwd={activeTab?.cwd ?? ''}
+          staged={false}
+          onMoved={refreshGit}
+        />
 
-      {git.truncated && <p className="view__note view__note--warn">lista cortada em 250 arquivos.</p>}
+        {git.truncated && <p className="gv__aviso">lista cortada em 250 arquivos.</p>}
+      </div>
 
       {git.files.length > 0 && (
-        <section className="commit">
+        <div className="gv__commit">
+          <div className="gv__cols">
+            <span>mensagem</span>
+            <span className="gv__cols-r">
+              {staged.length > 0 ? `${staged.length} staged` : 'sem staged: vai os rastreados'}
+            </span>
+          </div>
           <textarea
-            className="commit__msg"
-            rows={3}
+            className="gv__msg"
+            rows={2}
             value={message}
-            placeholder="mensagem do commit"
+            placeholder="o que mudou"
             disabled={busy}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -159,34 +165,39 @@ export function GitView() {
               }
             }}
           />
-          <div className="commit__row">
-            <span className="commit__hint">
-              {staged.length > 0
-                ? `${staged.length} staged`
-                : 'nada staged: vai commitar os rastreados'}
-              {' · cmd+enter'}
-            </span>
-            <button
-              type="button"
-              className="wide-btn wide-btn--go"
-              disabled={busy || !message.trim()}
-              onClick={() =>
-                void acao(async () => {
-                  const r = await commit(message, staged.length === 0)
-                  setMessage('')
-                  setFeito(`${r.hash} ${r.subject}`)
-                })
-              }
-            >
-              <GitCommitHorizontal size={13} strokeWidth={2} /> commit
-            </button>
-          </div>
-          {erro && <p className="view__note view__note--warn">{erro}</p>}
-          {feito && !erro && <p className="commit__done">{feito}</p>}
-        </section>
+          {/* Faixa de largura total, como o ativar das contas. */}
+          <button
+            type="button"
+            className="gv__acao"
+            disabled={busy || !message.trim()}
+            onClick={() =>
+              void acao(async () => {
+                const r = await commit(message, staged.length === 0)
+                setMessage('')
+                setFeito(`${r.hash} ${r.subject}`)
+              })
+            }
+          >
+            commit · cmd+enter
+          </button>
+          {erro && <p className="gv__aviso">{erro}</p>}
+          {feito && !erro && <p className="gv__feito">{feito}</p>}
+        </div>
       )}
     </div>
   )
+}
+
+/**
+ * Corta o comeco do caminho, preservando o nome do arquivo inteiro.
+ *
+ * Feito aqui, e nao no CSS: o `direction: rtl` que trunca a esquerda
+ * inverte a ordem dos filhos, e o caminho saia como "GitView.tsx" seguido
+ * de "src/components/panels/".
+ */
+function encurtaDir(dir: string): string {
+  const MAX = 20
+  return dir.length > MAX ? `…${dir.slice(-(MAX - 1))}` : dir
 }
 
 interface GroupAction {
@@ -197,7 +208,6 @@ interface GroupAction {
 function Group({
   title,
   files,
-  tone,
   action,
   busy,
   cwd,
@@ -206,7 +216,6 @@ function Group({
 }: {
   title: string
   files: GitFile[]
-  tone: string
   action: GroupAction
   busy: boolean
   cwd: string
@@ -217,63 +226,61 @@ function Group({
   // viram rolagem sem fim.
   const [aberto, setAberto] = useState<string | null>(null)
   if (files.length === 0) return null
+
   return (
-    <section className="group">
-      <h4 className={`group__title group__title--${tone}`}>
-        <span className="group__tick" />
-        {title} <span className="group__count">{files.length}</span>
-        <button
-          type="button"
-          className="group__all"
-          disabled={busy}
-          onClick={() => action.run(files.map((f) => f.path))}
-        >
+    <section className="gv__grupo">
+      {/* Regua de colunas, igual a do painel de contas. */}
+      <div className="gv__cols">
+        <span>
+          {title} <b>{files.length}</b>
+        </span>
+        <button type="button" className="gv__todos" disabled={busy} onClick={() => action.run(files.map((f) => f.path))}>
           {action.label} tudo
         </button>
-      </h4>
-      <ul className="filelist">
-        {files.map((file, i) => {
+      </div>
+
+      <ul className="gv__arquivos">
+        {files.map((file) => {
           const meta = META[file.status] ?? META.modified
-          const name = file.path.split('/').pop()
-          const dir = file.path.slice(0, file.path.length - (name?.length ?? 0))
+          const name = file.path.split('/').pop() ?? file.path
+          const dir = encurtaDir(file.path.slice(0, file.path.length - name.length))
+          const temBlocos = file.status !== 'conflicted' && file.status !== 'untracked'
           return (
-            <li
-              key={`${file.path}-${file.staged}`}
-              className="filerow"
-              title={file.path}
-              style={{ animationDelay: `${i * 22}ms` }}
-            >
-              <span className="filerow__tag" style={{ color: meta.color }}>
-                {meta.tag}
-              </span>
-              <meta.Icon size={12} strokeWidth={1.9} style={{ color: meta.color }} />
-              <span className="filerow__name">
-                <span className="filerow__dir">{dir}</span>
-                {name}
-              </span>
-              <Delta added={file.added} removed={file.removed} />
-              {/* Conflito e arquivo novo nao tem bloco util para separar:
-                  o primeiro precisa ser resolvido antes, e o segundo e um
-                  bloco so com o arquivo inteiro dentro. */}
-              {file.status !== 'conflicted' && file.status !== 'untracked' && (
+            <li key={`${file.path}-${file.staged}`} className="gvf" title={file.path}>
+              <div className="gvf__linha">
+                <span className="gvf__tag" style={{ color: meta.color }}>
+                  {meta.tag}
+                </span>
+                <span className="gvf__nome">
+                  <span className="gvf__dir">{dir}</span>
+                  {name}
+                </span>
+                {/* Numeros em coluna fixa, para os arquivos alinharem entre
+                    si em vez de cada um parar onde o nome terminou. */}
+                <b className="gvf__mais">{file.added > 0 ? `+${file.added}` : ''}</b>
+                <b className="gvf__menos">{file.removed > 0 ? `-${file.removed}` : ''}</b>
+              </div>
+
+              <div className="gvf__acoes">
+                {temBlocos && (
+                  <button
+                    type="button"
+                    className={`gvf__link${aberto === file.path ? ' is-on' : ''}`}
+                    onClick={() => setAberto(aberto === file.path ? null : file.path)}
+                  >
+                    blocos
+                  </button>
+                )}
                 <button
                   type="button"
-                  className={`filerow__blocos${aberto === file.path ? ' is-on' : ''}`}
-                  title="ver e mover bloco a bloco"
-                  onClick={() => setAberto(aberto === file.path ? null : file.path)}
+                  className="gvf__link"
+                  disabled={busy}
+                  onClick={() => action.run([file.path])}
                 >
-                  blocos
+                  {action.label}
                 </button>
-              )}
-              <button
-                type="button"
-                className="filerow__act"
-                disabled={busy}
-                title={`${action.label} ${file.path}`}
-                onClick={() => action.run([file.path])}
-              >
-                {action.label}
-              </button>
+              </div>
+
               {aberto === file.path && (
                 <HunkList cwd={cwd} path={file.path} staged={staged} onMoved={onMoved} />
               )}

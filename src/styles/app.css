@@ -568,6 +568,332 @@
   border-left: 2px solid var(--warn);
 }
 
+/* ── Painel de git ────────────────────────────────────────────────────
+   Mesma linguagem do painel de contas: sem caixa, sem canto arredondado,
+   colunas que caem no mesmo lugar em todas as linhas e acao como faixa de
+   largura total. Antes esta tela era uma pilha de cartoes com borda, que
+   ficou sendo a unica assim depois que as contas perderam as suas. */
+
+.gv {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 14px 12px;
+}
+
+.gv__topo { flex: none; }
+
+.gv__linha { display: flex; align-items: baseline; gap: 8px; }
+
+.gv__ramo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--red);
+  font-variant-ligatures: none;
+}
+
+.gv__marca {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+.gv__sync {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10.5px;
+  color: var(--color-muted-alt);
+  font-variant-numeric: tabular-nums;
+}
+
+.gv__split {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--color-muted-alt);
+}
+
+.gv__split b { font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
+.gv__split .gv__mais { color: var(--green); }
+.gv__split .gv__menos { color: var(--color-error); }
+
+/* Regua de colunas: o mesmo tratamento do #/CONTA/TOKENS. */
+.gv__cols {
+  display: flex;
+  align-items: baseline;
+  margin-top: 10px;
+  padding-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+
+.gv__cols b { font-weight: 400; color: var(--fg); }
+.gv__cols-r { margin-left: auto; }
+
+.gv__todos {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+  transition: color 0.16s var(--ease);
+}
+
+.gv__todos:hover:not(:disabled) { color: var(--red); }
+.gv__todos:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.gv__lista { flex: 1; min-height: 0; overflow-y: auto; }
+
+.gv__arquivos { list-style: none; margin: 0; padding: 0; }
+
+.gvf {
+  display: flex;
+  flex-direction: column;
+  padding: 5px 0;
+  min-width: 0;
+}
+
+.gvf + .gvf { border-top: 1px solid color-mix(in srgb, var(--color-muted) 12%, transparent); }
+
+.gvf__linha { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+
+.gvf__tag { width: 10px; flex: none; font-size: 10.5px; }
+
+.gvf__nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--fg);
+  font-variant-ligatures: none;
+}
+
+.gvf__dir { color: var(--color-muted-alt); }
+
+.gvf__mais,
+.gvf__menos {
+  width: 40px;
+  flex: none;
+  text-align: right;
+  font-weight: 400;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gvf__mais { color: var(--green); }
+.gvf__menos { color: var(--color-error); }
+
+.gvf__acoes { display: flex; gap: 12px; margin: 2px 0 0 18px; }
+
+.gvf__link {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+  transition: color 0.16s var(--ease);
+}
+
+.gvf__link:hover:not(:disabled) { color: var(--red); }
+.gvf__link.is-on { color: var(--red); }
+.gvf__link:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.gv__aviso {
+  margin: 6px 0 0;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border-left: 2px solid var(--warn);
+}
+
+.gv__vazio { margin: 10px 0 0; font-size: 10.5px; color: var(--color-muted); }
+.gv__feito { margin: 5px 0 0; font-size: 10.5px; color: var(--green); }
+
+/* Mensagem de commit: campo sem moldura, no fundo do painel, com a acao
+   como faixa cheia — igual ao ativar das contas. */
+.gv__commit { flex: none; margin-top: 8px; }
+
+.gv__msg {
+  width: 100%;
+  margin-top: 5px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+  border: none;
+  resize: vertical;
+}
+
+.gv__msg::placeholder { color: var(--color-muted-alt); }
+.gv__msg:focus { outline: 1px solid color-mix(in srgb, var(--red) 45%, transparent); }
+
+.gv__acao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 20px;
+  margin-top: 4px;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 13%, transparent);
+  border: none;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
+}
+
+.gv__acao:hover:not(:disabled) { color: var(--panel); background: var(--red); }
+.gv__acao:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Painel de mudancas ───────────────────────────────────────────────
+   Mesma linguagem das contas e do git. Antes cada arquivo era um cartao
+   com borda e canto arredondado, e os numeros eram etiquetas com fundo. */
+
+.dv {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 14px 12px;
+}
+
+.dv__topo { flex: none; }
+.dv__linha { display: flex; align-items: baseline; gap: 7px; }
+
+.dv__n {
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 600;
+  color: var(--red);
+  font-variant-numeric: tabular-nums;
+}
+
+.dv__k { color: var(--color-muted); }
+
+.dv__split {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--color-muted-alt);
+}
+
+.dv__split b { font-weight: 400; font-variant-numeric: tabular-nums; }
+.dv__mais { color: var(--green); }
+.dv__menos { color: var(--color-error); }
+
+.dv__lista { flex: 1; min-height: 0; overflow-y: auto; }
+
+.dvf { display: flex; flex-direction: column; padding: 6px 0; min-width: 0; }
+.dvf + .dvf { border-top: 1px solid color-mix(in srgb, var(--color-muted) 12%, transparent); }
+
+.dvf__linha {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.dvf__seta { width: 10px; flex: none; font-size: 9px; color: var(--color-muted-alt); }
+.dvf.is-open .dvf__seta { color: var(--red); }
+
+.dvf__nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--fg);
+  font-variant-ligatures: none;
+}
+
+.dvf__dir { color: var(--color-muted-alt); }
+
+/* Peso do arquivo no conjunto, segmentado como os medidores das contas. */
+.dvf__peso {
+  position: relative;
+  height: 5px;
+  margin: 3px 0 0 18px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-muted) 18%, transparent) 0 6px,
+      transparent 6px 8px
+    );
+}
+
+.dvf__peso span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(90deg, var(--warn) 0 6px, transparent 6px 8px);
+}
+
+.dvf__meta {
+  display: flex;
+  gap: 10px;
+  margin: 3px 0 0 18px;
+  font-size: 10px;
+  color: var(--color-muted-alt);
+}
+
+.dvf__diff {
+  margin: 6px 0 0 18px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.dvf__acao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 18px);
+  height: 20px;
+  margin: 5px 0 0 18px;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border: none;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
+}
+
+.dvf__acao:hover { color: var(--panel); background: var(--warn); }
+
+/* Armado: o segundo toque sobrescreve o arquivo em disco. */
+.dvf__acao.is-armed { color: var(--panel); background: var(--color-error); }
+
+.dv__rodape {
+  flex: none;
+  margin: 8px 0 0;
+  padding-top: 8px;
+  font-size: 10px;
+  line-height: 1.55;
+  color: var(--color-muted-alt);
+  border-top: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+
 /* ── Blocos de um arquivo ─────────────────────────────────────────────
    O painel so movia arquivo inteiro. Com um arquivo que mistura o
    conserto e a experiencia ao lado, isso obrigava a commitar os dois
@@ -1459,48 +1785,44 @@
 .field__label em { font-style: normal; color: var(--fg); }
 
 /* Slider no mesmo idioma dos medidores: trilho segmentado, sem cantos
-   arredondados, e um cursor que e um bloco. O padrao do navegador era uma
-   pilula clara com bolinha, a unica peca do painel que parecia de outro
-   programa. */
+   arredondados, cursor em bloco.
+
+   As ranhuras sao pintadas por cima, na cor do painel, e cortam tanto a
+   parte preenchida quanto a vazia. A tentativa anterior era o contrario —
+   uma sombra de 100vw presa ao cursor — e ela pintava alem do inicio do
+   trilho quando o valor estava no minimo. */
 .field input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 11px;
   margin: 0;
-  background: repeating-linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-muted) 20%, transparent) 0 6px,
-    transparent 6px 8px
-  );
+  background:
+    repeating-linear-gradient(90deg, transparent 0 6px, var(--panel) 6px 8px),
+    linear-gradient(
+      90deg,
+      var(--red) 0 var(--pct, 0%),
+      color-mix(in srgb, var(--color-muted) 20%, transparent) var(--pct, 0%) 100%
+    );
   cursor: pointer;
 }
 
 .field input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 4px;
+  width: 3px;
   height: 11px;
   border: none;
   border-radius: 0;
-  background: var(--red);
-  /* A haste sozinha some no trilho segmentado; a sombra desenha a barra
-     preenchida a esquerda dela sem precisar de um segundo elemento. */
-  box-shadow: -100vw 0 0 100vw color-mix(in srgb, var(--red) 30%, transparent);
-  clip-path: inset(0 0 0 -100vw);
+  background: var(--fg);
 }
 
 .field input[type='range']::-moz-range-thumb {
-  width: 4px;
+  width: 3px;
   height: 11px;
   border: none;
   border-radius: 0;
-  background: var(--red);
-}
-
-.field input[type='range']::-moz-range-progress {
-  height: 11px;
-  background: color-mix(in srgb, var(--red) 30%, transparent);
+  background: var(--fg);
 }
 
 .field input[type='range']:focus-visible { outline: 1px solid var(--red); outline-offset: 2px; }
