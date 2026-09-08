@@ -1515,22 +1515,82 @@ button.arow__acao--bloq:hover:not(:disabled) {
 
 /* ── Barra de status ─────────────────────────────────────────────────── */
 
+/* ── Barra de status: duas zonas que dividem a largura ────────────────
+   Onde voce esta e qual conta, metade para cada. As zonas esticam, entao
+   nao ha espacador nem vao — a versao anterior tinha um `flex: 1` vazio
+   que so abria buraco, e a terceira zona, do sistema, contava abas que
+   ja estao logo acima na barra de abas. */
 .status {
   grid-column: 1 / -1;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 5px 12px;
-  border-top: 1px solid var(--border);
+  align-items: stretch;
+  height: 30px;
+  border-top: 1px solid color-mix(in srgb, var(--color-muted) 16%, transparent);
   background: var(--panel);
-  font-size: 10.5px;
-  color: var(--fg);
+  font-size: 11.5px;
+  color: var(--color-muted);
 }
 
-.status__item { display: inline-flex; align-items: center; gap: 5px; }
-.status__item--muted { color: var(--color-muted); }
-.status__item--danger { color: var(--color-error); }
-.status__spacer { flex: 1; }
+.status__zona { display: flex; align-items: center; gap: 8px; padding: 0 12px; min-width: 0; }
+.status__zona--local { flex: 1; }
+
+/* A do meio ganha fundo proprio: e o que faz a conta ativa se ler de longe
+   sem precisar de mais uma cor no texto. */
+.status__zona--conta {
+  flex: 1;
+  background: color-mix(in srgb, var(--red) 7%, transparent);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--color-muted) 16%, transparent);
+}
+
+.status__rot { color: var(--color-muted-alt); }
+
+.status__proj {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg);
+  font-variant-ligatures: none;
+}
+
+.status__ramo { color: var(--green); font-variant-ligatures: none; }
+.status__mais { font-weight: 400; color: var(--green); font-variant-numeric: tabular-nums; }
+.status__menos { font-weight: 400; color: var(--color-error); font-variant-numeric: tabular-nums; }
+
+.status__conta {
+  flex: none;
+  font-weight: 400;
+  color: var(--red);
+  font-variant-ligatures: none;
+}
+
+/* Medidor da cota, no mesmo desenho segmentado do painel. */
+.status__mini {
+  position: relative;
+  width: 64px;
+  height: 8px;
+  flex: none;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-muted) 20%, transparent) 0 6px,
+      transparent 6px 8px
+    );
+}
+
+.status__mini span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px);
+}
+
+.status__pct,
+.status__reset {
+  font-weight: 400;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Toast de limite ─────────────────────────────────────────────────── */
 
@@ -1735,9 +1795,6 @@ button.arow__acao--bloq:hover:not(:disabled) {
 }
 
 /* Mini grafico da conta ativa no rodape: liga a barra de status ao painel. */
-.status__spark { width: 54px; }
-.status__spark .spark { margin: 0; min-height: 0; }
-.status__spark .spark__none { display: none; }
 
 /* ── Seletor de pasta ────────────────────────────────────────────────── */
 
@@ -2091,7 +2148,6 @@ button.arow__acao--bloq:hover:not(:disabled) {
 
 .field input[type='range']:focus-visible { outline: 1px solid var(--red); outline-offset: 2px; }
 
-
 .switch {
   display: flex;
   align-items: center;
@@ -2272,7 +2328,7 @@ button.arow__acao--bloq:hover:not(:disabled) {
 }
 
 /* O texto embaralhado nao pode empurrar o layout enquanto assenta. */
-.arow__name, .status__item { font-variant-ligatures: none; }
+.arow__name { font-variant-ligatures: none; }
 
 /* Os numeros de linha nunca encolhem; quem cede largura e o caminho. */
 .delta { flex: none; }
@@ -2536,11 +2592,13 @@ button.arow__acao--bloq:hover:not(:disabled) {
 .cmd__none { padding: 16px; font-size: 11px; color: var(--color-muted); }
 
 .status__kbd {
+  margin-left: auto;
+  flex: none;
   padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--color-muted-alt);
+  border: 1px solid color-mix(in srgb, var(--color-muted) 26%, transparent);
 }
 
 /* A lista de comandos tambem ganha a sombra de rolagem: em janela baixa ela
