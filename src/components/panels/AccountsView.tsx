@@ -1,7 +1,6 @@
 import { useWorkspace } from '../../lib/workspace'
 import { useNow } from '../../lib/useNow'
 import { useCountUp } from '../../lib/useCountUp'
-import { AccountTimeline } from '../AccountTimeline'
 import {
   STATUS_LABEL,
   formatAgo,
@@ -21,7 +20,7 @@ const TOKEN_ISSUE: Record<string, string> = {
 // As animacoes ja tem interruptor global em [data-animations='false'], entao
 // o bloco nao precisa carregar a preferencia ate cada linha.
 export function AccountsView() {
-  const { accounts, switching, switchAccount, periods } = useWorkspace()
+  const { accounts, switching, switchAccount } = useWorkspace()
   const now = useNow()
 
   if (accounts.length === 0) {
@@ -38,8 +37,6 @@ export function AccountsView() {
   return (
     <div className="acct">
       <Total accounts={accounts} trabalho={trabalho} />
-
-      <AccountTimeline periods={periods} now={now} />
 
       <div className="acct__cols">
         <span className="acct__c-n">#</span>

@@ -13,7 +13,6 @@ import type {
   AccountId,
   ChangesResult,
   GitState,
-  Periodo,
   TerminalTab,
 } from '../types'
 import type { Activity, PtyStatus } from './usePtySocket'
@@ -58,8 +57,6 @@ interface Workspace {
   /** Trocar de conta sozinho quando a ativa bate o limite. */
   autoSwitch: boolean
   setAutoSwitch: (enabled: boolean) => void
-  /** Quem esteve ativo nas ultimas horas, para a linha do tempo. */
-  periods: Periodo[]
   /** Recarrega git e diff depois de uma escrita feita fora deste contexto. */
   refreshGit: () => void
 
@@ -110,11 +107,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0]
   const cwdParam = activeTab?.cwd ? `?cwd=${encodeURIComponent(activeTab.cwd)}` : ''
 
-  const accountsPoll = usePolling<{
-    accounts: Account[]
-    activeId: AccountId
-    periods: Periodo[]
-  }>(
+  const accountsPoll = usePolling<{ accounts: Account[]; activeId: AccountId }>(
     '/api/accounts',
     ACCOUNTS_POLL_MS,
   )
@@ -126,7 +119,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const accounts = accountsPoll.data?.accounts ?? []
   const activeAccountId = accountsPoll.data?.activeId ?? 1
-  const periods = accountsPoll.data?.periods ?? []
 
   const emit = useCallback((text: string, tabId: string | 'all' = 'all') => {
     seqRef.current += 1
@@ -372,7 +364,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       clearLimit,
       autoSwitch,
       setAutoSwitch,
-      periods,
       refreshGit,
       tabs,
       activeTabId,
@@ -407,7 +398,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       clearLimit,
       autoSwitch,
       setAutoSwitch,
-      periods,
       refreshGit,
       tabs,
       activeTabId,

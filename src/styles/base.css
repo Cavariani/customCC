@@ -11,8 +11,12 @@
   --warn: #f0ad4e;
   --color-success: #4caf50;
   --color-error: #ff4444;
-  --color-muted: #828997;
-  --color-muted-alt: #6b7280;
+  /* Medidos contra os quatro fundos: os valores antigos (#828997 e
+     #6b7280) reprovavam no WCAG em tres deles, com o rotulo chegando a
+     2.74:1 no tema claude — texto quase transparente. Estes passam de
+     4.5:1 no pior caso. */
+  --color-muted: #a8b1bf;
+  --color-muted-alt: #929bab;
   --color-accent: #00aaff;
 
   --hl-keyword: #c678dd;
@@ -78,11 +82,6 @@ button {
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.45; transform: scale(0.82); }
-}
-
-@keyframes limit-glow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-error) 45%, transparent); }
-  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-error) 0%, transparent); }
 }
 
 @keyframes row-flash {

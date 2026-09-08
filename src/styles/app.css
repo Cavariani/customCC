@@ -71,10 +71,10 @@
   background: var(--item);
 }
 
-.rail__btn.is-alert {
-  color: var(--color-error);
-  animation: limit-glow 1.6s ease-in-out infinite;
-}
+/* Limite atingido: so a cor. Antes o icone pulsava um halo em loop, e
+   limite e um estado parado — fica horas igual. O que muda de segundo em
+   segundo merece animacao; isto nao. */
+.rail__btn.is-alert { color: var(--color-error); }
 
 .rail__badge {
   position: absolute;
@@ -305,49 +305,6 @@
 .acct__split b {
   font-weight: 400;
   color: var(--fg);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Linha do tempo das contas ────────────────────────────────────────
-   Faixa fina com quem esteve ativo. Sem cor por conta: a identidade vem
-   do numeral dentro do bloco, para nao competir com o codigo de cores de
-   estado que o resto do painel usa. */
-.linha {
-  position: relative;
-  flex: none;
-  height: 13px;
-  margin-top: 8px;
-  background: color-mix(in srgb, var(--fg) 5%, transparent);
-  overflow: hidden;
-}
-
-.linha__marca {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: color-mix(in srgb, var(--fg) 12%, transparent);
-}
-
-.linha__bloco {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--color-muted) 42%, transparent);
-  /* Fresta entre blocos vizinhos: sem ela duas trocas seguidas viram um
-     bloco continuo e a faixa mente sobre quantas houve. */
-  box-shadow: inset -1px 0 0 var(--panel);
-}
-
-.linha__bloco.is-atual { background: color-mix(in srgb, var(--red) 62%, transparent); }
-
-.linha__n {
-  font-size: 9px;
-  line-height: 1;
-  color: var(--panel);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1495,7 +1452,52 @@
 
 .field__label em { font-style: normal; color: var(--fg); }
 
-.field input[type='range'] { width: 100%; accent-color: var(--red); }
+/* Slider no mesmo idioma dos medidores: trilho segmentado, sem cantos
+   arredondados, e um cursor que e um bloco. O padrao do navegador era uma
+   pilula clara com bolinha, a unica peca do painel que parecia de outro
+   programa. */
+.field input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 11px;
+  margin: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-muted) 20%, transparent) 0 6px,
+    transparent 6px 8px
+  );
+  cursor: pointer;
+}
+
+.field input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 4px;
+  height: 11px;
+  border: none;
+  border-radius: 0;
+  background: var(--red);
+  /* A haste sozinha some no trilho segmentado; a sombra desenha a barra
+     preenchida a esquerda dela sem precisar de um segundo elemento. */
+  box-shadow: -100vw 0 0 100vw color-mix(in srgb, var(--red) 30%, transparent);
+  clip-path: inset(0 0 0 -100vw);
+}
+
+.field input[type='range']::-moz-range-thumb {
+  width: 4px;
+  height: 11px;
+  border: none;
+  border-radius: 0;
+  background: var(--red);
+}
+
+.field input[type='range']::-moz-range-progress {
+  height: 11px;
+  background: color-mix(in srgb, var(--red) 30%, transparent);
+}
+
+.field input[type='range']:focus-visible { outline: 1px solid var(--red); outline-offset: 2px; }
 
 .segmented { display: flex; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
 
