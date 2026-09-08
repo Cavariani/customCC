@@ -21,6 +21,9 @@ import {
 import {
   ACCOUNT_IDS,
   getActiveAccountId,
+  getAutoSwitch,
+  proximaContaDisponivel,
+  setAutoSwitch,
   clearRateLimited,
   markRateLimited,
   setActiveAccountId,
@@ -70,9 +73,21 @@ app.use((error: unknown, _req: express.Request, res: express.Response, next: exp
 })
 
 const claudeBin = resolveClaudeBin()
+
+/**
+ * A versao e enfeite: aparece nos ajustes e mais nada. Mas a chamada e
+ * sincrona e acontece antes do listen, entao um binario que demora responder
+ * segura o servidor inteiro no ar sem escutar porta nem imprimir uma linha —
+ * de fora, indistinguivel de um processo travado. O timeout troca o enfeite
+ * por "desconhecida" e deixa o painel subir.
+ */
 const claudeVersion = (() => {
   try {
-    return execFileSync(claudeBin, ['--version'], { encoding: 'utf8' }).trim()
+    return execFileSync(claudeBin, ['--version'], {
+      encoding: 'utf8',
+      timeout: 5000,
+      killSignal: 'SIGKILL',
+    }).trim()
   } catch {
     return 'desconhecida'
   }
@@ -260,17 +275,22 @@ function parseAccountId(value: unknown): AccountId | null {
  * retomar de onde parou. Sem token valido, a sessao volta a rodar na
  * credencial ambiente e dizemos isso em vez de fingir que trocou.
  */
-app.post('/api/accounts/:id/activate', async (req, res) => {
-  const id = parseAccountId(req.params.id)
-  if (id === null) return res.status(400).json({ error: 'conta invalida' })
-
+/**
+ * Passa todas as abas para outra conta, retomando cada conversa.
+ *
+ * Vive fora da rota porque a troca tem dois gatilhos: o clique no painel e
+ * o limite batendo sozinho. Duplicar isso significaria que so um dos dois
+ * caminhos ganharia as correcoes.
+ */
+async function trocarPara(id: AccountId, motivo?: string) {
   await setActiveAccountId(id)
   const token = await tokenFor(id)
   const summaries = await summarizeAccounts()
   const label = summaries.find((a) => a.id === id)?.label ?? `conta ${id}`
+  const prefixo = motivo ? `${motivo} · ` : ''
   const notice = token
-    ? `conta ${id} (${label}) ativa, retomando a conversa desta aba`
-    : `conta ${id} (${label}) selecionada, mas sem token valido: o processo voltou na credencial ambiente`
+    ? `${prefixo}conta ${id} (${label}) ativa, retomando a conversa desta aba`
+    : `${prefixo}conta ${id} (${label}) selecionada, mas sem token valido: o processo voltou na credencial ambiente`
 
   const restarted: string[] = []
   const resumed: string[] = []
@@ -288,19 +308,70 @@ app.post('/api/accounts/:id/activate', async (req, res) => {
     else void startDiscovery(info.id, session.cwd, session.startedAt)
   }
 
-  res.json({
+  return {
     accounts: await summarizeAccounts(),
     activeId: id,
     restarted,
     resumed,
     usedToken: Boolean(token),
-  })
+  }
+}
+
+app.post('/api/accounts/:id/activate', async (req, res) => {
+  const id = parseAccountId(req.params.id)
+  if (id === null) return res.status(400).json({ error: 'conta invalida' })
+  res.json(await trocarPara(id))
 })
 
+app.get('/api/auto-switch', async (_req, res) => {
+  res.json({ enabled: await getAutoSwitch() })
+})
+
+app.post('/api/auto-switch', async (req, res) => {
+  if (typeof req.body?.enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled precisa ser booleano' })
+  }
+  await setAutoSwitch(req.body.enabled)
+  res.json({ enabled: await getAutoSwitch() })
+})
+
+/**
+ * Uma troca automatica de cada vez. A TUI redesenha a tela varias vezes com
+ * a mesma mensagem de limite, e sem esta trava o detector dispararia uma
+ * troca em cima da outra, cada uma derrubando os processos da anterior.
+ */
+let trocandoSozinho = false
+
 onLimitEvent(({ signal, accountId }) => {
-  console.log(
-    `[customcc] limite ${signal.kind} na conta ${accountId}: ${signal.evidence}`,
-  )
+  console.log(`[customcc] limite ${signal.kind} na conta ${accountId}: ${signal.evidence}`)
+  if (signal.kind !== 'reached') return
+
+  void (async () => {
+    if (trocandoSozinho) return
+    if (!(await getAutoSwitch())) {
+      console.log('[customcc] troca automatica desligada; a conta fica como esta')
+      return
+    }
+    // So troca se a conta que caiu e a que esta em uso: um alerta de conta
+    // parada nao e motivo para mexer no que esta rodando.
+    if ((await getActiveAccountId()) !== accountId) return
+
+    const proxima = await proximaContaDisponivel(accountId)
+    if (proxima === null) {
+      console.log('[customcc] limite atingido e nenhuma outra conta disponivel')
+      return
+    }
+
+    trocandoSozinho = true
+    try {
+      console.log(`[customcc] troca automatica: conta ${accountId} -> ${proxima}`)
+      await trocarPara(proxima, 'limite atingido')
+    } catch (erro) {
+      console.error('[customcc] troca automatica falhou:', erro)
+    } finally {
+      trocandoSozinho = false
+    }
+  })()
 })
 
 app.post('/api/accounts/:id/rate-limited', async (req, res) => {

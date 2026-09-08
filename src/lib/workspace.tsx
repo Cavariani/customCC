@@ -54,6 +54,9 @@ interface Workspace {
   switchAccount: (id: AccountId) => void
   markRateLimited: () => void
   clearLimit: (id: AccountId) => void
+  /** Trocar de conta sozinho quando a ativa bate o limite. */
+  autoSwitch: boolean
+  setAutoSwitch: (enabled: boolean) => void
 
   tabs: TerminalTab[]
   activeTabId: string
@@ -197,6 +200,32 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [accounts, accountsPoll, activeAccountId, emit, switching],
   )
 
+  // A preferencia vive no servidor, e nao aqui: a troca acontece la e
+  // precisa valer mesmo sem nenhuma aba aberta. O estado local e so um
+  // espelho do que o servidor respondeu.
+  const [autoSwitch, setAutoSwitchLocal] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/auto-switch')
+      .then((r) => r.json())
+      .then((d) => setAutoSwitchLocal(d.enabled !== false))
+      .catch(() => {})
+  }, [])
+
+  const setAutoSwitch = useCallback((enabled: boolean) => {
+    // Move o interruptor na hora e corrige com a resposta: esperar a ida e
+    // volta fazia o clique parecer perdido.
+    setAutoSwitchLocal(enabled)
+    fetch('/api/auto-switch', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    })
+      .then((r) => r.json())
+      .then((d) => setAutoSwitchLocal(d.enabled !== false))
+      .catch(() => setAutoSwitchLocal(!enabled))
+  }, [])
+
   const markRateLimited = useCallback(() => {
     fetch(`/api/accounts/${activeAccountId}/rate-limited`, { method: 'POST' })
       .then(() => accountsPoll.refresh())
@@ -327,6 +356,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       switchAccount,
       markRateLimited,
       clearLimit,
+      autoSwitch,
+      setAutoSwitch,
       tabs,
       activeTabId,
       activeTab,
@@ -358,6 +389,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       switchAccount,
       markRateLimited,
       clearLimit,
+      autoSwitch,
+      setAutoSwitch,
       tabs,
       activeTabId,
       activeTab,

@@ -44,6 +44,12 @@ interface State {
   periods: Period[]
   /** Transcripts que este servidor viu, por sessao do Claude Code. */
   transcripts: Record<string, TranscriptRef>
+  /**
+   * Trocar de conta sozinho quando a ativa bate o limite. Fica no estado do
+   * servidor, e nao nas preferencias do navegador, porque a troca acontece
+   * no servidor e precisa valer mesmo com nenhuma aba aberta.
+   */
+  autoSwitch: boolean
 }
 
 const EMPTY_STATE: State = {
@@ -51,6 +57,7 @@ const EMPTY_STATE: State = {
   accounts: { 1: blank(), 2: blank(), 3: blank() },
   periods: [],
   transcripts: {},
+  autoSwitch: true,
 }
 
 function blank(): AccountRecord {
@@ -91,6 +98,9 @@ function sanear(parsed: unknown): State {
     // aqui fazia o laco rodar sobre os caracteres dela.
     periods: Array.isArray(parsed.periods) ? (parsed.periods as State['periods']) : [],
     transcripts: ehObjeto(parsed.transcripts) ? (parsed.transcripts as State['transcripts']) : {},
+    // Ausente quer dizer estado escrito por uma versao anterior: liga, que
+    // e o padrao. So desliga quem disser `false` de verdade.
+    autoSwitch: parsed.autoSwitch !== false,
   }
 }
 
@@ -459,6 +469,37 @@ export async function summarizeAccounts(): Promise<AccountSummary[]> {
       limitEvidence: aindaLimitada ? record.evidence : null,
     }
   })
+}
+
+export async function getAutoSwitch(): Promise<boolean> {
+  return (await loadState()).autoSwitch
+}
+
+export async function setAutoSwitch(enabled: boolean): Promise<void> {
+  const state = await loadState()
+  if (state.autoSwitch === enabled) return
+  state.autoSwitch = enabled
+  await saveState(state)
+}
+
+/**
+ * Melhor conta para assumir agora, sem contar a que acabou de cair.
+ *
+ * Preferimos conta com janela ainda fechada, que tem as cinco horas
+ * inteiras pela frente; entre as que ja estao em uso, a que gastou menos.
+ * Conta sem token valido ou ja limitada nunca entra.
+ */
+export async function proximaContaDisponivel(exceto: AccountId): Promise<AccountId | null> {
+  const resumo = await summarizeAccounts()
+  const candidatas = resumo
+    .filter((c) => c.id !== exceto && c.hasToken && !c.rateLimited)
+    .sort((a, b) => {
+      const janelaA = a.windowStartedAt === null ? 0 : 1
+      const janelaB = b.windowStartedAt === null ? 0 : 1
+      if (janelaA !== janelaB) return janelaA - janelaB
+      return a.tokensUsed - b.tokensUsed
+    })
+  return candidatas[0]?.id ?? null
 }
 
 export async function getActiveAccountId(): Promise<AccountId> {

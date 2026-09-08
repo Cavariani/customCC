@@ -12,7 +12,8 @@ interface Props {
 }
 
 export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
-  const { markRateLimited, accounts, activeAccountId, info } = useWorkspace()
+  const { markRateLimited, accounts, activeAccountId, info, autoSwitch, setAutoSwitch } =
+    useWorkspace()
   const activeLimited = accounts.find((a) => a.id === activeAccountId)?.rateLimited
 
   return (
@@ -124,6 +125,19 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
 
       <section className="group">
         <h4 className="group__title">limite</h4>
+
+        <Toggle
+          label="troca automatica de conta"
+          hint="ao bater o limite, assume a proxima conta disponivel e retoma a conversa"
+          on={autoSwitch}
+          onToggle={() => setAutoSwitch(!autoSwitch)}
+        />
+
+        <p className="view__note">
+          esta preferencia fica no servidor, nao no navegador: a troca acontece la e vale
+          mesmo com nenhuma aba aberta.
+        </p>
+
         <button
           type="button"
           className="wide-btn wide-btn--ghost"

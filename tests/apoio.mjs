@@ -61,7 +61,7 @@ async function portaLivre() {
   }
 }
 
-export async function sobeServidor({ cwd, home }) {
+export async function sobeServidor({ cwd, home, env = {} }) {
   mkdirSync(join(home, '.claude-multi-account'), { recursive: true })
 
   // Sem esta trava, um servidor sobrevivente do caso anterior atende no lugar
@@ -88,6 +88,7 @@ export async function sobeServidor({ cwd, home }) {
         USERPROFILE: home,
         CUSTOMCC_PORT: String(PORTA),
         CUSTOMCC_CWD: cwd,
+        ...env,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
