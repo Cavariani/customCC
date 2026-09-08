@@ -475,41 +475,53 @@
 }
 
 /* Rodape de altura fixa nas tres contas: a ativa mostra o estado no lugar
-   exato onde as outras mostram o botao. Era a diferenca de altura entre
-   quem tinha botao e quem nao tinha que deixava a coluna torta. */
+   exato onde as outras mostram a acao. Era a diferenca de altura entre
+   quem tinha botao e quem nao tinha que deixava a coluna torta.
+
+   A faixa ocupa a largura toda e alinha com o medidor logo acima. O botao
+   com borda de antes era a unica caixa do painel — num sistema que nao usa
+   caixa em lugar nenhum — e, encolhido a esquerda, nao alinhava com a
+   grade nem com a barra. */
 .arow__rod {
   display: flex;
-  align-items: center;
-  height: 22px;
+  align-items: stretch;
+  height: 18px;
   margin-left: 30px;
 }
 
+.arow__acao,
 .arow__emuso {
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--red);
-  border: 1px solid transparent;
-  padding: 2px 0;
+  border: none;
 }
 
+/* Acao: fundo no tom da conta, que e o mesmo vermelho do resto do estado. */
 .arow__acao {
-  padding: 2px 12px;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--red);
-  background: color-mix(in srgb, var(--red) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
-  transition: background 0.18s var(--ease), border-color 0.18s var(--ease);
+  background: color-mix(in srgb, var(--red) 13%, transparent);
+  cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
 }
 
 .arow__acao:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--red) 22%, transparent);
-  border-color: var(--red);
+  color: var(--panel);
+  background: var(--red);
 }
 
-.arow__acao:disabled { opacity: 0.4; cursor: not-allowed; }
+.arow__acao:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Estado: mesma faixa, sem convite a clicar. Fundo quase invisivel e
+   texto recuado, para nao competir com a acao das outras contas. */
+.arow__emuso {
+  color: var(--color-muted-alt);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+}
 
 /* ── Destino e ritmo ──────────────────────────────────────────────────
    Para onde os tokens foram e a que velocidade. As duas coisas o painel
