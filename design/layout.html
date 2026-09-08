@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>customCC · onde ficam as contas</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --fg: #c9d1d9;
+  --panel: #161b22;
+  --border: #30363d;
+  --red: #f85149;
+  --green: #3fb950;
+  --warn: #d29922;
+  --blue: #58a6ff;
+  --violet: #bc8cff;
+  --muted: #6e7681;
+  --mono: ui-monospace, 'SF Mono', 'Fira Code', Menlo, monospace;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 26px 22px 70px;
+  background: radial-gradient(1000px 520px at 78% -12%, #16202e, transparent 70%), var(--bg);
+  color: var(--fg); font-family: var(--mono); font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+h1 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.lede { margin: 0 0 30px; max-width: 78ch; font-size: 12px; line-height: 1.65; color: var(--muted); }
+.lede b { color: var(--fg); font-weight: 600; }
+
+.opt { margin-bottom: 44px; }
+.opt__head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 7px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+.opt__n { font-size: 20px; font-weight: 700; letter-spacing: -0.04em; color: var(--red); }
+.opt__name { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.opt__idea { font-size: 11.5px; color: var(--muted); }
+.opt__body { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.why { max-width: 300px; font-size: 11px; line-height: 1.65; color: var(--muted); }
+.why b { color: var(--fg); font-weight: 600; }
+.why .no { color: var(--warn); }
+
+/* ── maquete da tela ─────────────────────────────────────────────── */
+.app {
+  width: 760px; height: 420px;
+  display: grid; grid-template-columns: 30px minmax(0,1fr) 210px; grid-template-rows: 24px 1fr 20px;
+  border: 1px solid var(--border); border-radius: 5px; overflow: hidden; background: var(--bg);
+  font-size: 7px;
+}
+.app--wide { grid-template-columns: 30px minmax(0,1fr); }
+.app--stripe { grid-template-rows: 24px 62px 1fr 20px; }
+
+.rail { grid-row: 1 / -2; background: var(--panel); display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 8px; border-right: 1px solid var(--border); }
+.rail i { width: 15px; height: 15px; border-radius: 3px; background: color-mix(in srgb, var(--fg) 13%, transparent); display: block; }
+.rail i.on { background: color-mix(in srgb, var(--red) 40%, transparent); box-shadow: inset 0 0 0 1px var(--red); }
+.rail .gauge { width: 3px; height: 34px; border-radius: 2px; background: color-mix(in srgb,var(--fg) 12%,transparent); position: relative; overflow: hidden; }
+.rail .gauge b { position: absolute; bottom: 0; left: 0; right: 0; display: block; }
+
+.tabs { display: flex; align-items: center; gap: 5px; padding: 0 7px; background: var(--panel); border-bottom: 1px solid var(--border); }
+.tab { padding: 2px 7px; border-radius: 3px 3px 0 0; background: var(--bg); border: 1px solid var(--border); border-bottom: none; color: var(--fg); }
+.tabs .plus { color: var(--muted); }
+
+.term { background: var(--bg); padding: 8px 9px; overflow: hidden; color: var(--muted); line-height: 1.9; }
+.term .pj { color: var(--red); }
+.term .ok { color: var(--green); }
+.term .wr { color: var(--warn); }
+
+.dock { background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.dock__t { padding: 5px 8px; border-bottom: 1px solid var(--border); letter-spacing: 0.2em; color: var(--muted); font-size: 6px; }
+.dock__b { flex: 1; padding: 7px; overflow: hidden; display: flex; flex-direction: column; gap: 5px; }
+
+.status { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; padding: 0 8px; background: var(--panel); border-top: 1px solid var(--border); color: var(--muted); }
+.status .sp { flex: 1; }
+
+/* linhas de git falsas, para o dock parecer util */
+.grow { display: flex; align-items: center; gap: 5px; padding: 2px 0; }
+.grow .n { flex: 1; color: var(--fg); overflow: hidden; white-space: nowrap; }
+.grow .a { color: var(--green); } .grow .d { color: var(--red); }
+.ghead { display: flex; justify-content: space-between; padding: 4px 5px; border: 1px solid var(--border); border-radius: 3px; margin-bottom: 3px; }
+.ghead b { font-size: 11px; letter-spacing: -0.02em; }
+
+/* ── A: faixa horizontal no topo do dock ─────────────────────────── */
+.strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.scell { padding: 4px 5px; border: 1px solid var(--border); border-radius: 3px; background: color-mix(in srgb,var(--fg) 3%,transparent); position: relative; overflow: hidden; }
+.scell.on { border-color: color-mix(in srgb,var(--red) 60%,transparent); background: color-mix(in srgb,var(--red) 9%,transparent); }
+.scell .top { display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: 6px; }
+.scell.on .top { color: var(--red); }
+.scell .led { width: 3px; height: 3px; border-radius: 50%; background: currentColor; box-shadow: 0 0 4px currentColor; }
+.scell .big { font-size: 13px; font-weight: 700; letter-spacing: -0.04em; margin-top: 2px; color: var(--fg); }
+.scell.on .big { color: var(--red); text-shadow: 0 0 12px color-mix(in srgb,var(--red) 50%,transparent); }
+.scell .sub { font-size: 5.5px; letter-spacing: 0.1em; color: var(--muted); }
+.scell .bar { height: 2px; margin-top: 3px; border-radius: 2px; background: color-mix(in srgb,var(--fg) 12%,transparent); overflow: hidden; }
+.scell .bar b { display: block; height: 100%; }
+
+/* ── B: regua no rodape, largura total ───────────────────────────── */
+.footacc { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); background: var(--panel); }
+.fcell { display: flex; align-items: center; gap: 6px; padding: 4px 9px; border-right: 1px solid var(--border); }
+.fcell:last-child { border-right: none; }
+.fcell.on { background: color-mix(in srgb,var(--red) 10%,transparent); box-shadow: inset 2px 0 0 var(--red); }
+.fcell .nm { color: var(--muted); font-size: 6px; letter-spacing: 0.14em; }
+.fcell.on .nm { color: var(--red); }
+.fcell .vl { font-size: 10px; font-weight: 700; letter-spacing: -0.03em; color: var(--fg); }
+.fcell .rs { margin-left: auto; font-size: 6px; color: var(--muted); }
+.fcell .spark { width: 34px; height: 9px; display: flex; align-items: flex-end; gap: 1px; }
+.fcell .spark i { flex: 1; background: var(--muted); border-radius: 1px; }
+.fcell.on .spark i { background: var(--red); }
+
+/* ── C: medidores no rail ────────────────────────────────────────── */
+.pop { position: absolute; left: 34px; top: 44px; width: 168px; padding: 6px; border: 1px solid var(--red); border-radius: 4px; background: var(--panel); box-shadow: 0 8px 24px rgba(0,0,0,.6); z-index: 5; }
+.pop .ttl { display: flex; align-items: center; gap: 4px; color: var(--red); font-size: 6px; letter-spacing: 0.14em; }
+.pop .big { font-size: 15px; font-weight: 700; letter-spacing: -0.04em; color: var(--red); margin-top: 2px; }
+.pop .row { display: flex; justify-content: space-between; margin-top: 4px; color: var(--muted); font-size: 6px; }
+.shell { position: relative; }
+</style>
+</head>
+<body>
+
+<h1>customCC · onde as contas deveriam morar</h1>
+<p class="lede">
+  Cada maquete abaixo e a tela inteira, na proporcao real: rail, terminal,
+  painel e rodape. O que muda entre elas e <b>onde as contas ficam e quanto
+  espaco custam</b>. Os numeros sao os seus (199.9k, 238.7k, 80.7k). Repare
+  no que sobra para o painel de git em cada uma.
+</p>
+
+<!-- ══════════ 0 · HOJE ══════════ -->
+<section class="opt">
+  <div class="opt__head"><span class="opt__n">00</span><span class="opt__name">hoje</span>
+    <span class="opt__idea">tres cards empilhados ocupando o painel inteiro</span></div>
+  <div class="opt__body">
+    <div class="app">
+      <div class="rail"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="tabs"><span class="tab">customCC</span><span class="plus">+</span></div>
+      <div class="term"><span class="pj">/Documents/Programação/customCC</span><br>Claude Code v2.1.263<br>&gt; _</div>
+      <div class="dock">
+        <div class="dock__t">CONTAS</div>
+        <div class="dock__b">
+          <div class="scell on" style="flex:1"><div class="top"><span class="led"></span>01 PESSOAL · ATIVA</div><div class="big">199.9k</div><div class="sub">TOKENS NA JANELA</div><div style="flex:1"></div><div class="sub">4 SESSOES · RESET 4H47</div></div>
+          <div class="scell" style="flex:1"><div class="top">02 MLEGATE</div><div class="big">238.7k</div><div class="sub">TOKENS NA JANELA</div><div style="flex:1"></div><div class="sub">2 SESSOES · RESET 4H49</div></div>
+          <div class="scell" style="flex:1"><div class="top">03 MLEGATE BACKUP</div><div class="big">80.7k</div><div class="sub">TOKENS NA JANELA</div><div style="flex:1"></div><div class="sub">2 SESSOES · RESET 4H51</div></div>
+        </div>
+      </div>
+      <div class="status"><span>main</span><span class="sp"></span><span>conta 1 · Pessoal</span></div>
+    </div>
+    <p class="why">
+      <b>O problema.</b> Um terco da tela, o tempo todo, para algo que voce
+      toca duas vezes por dia. E o git, que voce le o tempo todo, some atras
+      do rail. Comparar as tres contas exige percorrer a tela na vertical,
+      quando comparar e naturalmente uma tarefa lado a lado.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ A · FAIXA ══════════ -->
+<section class="opt">
+  <div class="opt__head"><span class="opt__n">A</span><span class="opt__name">faixa no topo do painel</span>
+    <span class="opt__idea">tres colunas compactas fixas, e o painel livre embaixo</span></div>
+  <div class="opt__body">
+    <div class="app app--stripe" style="grid-template-columns:30px minmax(0,1fr) 210px">
+      <div class="rail" style="grid-row:1/-2"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="tabs"><span class="tab">customCC</span><span class="plus">+</span></div>
+      <div class="dock" style="grid-row:1/-2; grid-column:3">
+        <div class="dock__t">CONTAS · GIT</div>
+        <div class="dock__b">
+          <div class="strip">
+            <div class="scell on"><div class="top"><span class="led"></span>01</div><div class="big">199.9k</div><div class="sub">4H47</div><div class="bar"><b style="width:6%;background:var(--red)"></b></div></div>
+            <div class="scell"><div class="top">02</div><div class="big">238.7k</div><div class="sub">4H49</div><div class="bar"><b style="width:4%;background:var(--muted)"></b></div></div>
+            <div class="scell"><div class="top">03</div><div class="big">80.7k</div><div class="sub">4H51</div><div class="bar"><b style="width:3%;background:var(--muted)"></b></div></div>
+          </div>
+          <div class="ghead"><span style="color:var(--green)">main</span><span><b style="color:var(--green)">+180</b> <b style="color:var(--red)">-75</b></span></div>
+          <div class="grow"><span class="n">server/index.ts</span><span class="a">+57</span><span class="d">-8</span></div>
+          <div class="grow"><span class="n">server/accounts.ts</span><span class="a">+94</span><span class="d">-61</span></div>
+          <div class="grow"><span class="n">src/lib/workspace.tsx</span><span class="a">+12</span><span class="d">-3</span></div>
+          <div class="grow"><span class="n">src/styles/app.css</span><span class="a">+17</span><span class="d">-3</span></div>
+        </div>
+      </div>
+      <div class="term" style="grid-row:2/4"><span class="pj">/Documents/Programação/customCC</span><br>Claude Code v2.1.263<br><span class="wr">⚠ 1 MCP server needs authentication</span><br>&gt; _</div>
+      <div class="status"><span>main</span><span class="sp"></span><span>conta 1 · Pessoal</span></div>
+    </div>
+    <p class="why">
+      As contas viram uma <b>faixa de 3 colunas sempre visivel</b>, custando
+      uns 60px em vez de um terco da tela. Lado a lado, os tres numeros se
+      comparam num olhar. O resto do painel fica livre para o git, que passa
+      a estar visivel junto com a quota, sem escolher um ou outro.<br><br>
+      <b>Clicar na coluna troca de conta.</b> O card grande vira detalhe: so
+      aparece se voce clicar no titulo CONTAS.<br><br>
+      <span class="no">Custo:</span> o grafico de consumo nao cabe nessa
+      altura. Vira uma barra fina de janela decorrida.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ B · RODAPE ══════════ -->
+<section class="opt">
+  <div class="opt__head"><span class="opt__n">B</span><span class="opt__name">regua no rodape</span>
+    <span class="opt__idea">as contas entram na barra de status, largura total</span></div>
+  <div class="opt__body">
+    <div class="app" style="grid-template-rows:24px 1fr 26px 20px">
+      <div class="rail" style="grid-row:1/3"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="tabs"><span class="tab">customCC</span><span class="plus">+</span></div>
+      <div class="term"><span class="pj">/Documents/Programação/customCC</span><br>Claude Code v2.1.263<br><span class="wr">⚠ 1 MCP server needs authentication</span><br>&gt; _</div>
+      <div class="dock">
+        <div class="dock__t">GIT</div>
+        <div class="dock__b">
+          <div class="ghead"><span style="color:var(--green)">main</span><span><b style="color:var(--green)">+180</b> <b style="color:var(--red)">-75</b></span></div>
+          <div class="grow"><span class="n">server/index.ts</span><span class="a">+57</span><span class="d">-8</span></div>
+          <div class="grow"><span class="n">server/accounts.ts</span><span class="a">+94</span><span class="d">-61</span></div>
+          <div class="grow"><span class="n">server/limits.ts</span><span class="a">+31</span><span class="d">-4</span></div>
+          <div class="grow"><span class="n">src/lib/workspace.tsx</span><span class="a">+12</span><span class="d">-3</span></div>
+          <div class="grow"><span class="n">src/components/TabBar.tsx</span><span class="a">+22</span><span class="d">-9</span></div>
+          <div class="grow"><span class="n">src/styles/app.css</span><span class="a">+17</span><span class="d">-3</span></div>
+        </div>
+      </div>
+      <div class="footacc">
+        <div class="fcell on"><span class="nm">01 PESSOAL</span><span class="vl">199.9k</span><span class="spark"><i style="height:80%"></i><i style="height:20%"></i><i style="height:10%"></i><i style="height:8%"></i><i style="height:6%"></i></span><span class="rs">4H47</span></div>
+        <div class="fcell"><span class="nm">02 MLEGATE</span><span class="vl">238.7k</span><span class="spark"><i style="height:60%"></i><i style="height:30%"></i><i style="height:12%"></i><i style="height:8%"></i><i style="height:5%"></i></span><span class="rs">4H49</span></div>
+        <div class="fcell"><span class="nm">03 BACKUP</span><span class="vl">80.7k</span><span class="spark"><i style="height:40%"></i><i style="height:14%"></i><i style="height:9%"></i><i style="height:6%"></i><i style="height:4%"></i></span><span class="rs">4H51</span></div>
+      </div>
+      <div class="status"><span>main</span><span class="sp"></span><span>cmd+K</span></div>
+    </div>
+    <p class="why">
+      As contas viram uma <b>regua de largura total logo acima do rodape</b>.
+      Sempre na sua frente, sem tirar nada do painel: o git ganha a coluna
+      inteira. Cada segmento tem nome, tokens, um mini grafico e o reset;
+      clicar troca.<br><br>
+      Aqui elas param de competir com o painel e passam a fazer parte do
+      <b>instrumento de status da janela</b>, junto do branch e do +/-.<br><br>
+      <span class="no">Custo:</span> largura total significa que o terminal
+      tambem encolhe uns 26px. E o detalhe por conta (sessoes, pico) so cabe
+      no hover.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ C · RAIL ══════════ -->
+<section class="opt">
+  <div class="opt__head"><span class="opt__n">C</span><span class="opt__name">medidores no rail</span>
+    <span class="opt__idea">tres barras verticais na barra da esquerda, detalhe ao clicar</span></div>
+  <div class="opt__body">
+    <div class="app shell">
+      <div class="rail"><i class="on"></i><i></i><i></i><i></i>
+        <div style="height:6px"></div>
+        <div class="gauge"><b style="height:62%;background:var(--red)"></b></div>
+        <div class="gauge"><b style="height:38%;background:var(--muted)"></b></div>
+        <div class="gauge"><b style="height:14%;background:var(--muted)"></b></div>
+      </div>
+      <div class="tabs"><span class="tab">customCC</span><span class="plus">+</span></div>
+      <div class="term"><span class="pj">/Documents/Programação/customCC</span><br>Claude Code v2.1.263<br><span class="wr">⚠ 1 MCP server needs authentication</span><br>&gt; _</div>
+      <div class="dock">
+        <div class="dock__t">GIT</div>
+        <div class="dock__b">
+          <div class="ghead"><span style="color:var(--green)">main</span><span><b style="color:var(--green)">+180</b> <b style="color:var(--red)">-75</b></span></div>
+          <div class="grow"><span class="n">server/index.ts</span><span class="a">+57</span><span class="d">-8</span></div>
+          <div class="grow"><span class="n">server/accounts.ts</span><span class="a">+94</span><span class="d">-61</span></div>
+          <div class="grow"><span class="n">server/limits.ts</span><span class="a">+31</span><span class="d">-4</span></div>
+          <div class="grow"><span class="n">src/lib/workspace.tsx</span><span class="a">+12</span><span class="d">-3</span></div>
+          <div class="grow"><span class="n">src/styles/app.css</span><span class="a">+17</span><span class="d">-3</span></div>
+        </div>
+      </div>
+      <div class="status"><span>main</span><span class="sp"></span><span>conta 1 · Pessoal · 199.9k</span></div>
+      <div class="pop">
+        <div class="ttl"><span class="led" style="width:3px;height:3px;border-radius:50%;background:currentColor"></span>01 PESSOAL · ATIVA</div>
+        <div class="big">199.9k</div>
+        <div class="row"><span>4 SESSOES</span><span>PICO 199.9k</span><span>4H47</span></div>
+      </div>
+    </div>
+    <p class="why">
+      O rail ganha <b>tres medidores verticais</b> logo abaixo dos icones:
+      altura = janela consumida, cor = estado. Ocupam 30px de largura que ja
+      existiam. Passar o mouse abre o cartao com o detalhe, clicar troca.<br><br>
+      E a opcao mais economica: o painel inteiro fica para git e mudancas, e
+      a quota vira <b>periferia visual</b>, algo que voce percebe sem olhar
+      diretamente.<br><br>
+      <span class="no">Custo:</span> a mais radical. Numero nenhum fica
+      legivel sem hover, so a proporcao. Se voce gosta de bater o olho no
+      valor exato, essa nao serve.
+    </p>
+  </div>
+</section>
+
+<p class="lede" style="margin-top:8px">
+  <b>Minha recomendacao: A.</b> Ela resolve os quatro problemas de uma vez
+  (escala, ar desperdicado, espaco permanente, comparacao lado a lado) sem
+  esconder numero nenhum, e e a que menos mexe no que voce ja gosta. A B e
+  melhor se voce quiser o painel inteiro para o git. A C so se a quota for
+  algo que voce quer sentir, nao ler.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>customCC · posição e tipografia</title>nao g
+<style>
+:root {
+  --bg: #0d1117; --fg: #c9d1d9; --panel: #161b22; --border: #30363d;
+  --red: #f85149; --green: #3fb950; --warn: #d29922; --blue: #58a6ff;
+  --violet: #bc8cff; --muted: #6e7681;
+  --mono: ui-monospace, 'SF Mono', 'Fira Code', Menlo, monospace;
+  --ease: cubic-bezier(.22,.61,.36,1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 26px 22px 80px;
+  background: radial-gradient(1000px 520px at 78% -12%, #16202e, transparent 70%), var(--bg);
+  color: var(--fg); font-family: var(--mono); font-size: 13px; -webkit-font-smoothing: antialiased;
+}
+h1 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+h2 { margin: 40px 0 4px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--red); }
+.lede { margin: 0 0 26px; max-width: 80ch; font-size: 12px; line-height: 1.65; color: var(--muted); }
+.lede b { color: var(--fg); font-weight: 600; }
+.opt { margin-bottom: 40px; }
+.opt__head { display:flex; align-items:baseline; gap:10px; padding-bottom:7px; margin-bottom:12px; border-bottom:1px solid var(--border); }
+.opt__n { font-size:20px; font-weight:700; letter-spacing:-.04em; color:var(--red); }
+.opt__name { font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+.opt__idea { font-size:11.5px; color:var(--muted); }
+.opt__body { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+.why { max-width:290px; font-size:11px; line-height:1.65; color:var(--muted); }
+.why b { color:var(--fg); font-weight:600; }
+.why .no { color:var(--warn); }
+
+/* ── maquete ─────────────────────────────────────────────────────── */
+.app { width:820px; height:440px; display:grid; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg); font-size:7px; }
+.rail { background:var(--panel); display:flex; flex-direction:column; align-items:center; gap:7px; padding-top:8px; border-right:1px solid var(--border); }
+.rail i { width:15px; height:15px; border-radius:3px; background:color-mix(in srgb,var(--fg) 13%,transparent); display:block; }
+.rail i.on { background:color-mix(in srgb,var(--red) 40%,transparent); box-shadow:inset 0 0 0 1px var(--red); }
+.tabs { display:flex; align-items:center; gap:5px; padding:0 7px; background:var(--panel); border-bottom:1px solid var(--border); }
+.tab { padding:2px 7px; border-radius:3px 3px 0 0; background:var(--bg); border:1px solid var(--border); border-bottom:none; }
+.term { background:var(--bg); padding:8px 9px; overflow:hidden; color:var(--muted); line-height:1.9; }
+.term .pj { color:var(--red); } .term .wr { color:var(--warn); }
+.dock { background:var(--panel); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.dock__t { padding:5px 8px; border-bottom:1px solid var(--border); letter-spacing:.2em; color:var(--muted); font-size:6px; }
+.dock__b { flex:1; padding:7px; overflow:hidden; display:flex; flex-direction:column; gap:4px; }
+.status { display:flex; align-items:center; gap:9px; padding:0 8px; background:var(--panel); border-top:1px solid var(--border); color:var(--muted); }
+.status .sp { flex:1; }
+.ghead { display:flex; justify-content:space-between; padding:4px 5px; border:1px solid var(--border); border-radius:3px; margin-bottom:2px; }
+.grow { display:flex; align-items:center; gap:5px; padding:1.5px 0; }
+.grow .n { flex:1; color:var(--fg); overflow:hidden; white-space:nowrap; }
+.grow .a { color:var(--green); } .grow .d { color:var(--red); }
+
+/* ── card rico horizontal ────────────────────────────────────────── */
+.rich { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.rc {
+  position:relative; padding:6px 7px; border:1px solid var(--border); border-radius:4px;
+  background:color-mix(in srgb,var(--bg) 70%,#000); overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.rc::before { content:''; position:absolute; inset:0; opacity:.5; pointer-events:none;
+  background-image:linear-gradient(color-mix(in srgb,var(--fg) 6%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--fg) 6%,transparent) 1px,transparent 1px);
+  background-size:14px 12px; }
+.rc.on { border-color:color-mix(in srgb,var(--red) 60%,transparent); }
+.rc.on::before { background-image:linear-gradient(color-mix(in srgb,var(--red) 9%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--red) 9%,transparent) 1px,transparent 1px); }
+.rc__h { position:relative; display:flex; align-items:center; gap:4px; }
+.rc__id { font-size:6px; letter-spacing:.12em; color:var(--muted); }
+.rc.on .rc__id { color:var(--red); }
+.rc__st { margin-left:auto; display:inline-flex; align-items:center; gap:3px; font-size:5.5px; letter-spacing:.1em; color:var(--muted); }
+.rc.on .rc__st { color:var(--red); }
+.rc__st i { width:3px; height:3px; border-radius:50%; background:currentColor; box-shadow:0 0 4px currentColor; }
+.rc__fig { position:relative; display:flex; align-items:baseline; gap:3px; margin-top:2px; }
+.rc__chart { position:relative; flex:1; min-height:22px; margin-top:3px; }
+.rc__chart svg { position:absolute; inset:0; width:100%; height:100%; }
+.rc__foot { position:relative; display:flex; gap:7px; margin-top:3px; padding-top:3px; border-top:1px solid color-mix(in srgb,var(--fg) 10%,transparent); font-size:5.5px; }
+.rc__foot dt { color:var(--muted); letter-spacing:.1em; }
+.rc__foot dd { margin:0; font-weight:700; font-size:7px; }
+.b { color:var(--blue); } .v { color:var(--violet); } .g { color:var(--green); }
+.rc__rs { margin-left:auto; text-align:right; }
+
+/* ── tipografia dos numeros ──────────────────────────────────────── */
+.num { line-height:.9; font-weight:700; letter-spacing:-.03em; }
+.n-hoje  { font-family:var(--mono); font-size:19px; letter-spacing:-.05em; text-shadow:0 0 12px color-mix(in srgb,var(--red) 55%,transparent); }
+.n-din   { font-family:'DIN Condensed','DIN Alternate','Oswald','Helvetica Neue',sans-serif; font-size:26px; letter-spacing:.01em; font-weight:400; }
+.n-aven  { font-family:'Avenir Next Condensed','Avenir Next','Helvetica Neue',sans-serif; font-size:23px; font-weight:600; letter-spacing:-.01em; }
+.n-helv  { font-family:'Helvetica Neue',-apple-system,sans-serif; font-size:21px; font-weight:500; letter-spacing:-.035em; }
+.un { font-size:6px; letter-spacing:.16em; color:var(--muted); text-transform:uppercase; }
+.suf { font-weight:400; opacity:.55; }
+
+.typo { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; max-width:820px; }
+.tcard { border:1px solid var(--border); border-radius:4px; padding:14px; background:color-mix(in srgb,var(--bg) 70%,#000); }
+.tcard.pick { border-color:var(--red); }
+.tname { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.tbig { color:var(--red); }
+.tsmall { color:var(--fg); margin-top:10px; }
+.tnote { margin-top:12px; font-size:10px; line-height:1.55; color:var(--muted); }
+.tnote b { color:var(--fg); }
+</style>
+</head>
+<body>
+
+<h1>customCC · segunda rodada: posição e tipografia</h1>
+<p class="lede">
+  Tudo aqui mantem o <b>card rico com grafico</b>, que e o que voce quer
+  manter. O que muda e onde ele mora e como o numero e desenhado. As
+  maquetes sao a tela inteira na proporcao real; os numeros sao os seus.
+</p>
+
+<h2>1 · a fonte dos numeros</h2>
+<p class="lede">
+  O de hoje e a mesma monoespacada do resto, esticada para 30px com o
+  espacamento apertado e um brilho por tras. Monoespacada em corpo grande
+  fica larga e mole, porque cada digito ocupa a largura de um zero; e o
+  brilho e o que faz o conjunto parecer barato. As alternativas abaixo
+  usam <b>condensadas</b>, que e a familia dos mostradores de instrumento:
+  digito estreito, alto, sem brilho, com o sufixo em peso menor para o olho
+  ler o numero antes da unidade.
+</p>
+
+<div class="typo">
+  <div class="tcard">
+    <div class="tname">hoje · mono + glow</div>
+    <div class="num n-hoje tbig">199.9k</div>
+    <div class="un">tokens na janela</div>
+    <div class="num n-hoje tsmall" style="font-size:13px">04:47</div>
+    <p class="tnote">Larga, mole no corpo grande, e o brilho <b>espalha a borda</b> do numero.</p>
+  </div>
+  <div class="tcard pick">
+    <div class="tname">DIN condensed</div>
+    <div class="num n-din tbig">199.9<span class="suf">k</span></div>
+    <div class="un">tokens na janela</div>
+    <div class="num n-din tsmall" style="font-size:17px">04:47</div>
+    <p class="tnote">A letra de painel de instrumento e de placa de estrada. Estreita, sobe alto, <b>sem brilho nenhum</b>. Ja vem no macOS.</p>
+  </div>
+  <div class="tcard">
+    <div class="tname">Avenir Next condensed</div>
+    <div class="num n-aven tbig">199.9<span class="suf">k</span></div>
+    <div class="un">tokens na janela</div>
+    <div class="num n-aven tsmall" style="font-size:15px">04:47</div>
+    <p class="tnote">Mais redonda e macia que a DIN, menos tecnica. Tambem nativa do macOS.</p>
+  </div>
+  <div class="tcard">
+    <div class="tname">Helvetica · contraste de peso</div>
+    <div class="num n-helv tbig">199.9<span class="suf">k</span></div>
+    <div class="un">tokens na janela</div>
+    <div class="num n-helv tsmall" style="font-size:14px">04:47</div>
+    <p class="tnote">Neutra. O destaque vem do <b>peso e do tamanho</b>, nao da forma nem de efeito.</p>
+  </div>
+</div>
+
+<h2>2 · onde o card mora</h2>
+
+<!-- D · cais inferior no centro -->
+<section class="opt" style="margin-top:14px">
+  <div class="opt__head"><span class="opt__n">D</span><span class="opt__name">cais sob o terminal</span>
+  <span class="opt__idea">tres cards ricos lado a lado, na largura do terminal</span></div>
+  <div class="opt__body">
+    <div class="app" style="grid-template-columns:30px minmax(0,1fr) 200px; grid-template-rows:24px 1fr 96px 20px">
+      <div class="rail" style="grid-row:1/-2"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="tabs"><span class="tab">customCC</span><span>+</span></div>
+      <div class="dock" style="grid-row:1/-2; grid-column:3">
+        <div class="dock__t">GIT</div>
+        <div class="dock__b">
+          <div class="ghead"><span style="color:var(--green)">main</span><span><b style="color:var(--green)">+180</b> <b style="color:var(--red)">-75</b></span></div>
+          <div class="grow"><span class="n">server/index.ts</span><span class="a">+57</span><span class="d">-8</span></div>
+          <div class="grow"><span class="n">server/accounts.ts</span><span class="a">+94</span><span class="d">-61</span></div>
+          <div class="grow"><span class="n">server/limits.ts</span><span class="a">+31</span><span class="d">-4</span></div>
+          <div class="grow"><span class="n">src/lib/workspace.tsx</span><span class="a">+12</span><span class="d">-3</span></div>
+          <div class="grow"><span class="n">src/components/TabBar.tsx</span><span class="a">+22</span><span class="d">-9</span></div>
+          <div class="grow"><span class="n">src/styles/app.css</span><span class="a">+17</span><span class="d">-3</span></div>
+        </div>
+      </div>
+      <div class="term"><span class="pj">/Documents/Programação/customCC</span><br>Claude Code v2.1.263<br><span class="wr">⚠ 1 MCP server needs authentication</span><br>&gt; _</div>
+      <div class="rich" style="grid-column:2; padding:6px; border-top:1px solid var(--border); background:var(--panel)">
+        <div class="rc on">
+          <div class="rc__h"><span class="rc__id">01 PESSOAL</span><span class="rc__st"><i></i>ATIVA</span></div>
+          <div class="rc__fig"><span class="num n-din" style="font-size:22px;color:var(--red)">199.9<span class="suf">k</span></span><span class="un">tokens</span></div>
+          <div class="rc__chart"><svg viewBox="0 0 100 24" preserveAspectRatio="none"><path d="M0 22 C6 22 8 3 12 3 C16 3 18 19 24 20 C40 21 60 21 100 21" fill="none" stroke="var(--red)" stroke-width="1.4" vector-effect="non-scaling-stroke"/><line x1="14" y1="0" x2="14" y2="24" stroke="var(--red)" stroke-opacity=".3" stroke-width=".5"/></svg></div>
+          <dl class="rc__foot"><div><dt>SESSOES</dt><dd class="b">4</dd></div><div><dt>PICO</dt><dd class="v">199.9k</dd></div><div class="rc__rs"><dt>RESET</dt><dd>04:47</dd></div></dl>
+        </div>
+        <div class="rc">
+          <div class="rc__h"><span class="rc__id">02 MLEGATE</span><span class="rc__st"><i></i>EM USO</span></div>
+          <div class="rc__fig"><span class="num n-din" style="font-size:22px">238.7<span class="suf">k</span></span><span class="un">tokens</span></div>
+          <div class="rc__chart"><svg viewBox="0 0 100 24" preserveAspectRatio="none"><path d="M0 21 C4 21 6 6 10 6 C14 6 16 18 22 20 C40 21 60 21 100 21" fill="none" stroke="var(--muted)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+          <dl class="rc__foot"><div><dt>SESSOES</dt><dd class="b">2</dd></div><div><dt>PICO</dt><dd class="v">238.7k</dd></div><div class="rc__rs"><dt>RESET</dt><dd>04:49</dd></div></dl>
+        </div>
+        <div class="rc">
+          <div class="rc__h"><span class="rc__id">03 BACKUP</span><span class="rc__st"><i></i>EM USO</span></div>
+          <div class="rc__fig"><span class="num n-din" style="font-size:22px">80.7<span class="suf">k</span></span><span class="un">tokens</span></div>
+          <div class="rc__chart"><svg viewBox="0 0 100 24" preserveAspectRatio="none"><path d="M0 22 C4 22 6 11 10 11 C14 11 16 20 22 21 C40 22 60 22 100 22" fill="none" stroke="var(--muted)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+          <dl class="rc__foot"><div><dt>SESSOES</dt><dd class="b">2</dd></div><div><dt>PICO</dt><dd class="v">80.7k</dd></div><div class="rc__rs"><dt>RESET</dt><dd>04:51</dd></div></dl>
+        </div>
+      </div>
+      <div class="status" style="grid-column:1/-1"><span>main</span><span class="sp"></span><span>conta 1 · Pessoal</span></div>
+    </div>
+    <p class="why">
+      Os cards descem para um <b>cais logo abaixo do terminal</b>, lado a
+      lado, com grafico e todos os dados de hoje. Ficam na largura do
+      terminal, entao o painel da direita inteiro sobra para git e mudancas.
+      <br><br>
+      A leitura fica natural: <b>o que voce faz em cima, com o que isso
+      custa logo abaixo</b>, na mesma coluna do olho. Comparar as tres e
+      lado a lado.<br><br>
+      Recolhivel com um clique na borda, virando uma regua fina, se voce
+      quiser o terminal inteiro.<br><br>
+      <span class="no">Custo:</span> o terminal perde ~96px de altura.
+    </p>
+  </div>
+</section>
+
+<!-- E · faixa alta no topo do dock -->
+<section class="opt">
+  <div class="opt__head"><span class="opt__n">E</span><span class="opt__name">faixa alta no topo do painel</span>
+  <span class="opt__idea">os mesmos cards, deitados, empilhados sobre o git</span></div>
+  <div class="opt__body">
+    <div class="app" style="grid-template-columns:30px minmax(0,1fr) 250px; grid-template-rows:24px 1fr 20px">
+      <div class="rail" style="grid-row:1/-2"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="tabs"><span class="tab">customCC</span><span>+</span></div>
+      <div class="term"><span class="pj">/Documents/Programação/customCC</span><br>Claude Code v2.1.263<br><span class="wr">⚠ 1 MCP server needs authentication</span><br>&gt; _</div>
+      <div class="dock">
+        <div class="dock__t">CONTAS · GIT</div>
+        <div class="dock__b">
+          <div class="rc on" style="min-height:52px">
+            <div class="rc__h"><span class="rc__id">01 PESSOAL</span><span class="rc__st"><i></i>ATIVA</span></div>
+            <div class="rc__fig"><span class="num n-din" style="font-size:24px;color:var(--red)">199.9<span class="suf">k</span></span><span class="un">tokens</span><span class="rc__rs" style="margin-left:auto"><span class="num n-din" style="font-size:14px">04:47</span></span></div>
+            <div class="rc__chart" style="min-height:20px"><svg viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0 18 C6 18 8 2 12 2 C16 2 18 15 24 16 C40 17 60 17 100 17" fill="none" stroke="var(--red)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+            <dl class="rc__foot"><div><dt>SESSOES</dt><dd class="b">4</dd></div><div><dt>PICO</dt><dd class="v">199.9k</dd></div><div><dt>ULTIMO</dt><dd class="g">2m</dd></div></dl>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <div class="rc" style="min-height:30px">
+              <div class="rc__h"><span class="rc__id">02 MLEGATE</span></div>
+              <div class="rc__fig"><span class="num n-din" style="font-size:16px">238.7<span class="suf">k</span></span></div>
+              <div class="rc__chart" style="min-height:12px"><svg viewBox="0 0 100 12" preserveAspectRatio="none"><path d="M0 10 C4 10 6 3 10 3 C14 3 16 9 22 10 C40 10 60 10 100 10" fill="none" stroke="var(--muted)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+              <dl class="rc__foot"><div><dt>2 SESS</dt></div><div class="rc__rs"><dt>04:49</dt></div></dl>
+            </div>
+            <div class="rc" style="min-height:30px">
+              <div class="rc__h"><span class="rc__id">03 BACKUP</span></div>
+              <div class="rc__fig"><span class="num n-din" style="font-size:16px">80.7<span class="suf">k</span></span></div>
+              <div class="rc__chart" style="min-height:12px"><svg viewBox="0 0 100 12" preserveAspectRatio="none"><path d="M0 11 C4 11 6 6 10 6 C14 6 16 10 22 11 C40 11 60 11 100 11" fill="none" stroke="var(--muted)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+              <dl class="rc__foot"><div><dt>2 SESS</dt></div><div class="rc__rs"><dt>04:51</dt></div></dl>
+            </div>
+          </div>
+          <div class="ghead" style="margin-top:3px"><span style="color:var(--green)">main</span><span><b style="color:var(--green)">+180</b> <b style="color:var(--red)">-75</b></span></div>
+          <div class="grow"><span class="n">server/index.ts</span><span class="a">+57</span><span class="d">-8</span></div>
+          <div class="grow"><span class="n">server/accounts.ts</span><span class="a">+94</span><span class="d">-61</span></div>
+          <div class="grow"><span class="n">src/styles/app.css</span><span class="a">+17</span><span class="d">-3</span></div>
+        </div>
+      </div>
+      <div class="status" style="grid-column:1/-1"><span>main</span><span class="sp"></span><span>conta 1 · Pessoal</span></div>
+    </div>
+    <p class="why">
+      <b>Hierarquia em vez de igualdade.</b> A conta ativa fica grande, com
+      grafico e os tres numeros; as outras duas viram cards menores lado a
+      lado, so com o essencial para voce decidir para qual pular. Embaixo, o
+      git na mesma coluna.<br><br>
+      Isso ataca o desperdicio pela raiz: hoje as tres contas tem o mesmo
+      peso, mas <b>so uma delas importa a cada momento</b>. Clicar numa
+      pequena troca, e ela vira a grande.<br><br>
+      <span class="no">Custo:</span> o painel precisa ser um pouco mais
+      largo (250px), e as duas contas inativas mostram menos detalhe.
+    </p>
+  </div>
+</section>
+
+<!-- F · gaveta sobre o terminal -->
+<section class="opt">
+  <div class="opt__head"><span class="opt__n">F</span><span class="opt__name">gaveta sobre o terminal</span>
+  <span class="opt__idea">some quando nao precisa, cobre o terminal quando chamada</span></div>
+  <div class="opt__body">
+    <div class="app" style="grid-template-columns:30px minmax(0,1fr) 200px; grid-template-rows:24px 1fr 20px; position:relative">
+      <div class="rail" style="grid-row:1/-2"><i class="on"></i><i></i><i></i><i></i></div>
+      <div class="tabs"><span class="tab">customCC</span><span>+</span></div>
+      <div class="term"><span class="pj">/Documents/Programação/customCC</span><br>Claude Code v2.1.263<br><span class="wr">⚠ 1 MCP server needs authentication</span><br>&gt; _</div>
+      <div class="dock">
+        <div class="dock__t">GIT</div>
+        <div class="dock__b">
+          <div class="ghead"><span style="color:var(--green)">main</span><span><b style="color:var(--green)">+180</b> <b style="color:var(--red)">-75</b></span></div>
+          <div class="grow"><span class="n">server/index.ts</span><span class="a">+57</span><span class="d">-8</span></div>
+          <div class="grow"><span class="n">server/accounts.ts</span><span class="a">+94</span><span class="d">-61</span></div>
+          <div class="grow"><span class="n">server/limits.ts</span><span class="a">+31</span><span class="d">-4</span></div>
+          <div class="grow"><span class="n">src/lib/workspace.tsx</span><span class="a">+12</span><span class="d">-3</span></div>
+          <div class="grow"><span class="n">src/styles/app.css</span><span class="a">+17</span><span class="d">-3</span></div>
+        </div>
+      </div>
+      <div class="status" style="grid-column:1/-1"><span>main</span>
+        <span class="sp"></span>
+        <span style="display:inline-flex;gap:5px;align-items:center;padding:1px 5px;border:1px solid var(--red);border-radius:2px;color:var(--red)">
+          <span style="width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:0 0 4px currentColor"></span>
+          01 PESSOAL <b class="num n-din" style="font-size:10px">199.9k</b> · 04:47 · cmd+1
+        </span>
+      </div>
+      <!-- gaveta aberta -->
+      <div style="position:absolute; left:31px; right:201px; bottom:21px; padding:7px; background:color-mix(in srgb,var(--panel) 96%,#000); border-top:1px solid var(--red); box-shadow:0 -14px 34px rgba(0,0,0,.7)">
+        <div class="rich">
+          <div class="rc on">
+            <div class="rc__h"><span class="rc__id">01 PESSOAL</span><span class="rc__st"><i></i>ATIVA</span></div>
+            <div class="rc__fig"><span class="num n-din" style="font-size:22px;color:var(--red)">199.9<span class="suf">k</span></span><span class="un">tokens</span></div>
+            <div class="rc__chart"><svg viewBox="0 0 100 24" preserveAspectRatio="none"><path d="M0 22 C6 22 8 3 12 3 C16 3 18 19 24 20 C40 21 60 21 100 21" fill="none" stroke="var(--red)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+            <dl class="rc__foot"><div><dt>SESSOES</dt><dd class="b">4</dd></div><div><dt>PICO</dt><dd class="v">199.9k</dd></div><div class="rc__rs"><dt>RESET</dt><dd>04:47</dd></div></dl>
+          </div>
+          <div class="rc">
+            <div class="rc__h"><span class="rc__id">02 MLEGATE</span><span class="rc__st"><i></i>EM USO</span></div>
+            <div class="rc__fig"><span class="num n-din" style="font-size:22px">238.7<span class="suf">k</span></span><span class="un">tokens</span></div>
+            <div class="rc__chart"><svg viewBox="0 0 100 24" preserveAspectRatio="none"><path d="M0 21 C4 21 6 6 10 6 C14 6 16 18 22 20 C40 21 60 21 100 21" fill="none" stroke="var(--muted)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+            <dl class="rc__foot"><div><dt>SESSOES</dt><dd class="b">2</dd></div><div><dt>PICO</dt><dd class="v">238.7k</dd></div><div class="rc__rs"><dt>RESET</dt><dd>04:49</dd></div></dl>
+          </div>
+          <div class="rc">
+            <div class="rc__h"><span class="rc__id">03 BACKUP</span><span class="rc__st"><i></i>EM USO</span></div>
+            <div class="rc__fig"><span class="num n-din" style="font-size:22px">80.7<span class="suf">k</span></span><span class="un">tokens</span></div>
+            <div class="rc__chart"><svg viewBox="0 0 100 24" preserveAspectRatio="none"><path d="M0 22 C4 22 6 11 10 11 C14 11 16 20 22 21 C40 22 60 22 100 22" fill="none" stroke="var(--muted)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg></div>
+            <dl class="rc__foot"><div><dt>SESSOES</dt><dd class="b">2</dd></div><div><dt>PICO</dt><dd class="v">80.7k</dd></div><div class="rc__rs"><dt>RESET</dt><dd>04:51</dd></div></dl>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="why">
+      Fechada, as contas viram <b>uma pilula viva no rodape</b>: conta ativa,
+      tokens e reset, sempre a vista, custando uma linha. Um clique nela, ou
+      cmd+1, e a gaveta <b>sobe deslizando sobre o terminal</b> com os tres
+      cards completos, do jeito que sao hoje.<br><br>
+      Some sozinha quando voce escolhe uma conta ou aperta esc. E o unico
+      arranjo em que os cards podem ser <b>grandes de verdade</b>, com
+      grafico alto, sem cobrar espaco permanente de nada.<br><br>
+      Combina com o alerta de limite: quando uma conta estoura, a gaveta
+      sobe sozinha.<br><br>
+      <span class="no">Custo:</span> os numeros das contas inativas nao
+      ficam visiveis o tempo todo.
+    </p>
+  </div>
+</section>
+
+<p class="lede">
+  <b>Se me perguntam:</b> tipografia, a DIN condensed; posicao, a F. A gaveta
+  e a unica que deixa o card crescer em vez de encolher, e resolve o
+  incomodo de raiz, que e um card grande ocupando lugar fixo para uma
+  decisao que voce toma duas vezes por dia. A D e a escolha segura se voce
+  quiser os tres numeros sempre na tela.
+</p>
+
+</body>
+</html>

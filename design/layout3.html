@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>customCC · contas como saída de terminal</title>
+<style>
+/* Tokens iguais aos de src/styles/base.css, para a proposta ser julgada
+   com as cores reais do app e nao com uma paleta so desta pagina. */
+:root {
+  --bg: #282c34;
+  --fg: #9cdef2;
+  --panel: #111111;
+  --border: #355a66;
+  --red: #e06c75;
+  --green: #50fa7b;
+  --warn: #f0ad4e;
+  --color-error: #ff4444;
+  --color-muted: #828997;
+  --color-muted-alt: #6b7280;
+  --blue: #58a6ff;
+  --violet: #bc8cff;
+  --font-mono: 'Fira Code', ui-monospace, Menlo, monospace;
+  --rail-w: 46px;
+  --dock-w: 372px;
+  --topbar-h: 38px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Moldura do app, so para dar contexto de posicao ─────────────────── */
+.app { display: grid; grid-template-columns: var(--rail-w) 1fr var(--dock-w); height: 100vh; }
+.rail { background: var(--panel); border-right: 1px solid #1c2128; }
+.stage { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+.stage__tabs { height: var(--topbar-h); flex: none; display: flex; align-items: center; gap: 2px; padding: 0 8px; border-bottom: 1px solid #1c2128; }
+.tab { padding: 4px 12px; font-size: 11px; color: var(--color-muted); border-radius: 3px 3px 0 0; }
+.tab.on { color: var(--fg); background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.term { flex: 1; padding: 14px 16px; color: var(--color-muted-alt); font-size: 12px; white-space: pre; overflow: hidden; }
+.term b { color: var(--green); font-weight: 400; }
+.term i { color: var(--red); font-style: normal; }
+
+.dock { display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid #1c2128; }
+.dock__title {
+  display: flex; align-items: center; gap: 8px; height: var(--topbar-h); flex: none;
+  margin: 0; padding: 0 12px; font-size: 11px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--color-muted);
+  border-bottom: 1px solid #1c2128;
+}
+.dock__body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* ── O bloco das contas ──────────────────────────────────────────────────
+   Sem caixa, sem borda, sem glow. O que separa uma conta da outra e o
+   espaco e a coluna do indice, do mesmo jeito que separa as linhas de um
+   `top`. As larguras de coluna sao fixas e iguais em todas as contas,
+   entao os numeros caem uns embaixo dos outros: e isso que faz o bloco
+   ler como tabela de terminal, e nao como tres cartoes empilhados. */
+.acct { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 14px 12px; }
+
+/* ── Cabecalho: o total das tres contas ───────────────────────────────
+   O numero que resume tudo fica em cima, no corpo normal. O peso vem da
+   posicao e do contraste, nao de escala de poster. */
+.tot { flex: none; }
+.tot__line { display: flex; align-items: baseline; gap: 7px; }
+.tot__v { font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; }
+.tot__k { color: var(--color-muted); }
+.tot__split {
+  display: flex; gap: 10px; margin-top: 3px;
+  font-size: 10.5px; color: var(--color-muted-alt);
+}
+.tot__split b { font-weight: 400; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+
+/* Regua de titulos de coluna, como a linha de cabecalho do `top`. */
+.cols {
+  flex: none; display: flex; align-items: baseline;
+  margin-top: 9px; padding-bottom: 5px;
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--color-muted-alt);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+.cols .c-n { width: 30px; }
+.cols .c-name { flex: 1; }
+.cols .c-v { width: 62px; text-align: right; }
+
+/* ── Uma conta ───────────────────────────────────────────────────────── */
+.rows { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.row { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-top: 11px; }
+
+/* Linha 1: marca, indice, nome, tokens da janela. */
+.r1 { display: flex; align-items: baseline; }
+.r1__mark { width: 8px; color: transparent; }
+.row.on .r1__mark { color: var(--red); }
+.r1__n { width: 22px; color: var(--color-muted-alt); font-variant-numeric: tabular-nums; }
+.row.on .r1__n { color: var(--red); }
+.r1__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-muted); }
+.row.on .r1__name { color: var(--fg); }
+.r1__state { margin-right: 9px; font-size: 10.5px; }
+.r1__v { width: 62px; text-align: right; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.row.on .r1__v { color: var(--fg); }
+
+/* Linha 2: o medidor em bloco, sozinho na linha, como pediu o Pedro.
+   Mesmo glifo em duas cores: alinha por construcao e nao abre buraco
+   como o par █/░ abriria. */
+.r2 { display: flex; align-items: baseline; margin-top: 3px; padding-left: 30px; }
+/* Meia unidade de espaco entre as celulas: o serrilhado vira segmento
+   proposital, em vez de parecer glifo mal encaixado. */
+.bar { letter-spacing: .5px; white-space: nowrap; font-size: 11px; }
+.bar .fill { color: var(--color-muted); }
+.bar .rest { color: color-mix(in srgb, var(--color-muted) 22%, transparent); }
+.row.on .bar .fill { color: var(--red); }
+.row--lim .bar .fill { color: var(--color-error); }
+.r2__pct { margin-left: 8px; font-size: 10.5px; color: var(--color-muted-alt); font-variant-numeric: tabular-nums; }
+.r2__reset { margin-left: auto; font-size: 10.5px; color: var(--color-muted-alt); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.r2__reset em { font-style: normal; color: var(--green); }
+
+/* Linha 3: o grafico de consumo, mantido. Sem moldura: e so o traco.
+   E ele que absorve a folga da altura do painel, entao o bloco ocupa o
+   dock inteiro sem que o texto precise inchar. */
+.r3 { flex: 1; min-height: 34px; margin: 6px 0 0 30px; }
+.r3 svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.r3 path { fill: none; stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.r3 .now { stroke-width: 1; opacity: .3; vector-effect: non-scaling-stroke; }
+
+/* Linha 4: a reparticao dos tokens, em duas colunas alinhadas. E aqui
+   que entra o que o app ja le e jogava fora: entrada, saida e cache
+   separados. Com cache em ~98% do total, o numero de cima sozinho
+   dizia pouco. */
+.r4 {
+  display: grid; grid-template-columns: 52px 58px 14px 52px 1fr;
+  margin: 5px 0 0 30px; font-size: 10.5px; color: var(--color-muted-alt);
+}
+.r4 b { font-weight: 400; color: var(--color-muted); font-variant-numeric: tabular-nums; text-align: right; }
+.r4 .sp { text-align: center; opacity: .5; }
+
+.r5 { margin: 5px 0 0 30px; }
+.r5 button {
+  padding: 0; font: inherit; font-size: 10.5px; color: var(--color-muted-alt);
+  background: none; border: none; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--color-muted) 35%, transparent);
+}
+
+.act { color: var(--red); }
+.rdy { color: var(--green); }
+.coo { color: var(--warn); }
+.lim { color: var(--color-error); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="rail"></div>
+
+  <div class="stage">
+    <div class="stage__tabs">
+      <span class="tab on">customCC</span>
+      <span class="tab">api</span>
+      <span class="tab">notas</span>
+    </div>
+    <div class="term">$ claude
+<b>●</b> pronto em ~/Documents/Programação/customCC
+
+  <i>&gt;</i> terminar a validacao de tipo nas rotas de escrita
+
+  · lendo server/gitwrite.ts
+  · lendo server/index.ts
+  · 34 casos, 0 falhas
+</div>
+  </div>
+
+  <aside class="dock">
+    <h2 class="dock__title">contas</h2>
+    <div class="dock__body">
+      <div class="acct">
+
+        <div class="tot">
+          <div class="tot__line">
+            <span class="tot__v" id="tv">—</span>
+            <span class="tot__k">tokens nas tres contas</span>
+          </div>
+          <div class="tot__split" id="ts"></div>
+        </div>
+
+        <div class="cols">
+          <span class="c-n">#</span>
+          <span class="c-name">conta</span>
+          <span class="c-v">tokens</span>
+        </div>
+
+        <div class="rows" id="rows"></div>
+
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* Proporcoes tiradas dos transcripts reais deste Mac: cache_read e ~98%
+   do que hoje vira um numero so. */
+const CONTAS = [
+  { n:1, nome:'pessoal',  estado:'ativa',           cls:'act', on:true,
+    entrada:1_100, saida:38_400, cacheR:792_600, cacheW:15_200,
+    pct:.62, reset:'18:40', observado:true, sessoes:23 },
+  { n:2, nome:'trabalho', estado:'disponivel',      cls:'rdy', on:false,
+    entrada:420,   saida:14_900, cacheR:291_300, cacheW:6_180,
+    pct:.24, reset:'--:--', observado:false, sessoes:11 },
+  { n:3, nome:'reserva',  estado:'limite atingido', cls:'lim', on:false, lim:true,
+    entrada:260,   saida:7_050,  cacheR:141_400, cacheW:2_390,
+    pct:.97, reset:'21:05', observado:true, sessoes:6 },
+]
+const soma = (c) => c.entrada + c.saida + c.cacheR + c.cacheW
+const fmt = (v) => v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'k' : String(v)
+
+const CELULAS = 24
+const barra = (p) => {
+  const f = Math.round(p * CELULAS)
+  return `<span class="bar"><span class="fill">${'█'.repeat(f)}</span>`
+       + `<span class="rest">${'█'.repeat(CELULAS-f)}</span></span>`
+}
+
+function serie(sem, n=34) {
+  let s = sem, out = []
+  for (let i=0;i<n;i++){ s=(s*1103515245+12345)%2147483648
+    out.push((Math.sin(i/3.4+sem)*.5+.5)*.7 + (s/2147483648)*.3) }
+  return out
+}
+function grafico(pct, cor, sem) {
+  const W=300, H=60, s=serie(sem), max=Math.max(...s)
+  const pts=s.map((v,i)=>[i/(s.length-1)*W, H-(v/max)*(H-8)-4])
+  let d=`M ${pts[0][0]} ${pts[0][1]}`
+  for(let i=1;i<pts.length;i++){const[px,py]=pts[i-1],[x,y]=pts[i],mx=(px+x)/2
+    d+=` C ${mx} ${py}, ${mx} ${y}, ${x} ${y}`}
+  const bx=pct*W
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path d="${d}" style="stroke:${cor}"/>
+    <line class="now" x1="${bx}" y1="0" x2="${bx}" y2="${H}" style="stroke:${cor}"/></svg>`
+}
+const COR={act:'var(--red)',rdy:'var(--color-muted)',coo:'var(--color-muted)',lim:'var(--color-error)'}
+
+const T = CONTAS.reduce((a,c)=>({
+  e:a.e+c.entrada, s:a.s+c.saida, cr:a.cr+c.cacheR, cw:a.cw+c.cacheW}), {e:0,s:0,cr:0,cw:0})
+const grand = T.e+T.s+T.cr+T.cw
+tv.textContent = fmt(grand)
+ts.innerHTML = `<span>entrada <b>${fmt(T.e)}</b></span>`
+  + `<span>saida <b>${fmt(T.s)}</b></span>`
+  + `<span>cache <b>${(100*(T.cr+T.cw)/grand).toFixed(0)}%</b></span>`
+
+rows.innerHTML = CONTAS.map(c => `
+  <div class="row ${c.on?'on':''} ${c.lim?'row--lim':''}">
+    <div class="r1">
+      <span class="r1__mark">▌</span>
+      <span class="r1__n">${String(c.n).padStart(2,'0')}</span>
+      <span class="r1__name">${c.nome}</span>
+      <span class="r1__state ${c.cls}">${c.estado}</span>
+      <span class="r1__v">${fmt(soma(c))}</span>
+    </div>
+    <div class="r2">
+      ${barra(c.pct)}
+      <span class="r2__pct">${Math.round(c.pct*100)}%</span>
+      <span class="r2__reset">${c.observado?'<em>◎</em> ':''}↺ ${c.reset}</span>
+    </div>
+    <div class="r3">${grafico(c.pct, COR[c.cls], c.n*7+3)}</div>
+    <div class="r4">
+      <span>entrada</span><b>${fmt(c.entrada)}</b><span class="sp">·</span><span>cache</span><b style="text-align:left;padding-left:8px">${fmt(c.cacheR+c.cacheW)}</b>
+      <span>saida</span><b>${fmt(c.saida)}</b><span class="sp">·</span><span>sessoes</span><b style="text-align:left;padding-left:8px">${c.sessoes}</b>
+    </div>
+    ${c.on?'':'<div class="r5"><button>ativar</button></div>'}
+  </div>
+`).join('')
+</script>
+</body>
+</html>
