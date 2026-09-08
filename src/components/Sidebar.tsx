@@ -5,15 +5,16 @@ interface RailItem {
   view: ViewName
   label: string
   Icon: typeof Users
-  /** Cor propria de cada dominio: contas, git, diff, config. */
-  color: string
 }
 
 const ITEMS: RailItem[] = [
-  { view: 'accounts', label: 'contas', Icon: Users, color: 'var(--red)' },
-  { view: 'git', label: 'git', Icon: GitBranch, color: 'var(--green)' },
-  { view: 'diff', label: 'mudancas', Icon: SquareStack, color: 'var(--warn)' },
-  { view: 'settings', label: 'ajustes', Icon: SlidersHorizontal, color: 'var(--hl-keyword)' },
+  // Sem cor por secao: quatro icones em quatro cores era um codigo de
+  // identidade, e neste painel a cor carrega estado. Quem esta aberto usa
+  // o acento do tema; o resto fica neutro.
+  { view: 'accounts', label: 'contas', Icon: Users },
+  { view: 'git', label: 'git', Icon: GitBranch },
+  { view: 'diff', label: 'mudancas', Icon: SquareStack },
+  { view: 'settings', label: 'ajustes', Icon: SlidersHorizontal },
 ]
 
 interface Props {
@@ -26,7 +27,7 @@ interface Props {
 export function Sidebar({ view, onView, badges, alert }: Props) {
   return (
     <nav className="rail" aria-label="Secoes">
-      {ITEMS.map(({ view: v, label, Icon, color }) => {
+      {ITEMS.map(({ view: v, label, Icon }) => {
         const badge = badges[v]
         const isAlert = v === 'accounts' && alert
         return (
@@ -34,7 +35,6 @@ export function Sidebar({ view, onView, badges, alert }: Props) {
             key={v}
             type="button"
             className={`rail__btn${view === v ? ' is-active' : ''}${isAlert ? ' is-alert' : ''}`}
-            style={{ '--item': color } as React.CSSProperties}
             aria-label={label}
             aria-current={view === v || undefined}
             onClick={() => onView(v)}

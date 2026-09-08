@@ -29,10 +29,10 @@
   --hl-number: #d19a66;
 
   --font-mono: 'Fira Code', ui-monospace, Menlo, monospace;
-  /* A leitura grande fica na propria face do sistema. Tentei uma display em
-     matriz de pontos e, renderizada, o numero virava um anel ilegivel: o
-     instrumento vem do acabamento (ticks, colchetes, LED), nao de fonte
-     decorativa. */
+  /* Matriz de pontos foi tentada duas vezes e falhou as duas. Em escala
+     grande cada ponto vira um anel; em 22px o ponto decimal se confunde
+     com os pontos do proprio glifo, e "660.0k" fica ambiguo. A presenca
+     do numero vem da cor do tema e do corpo, nao da face. */
   --font-readout: 'Fira Code', ui-monospace, Menlo, monospace;
 
   --rail-w: 46px;

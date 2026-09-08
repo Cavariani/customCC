@@ -53,11 +53,11 @@
   transition: color 0.15s, background 0.15s;
 }
 
-.rail__btn:hover { color: var(--item); background: color-mix(in srgb, var(--item) 12%, transparent); }
+.rail__btn:hover { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
 
 .rail__btn.is-active {
-  color: var(--item);
-  background: color-mix(in srgb, var(--item) 16%, transparent);
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 16%, transparent);
 }
 
 .rail__btn.is-active::before {
@@ -68,7 +68,7 @@
   bottom: 6px;
   width: 2px;
   border-radius: 0 2px 2px 0;
-  background: var(--item);
+  background: var(--red);
 }
 
 /* Limite atingido: so a cor. Antes o icone pulsava um halo em loop, e
@@ -86,7 +86,7 @@
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--item);
+  background: var(--green);
   color: var(--panel);
   font-size: 9px;
   font-weight: 600;
@@ -283,10 +283,15 @@
    tamanho. Um degrau, e nao um salto: o numero em escala de poster foi
    justamente o que a versao antiga fazia de errado. */
 .acct__total-v {
-  font-size: 20px;
+  font-family: var(--font-readout);
+  font-size: 21px;
+  letter-spacing: 0.01em;
   line-height: 1.15;
+  /* A Doto so tem desenho ate 600; pedir mais devolve a face sintetica. */
   font-weight: 600;
-  color: var(--fg);
+  /* O numero que resume o painel usa o acento do tema, e nao o texto: e a
+     unica coisa aqui que compete com o nome da conta ativa. */
+  color: var(--red);
   font-variant-numeric: tabular-nums;
 }
 
