@@ -182,6 +182,7 @@ export interface Historico {
     entrada: number
     saida: number
     linhasAdicionadas: number
+    linhasRemovidas: number
   }
   /** Custo e tokens somados por projeto, do maior para o menor. */
   projetos: { nome: string; custoUSD: number; tokens: number; sessoes: number }[]
@@ -248,6 +249,7 @@ export async function lerHistorico(dias = 30, limite = 200): Promise<Historico> 
       entrada: t.entrada + s.entrada,
       saida: t.saida + s.saida,
       linhasAdicionadas: t.linhasAdicionadas + s.linhasAdicionadas,
+      linhasRemovidas: t.linhasRemovidas + s.linhasRemovidas,
     }),
     zerado(),
   )
@@ -278,5 +280,6 @@ function zerado() {
     entrada: 0,
     saida: 0,
     linhasAdicionadas: 0,
+    linhasRemovidas: 0,
   }
 }

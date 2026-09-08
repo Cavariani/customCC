@@ -73,8 +73,17 @@ export function HistoryView() {
           <span>
             tempo <b>{Math.round(totais.duracaoMs / 3600000)}h</b>
           </span>
+          {/* Escritas e apagadas em verde e vermelho, como no git e no
+              painel de mudancas: o sinal sozinho, sem cor, se perdia no
+              meio dos outros numeros da linha. */}
           <span>
-            linhas <b>+{totais.linhasAdicionadas}</b>
+            linhas <b className="hv__mais">+{totais.linhasAdicionadas}</b>
+            {totais.linhasRemovidas > 0 && (
+              <>
+                {' '}
+                <b className="hv__menos">-{totais.linhasRemovidas}</b>
+              </>
+            )}
           </span>
         </div>
       </div>

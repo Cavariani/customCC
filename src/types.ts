@@ -156,6 +156,7 @@ export interface Historico {
     entrada: number
     saida: number
     linhasAdicionadas: number
+    linhasRemovidas: number
   }
   projetos: { nome: string; custoUSD: number; tokens: number; sessoes: number }[]
 }
