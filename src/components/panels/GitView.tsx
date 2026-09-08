@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import { useWorkspace } from '../../lib/workspace'
 import { Delta } from '../Delta'
+import { HunkList } from '../HunkList'
 import type { GitFile, GitFileStatus, GitState } from '../../types'
 
 const META: Record<GitFileStatus, { Icon: typeof FilePen; color: string; tag: string }> = {
@@ -36,7 +37,7 @@ const OPERACAO: Record<NonNullable<GitState['operation']>, string> = {
 }
 
 export function GitView() {
-  const { git, gitError, activeTab, stage, unstage, commit } = useWorkspace()
+  const { git, gitError, activeTab, stage, unstage, commit, refreshGit } = useWorkspace()
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -122,6 +123,9 @@ export function GitView() {
         tone="green"
         action={{ label: 'tirar', run: (p) => acao(() => unstage(p)) }}
         busy={busy}
+        cwd={activeTab?.cwd ?? ''}
+        staged
+        onMoved={refreshGit}
       />
       <Group
         title="nao staged"
@@ -129,6 +133,9 @@ export function GitView() {
         tone="warn"
         action={{ label: 'stage', run: (p) => acao(() => stage(p)) }}
         busy={busy}
+        cwd={activeTab?.cwd ?? ''}
+        staged={false}
+        onMoved={refreshGit}
       />
 
       {git.truncated && <p className="view__note view__note--warn">lista cortada em 250 arquivos.</p>}
@@ -193,13 +200,22 @@ function Group({
   tone,
   action,
   busy,
+  cwd,
+  staged,
+  onMoved,
 }: {
   title: string
   files: GitFile[]
   tone: string
   action: GroupAction
   busy: boolean
+  cwd: string
+  staged: boolean
+  onMoved: () => void
 }) {
+  // Um arquivo aberto de cada vez: dois diffs abertos no painel de 372px
+  // viram rolagem sem fim.
+  const [aberto, setAberto] = useState<string | null>(null)
   if (files.length === 0) return null
   return (
     <section className="group">
@@ -236,6 +252,19 @@ function Group({
                 {name}
               </span>
               <Delta added={file.added} removed={file.removed} />
+              {/* Conflito e arquivo novo nao tem bloco util para separar:
+                  o primeiro precisa ser resolvido antes, e o segundo e um
+                  bloco so com o arquivo inteiro dentro. */}
+              {file.status !== 'conflicted' && file.status !== 'untracked' && (
+                <button
+                  type="button"
+                  className={`filerow__blocos${aberto === file.path ? ' is-on' : ''}`}
+                  title="ver e mover bloco a bloco"
+                  onClick={() => setAberto(aberto === file.path ? null : file.path)}
+                >
+                  blocos
+                </button>
+              )}
               <button
                 type="button"
                 className="filerow__act"
@@ -245,6 +274,9 @@ function Group({
               >
                 {action.label}
               </button>
+              {aberto === file.path && (
+                <HunkList cwd={cwd} path={file.path} staged={staged} onMoved={onMoved} />
+              )}
             </li>
           )
         })}

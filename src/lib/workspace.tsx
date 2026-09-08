@@ -60,6 +60,8 @@ interface Workspace {
   setAutoSwitch: (enabled: boolean) => void
   /** Quem esteve ativo nas ultimas horas, para a linha do tempo. */
   periods: Periodo[]
+  /** Recarrega git e diff depois de uma escrita feita fora deste contexto. */
+  refreshGit: () => void
 
   tabs: TerminalTab[]
   activeTabId: string
@@ -234,6 +236,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       .catch(() => setAutoSwitchLocal(!enabled))
   }, [])
 
+  const refreshGit = useCallback(() => {
+    void Promise.all([gitPoll.refresh(), changesPoll.refresh()])
+  }, [gitPoll, changesPoll])
+
   const markRateLimited = useCallback(() => {
     fetch(`/api/accounts/${activeAccountId}/rate-limited`, { method: 'POST' })
       .then(() => accountsPoll.refresh())
@@ -367,6 +373,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       autoSwitch,
       setAutoSwitch,
       periods,
+      refreshGit,
       tabs,
       activeTabId,
       activeTab,
@@ -401,6 +408,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       autoSwitch,
       setAutoSwitch,
       periods,
+      refreshGit,
       tabs,
       activeTabId,
       activeTab,

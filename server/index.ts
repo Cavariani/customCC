@@ -9,6 +9,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import { DEFAULT_CWD, PORT, expandHome, resolveClaudeBin } from './config.js'
 import { readGitState } from './git.js'
 import { backupContentFor, readChanges } from './changes.js'
+import { listHunks, stageHunk, unstageHunk } from './hunks.js'
 import {
   checkoutFile,
   commit,
@@ -190,6 +191,47 @@ app.post('/api/git/unstage', async (req, res) => {
     res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
   }
 })
+
+/**
+ * Blocos de um arquivo, para o painel poder mover um pedaco de cada vez.
+ * `staged=1` lista o que ja esta no indice, que e o lado do desfazer.
+ */
+app.get('/api/git/hunks', async (req, res) => {
+  try {
+    const cwd = bodyCwd(req.query.cwd)
+    const path = bodyText(req.query.path, 'caminho', 4096)
+    if (!insideCwd(cwd, path)) {
+      return res.status(400).json({ error: `caminho fora do projeto: ${path}` })
+    }
+    const diff = await listHunks(cwd, path, req.query.staged === '1')
+    res.json({ hunks: diff.hunks })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/** Move um bloco para o indice, ou tira de la, sem tocar no resto do arquivo. */
+async function rotaDeBloco(req: express.Request, res: express.Response, tirar: boolean) {
+  try {
+    const cwd = bodyCwd(req.body?.cwd)
+    const path = bodyText(req.body?.path, 'caminho', 4096)
+    if (!insideCwd(cwd, path)) {
+      return res.status(400).json({ error: `caminho fora do projeto: ${path}` })
+    }
+    const index = req.body?.index
+    if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) {
+      return res.status(400).json({ error: 'index precisa ser inteiro nao negativo' })
+    }
+    if (tirar) await unstageHunk(cwd, path, index)
+    else await stageHunk(cwd, path, index)
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+}
+
+app.post('/api/git/stage-hunk', (req, res) => void rotaDeBloco(req, res, false))
+app.post('/api/git/unstage-hunk', (req, res) => void rotaDeBloco(req, res, true))
 
 app.post('/api/git/commit', async (req, res) => {
   try {
