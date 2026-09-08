@@ -269,7 +269,7 @@ app.post('/api/accounts/:id/activate', async (req, res) => {
   const summaries = await summarizeAccounts()
   const label = summaries.find((a) => a.id === id)?.label ?? `conta ${id}`
   const notice = token
-    ? `conta ${id} (${label}) ativa, retomando com claude --continue`
+    ? `conta ${id} (${label}) ativa, retomando a conversa desta aba`
     : `conta ${id} (${label}) selecionada, mas sem token valido: o processo voltou na credencial ambiente`
 
   const restarted: string[] = []
