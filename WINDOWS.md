@@ -43,13 +43,25 @@ leitor é feito à mão, sem depender de shell.
 e se refaz sozinho na primeira leitura dos transcripts. Levar o do Mac faria o
 painel começar mostrando janelas que não existem nessa máquina.
 
-Suba o painel:
+Suba o painel. Há dois modos, e eles abrem em **portas diferentes**:
 
 ```powershell
-npm start
+npm run dev     # desenvolvimento: backend em 5181 + vite em 5180
 ```
 
-E abra <http://localhost:5181>. Para instalar como tarefa que sobe no login:
+Abra <http://localhost:5180>. O vite serve a página e repassa `/api` e `/pty`
+para o backend que ele mesmo subiu. É o modo com recarga automática.
+
+```powershell
+npm start       # uso normal: compila e serve tudo numa porta so
+```
+
+Abra <http://localhost:5181>. É o modo equivalente ao serviço do Mac.
+
+Não confunda: no Mac você se acostuma com o 5181 porque o serviço launchd
+já serve o build pronto. Rodando `npm run dev`, a página está no 5180.
+
+Para instalar como tarefa que sobe no login:
 
 ```powershell
 node scripts/service.mjs
@@ -95,8 +107,13 @@ do `setx` para ela valer.
 
 ### As contas aparecem com 0 tokens
 
-Esse é o ponto que mais merece atenção na primeira execução, e é o único que não
-foi testado no Windows.
+**Antes de investigar, use o painel por alguns minutos.** A contabilidade sai
+dos transcripts que o próprio `claude` grava nesta máquina, e um PC recém-clonado
+não tem nenhum. Zero em todas as contas antes da primeira conversa é o esperado,
+não um defeito.
+
+O que indica problema é continuar zerado **depois** de você conversar um pouco.
+Esse é o único ponto do guia que não foi testado no Windows.
 
 O painel acha os transcripts convertendo o caminho absoluto do projeto em um
 "slug", trocando todo caractere não alfanumérico por `-`. No Mac,
