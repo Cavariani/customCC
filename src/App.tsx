@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Sidebar } from './components/Sidebar'
 import { TabBar } from './components/TabBar'
 import { ProjectBar } from './components/ProjectBar'
@@ -151,8 +152,8 @@ export default function App() {
         <ProjectBar />
         <div className="panes">
           {tabs.map((tab) => (
+            <ErrorBoundary key={tab.id} area={`terminal da aba ${tab.title}`}>
             <TerminalPane
-              key={tab.id}
               tab={tab}
               visible={tab.id === activeTabId}
               fontSize={prefs.terminalFontSize}
@@ -162,6 +163,7 @@ export default function App() {
               onStatus={setTabStatus}
               onActivity={setTabActivity}
             />
+            </ErrorBoundary>
           ))}
         </div>
       </main>
@@ -193,14 +195,14 @@ export default function App() {
           {prefs.dockCollapsed ? (
             <DockRail onExpand={toggleDock} />
           ) : (
-            <>
+            <ErrorBoundary area={`painel de ${VIEW_TITLE[view]}`}>
               {view === 'accounts' && <AccountsView />}
               {view === 'git' && <GitView />}
               {view === 'diff' && <DiffView />}
               {view === 'settings' && (
                 <SettingsView theme={theme} onTheme={setTheme} prefs={prefs} onPref={set} />
               )}
-            </>
+            </ErrorBoundary>
           )}
         </div>
       </aside>
