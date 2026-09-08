@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>customCC · quatro barras de status</title>
+<style>
+:root {
+  --bg: #282c34; --fg: #9cdef2; --panel: #111111; --border: #355a66; --red: #e06c75;
+  --green: #50fa7b; --warn: #f0ad4e; --color-error: #ff4444;
+  --color-muted: #a8b1bf; --color-muted-alt: #929bab;
+  --mono: 'Fira Code', ui-monospace, Menlo, monospace;
+  --ease: cubic-bezier(.22,.61,.36,1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:20px; background:var(--bg); color:var(--fg);
+  font-family:var(--mono); font-size:12.5px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+h1 { margin:0 0 4px; font-size:14px; font-weight:600; }
+.lede { margin:0 0 6px; max-width:110ch; font-size:11.5px; line-height:1.65; color:var(--color-muted); }
+.lede b { color:var(--fg); font-weight:600; }
+.hoje { margin:0 0 22px; font-size:11px; color:var(--color-muted-alt); }
+.hoje code { color:var(--warn); }
+
+.bloco { margin-bottom: 26px; }
+.cab { margin:0 0 4px; font-size:11.5px; font-weight:600; color:var(--red); letter-spacing:.08em; text-transform:uppercase; }
+.nota { margin:0 0 8px; max-width:110ch; font-size:11px; line-height:1.6; color:var(--color-muted-alt); }
+.moldura { width:1180px; background:var(--bg); border:1px solid #1c2128; }
+.falso-corpo { height:26px; background:var(--bg); }
+
+/* ── base comum das barras ───────────────────────────────────────────── */
+.bar { display:flex; align-items:stretch; height:30px; background:var(--panel);
+  border-top:1px solid color-mix(in srgb, var(--color-muted) 16%, transparent); font-size:11.5px; }
+.it { display:flex; align-items:center; gap:6px; padding:0 11px; color:var(--color-muted); }
+.it b { font-weight:400; color:var(--fg); font-variant-numeric:tabular-nums; }
+.it .rot { color:var(--color-muted-alt); }
+.sep { width:1px; background:color-mix(in srgb, var(--color-muted) 16%, transparent); }
+.dir { margin-left:auto; }
+.mais { color:var(--green); font-variant-numeric:tabular-nums; }
+.menos { color:var(--color-error); font-variant-numeric:tabular-nums; }
+.ac { color:var(--red); }
+.kbd { font-size:10px; letter-spacing:.08em; color:var(--color-muted-alt);
+  border:1px solid color-mix(in srgb,var(--color-muted) 26%,transparent); padding:1px 5px; }
+
+/* ── A · prompt de shell ─────────────────────────────────────────────── */
+.a-prompt { font-variant-ligatures:none; }
+.a-prompt .cifrao { color:var(--red); }
+.a-prompt .cam { color:var(--fg); }
+.a-prompt .ramo { color:var(--green); }
+.a-prompt .frag { color:var(--color-muted-alt); }
+
+/* ── B · a barra e o medidor ─────────────────────────────────────────── */
+.b-medidor { position:relative; flex:1; display:flex; align-items:center; padding:0 11px;
+  overflow:hidden; }
+.b-medidor .fundo { position:absolute; left:0; top:0; bottom:0;
+  background:repeating-linear-gradient(90deg, color-mix(in srgb,var(--red) 22%,transparent) 0 6px, transparent 6px 8px); }
+.b-medidor .txt { position:relative; display:flex; align-items:center; gap:10px; width:100%; }
+.b-medidor .txt .dir2 { margin-left:auto; }
+
+/* ── C · zonas com peso ──────────────────────────────────────────────── */
+.c-zona { display:flex; align-items:center; gap:8px; padding:0 12px; }
+.c-zona--local { flex:2; }
+.c-zona--conta { flex:3; background:color-mix(in srgb,var(--red) 7%,transparent); }
+.c-zona--sis   { flex:1; justify-content:flex-end; }
+.c-mini { position:relative; width:64px; height:8px; flex:none;
+  background:repeating-linear-gradient(90deg, color-mix(in srgb,var(--color-muted) 20%,transparent) 0 6px, transparent 6px 8px); }
+.c-mini span { position:absolute; inset:0 auto 0 0;
+  background:repeating-linear-gradient(90deg, var(--red) 0 6px, transparent 6px 8px); }
+
+/* ── D · trilha de cota ao fundo ─────────────────────────────────────── */
+.d-bar { position:relative; }
+.d-bar .trilha { position:absolute; left:0; top:0; bottom:0; pointer-events:none;
+  background:color-mix(in srgb,var(--red) 12%,transparent);
+  border-right:1px solid color-mix(in srgb,var(--red) 55%,transparent); }
+.d-bar .it, .d-bar .sep { position:relative; }
+</style>
+</head>
+<body>
+<h1>customCC · quatro barras de status</h1>
+<p class="lede">
+Todas cortam o que o painel ja mostra e enchem a largura, em vez de abrir um vao no meio.
+O que sobrou em todas: <b>onde voce esta</b>, <b>qual conta</b> e <b>quanto dela resta</b> — porque
+esses tres continuam valendo com o painel recolhido no <b>cmd+B</b>, que e a unica hora em que a
+barra tem trabalho de verdade.
+</p>
+<p class="hoje">
+Hoje a barra repete quase tudo: <code>100.97M/h → 504.85M</code> e identico ao "ritmo · projecao"
+do painel, <code>reset 4h 34m</code> ao "reseta em", <code>main</code> ao painel de git e
+<code>+364 −123</code> ao de mudancas. O vao do meio e um espacador que nao separa nada.
+</p>
+
+<div id="opcoes"></div>
+
+<script>
+const D = {
+  proj:'customCC', ramo:'main', mais:364, menos:123, abas:1,
+  conta:'Pessoal', contaN:1, cinco:40, sete:15, reset:'4:34:43', ctx:4,
+  versao:'2.1.263',
+}
+
+/* A · prompt de shell
+   A barra vira uma linha de comando: caminho, ramo, estado. Densa e toda
+   a esquerda, sem espacador. */
+const A = `
+<div class="bar a-prompt">
+  <span class="it"><span class="cifrao">❯</span> <span class="cam">~/${D.proj}</span></span>
+  <span class="sep"></span>
+  <span class="it"><span class="ramo">⎇ ${D.ramo}</span> <span class="mais">+${D.mais}</span> <span class="menos">−${D.menos}</span></span>
+  <span class="sep"></span>
+  <span class="it"><span class="rot">conta</span> <b class="ac">${D.contaN} ${D.conta}</b></span>
+  <span class="sep"></span>
+  <span class="it"><span class="rot">5h</span> <b>${D.cinco}%</b> <span class="frag">·</span> <span class="rot">7d</span> <b>${D.sete}%</b></span>
+  <span class="sep"></span>
+  <span class="it"><span class="rot">reseta</span> <b>${D.reset}</b></span>
+  <span class="dir"></span>
+  <span class="it"><span class="kbd">cmd+K</span></span>
+</div>`
+
+/* B · a barra e o medidor
+   A cota de 5h ocupa a faixa inteira como fundo. O texto flutua sobre ela;
+   o preenchimento e o dado. */
+const B = `
+<div class="bar">
+  <span class="it"><span class="cam">${D.proj}</span> <span class="rot">⎇</span> <span class="ramo" style="color:var(--green)">${D.ramo}</span></span>
+  <span class="sep"></span>
+  <span class="b-medidor">
+    <span class="fundo" style="width:${D.cinco}%"></span>
+    <span class="txt">
+      <span><span class="rot">conta</span> <b class="ac">${D.contaN} ${D.conta}</b></span>
+      <span><span class="rot">5h</span> <b>${D.cinco}%</b></span>
+      <span class="dir2"><span class="rot">reseta em</span> <b>${D.reset}</b></span>
+    </span>
+  </span>
+</div>`
+
+/* C · zonas com peso
+   Tres faixas que dividem a largura: onde voce esta, qual conta, o sistema.
+   A do meio tem fundo proprio, entao a conta ativa se le de longe. */
+const C = `
+<div class="bar">
+  <span class="c-zona c-zona--local">
+    <span class="cam">${D.proj}</span>
+    <span class="rot">⎇</span><span style="color:var(--green)">${D.ramo}</span>
+    <span class="mais">+${D.mais}</span><span class="menos">−${D.menos}</span>
+  </span>
+  <span class="sep"></span>
+  <span class="c-zona c-zona--conta">
+    <b class="ac">${D.contaN} ${D.conta}</b>
+    <span class="c-mini"><span style="width:${D.cinco}%"></span></span>
+    <b>${D.cinco}%</b>
+    <span class="rot">reseta</span><b>${D.reset}</b>
+  </span>
+  <span class="sep"></span>
+  <span class="c-zona c-zona--sis">
+    <span class="rot">${D.abas} aba</span>
+    <span class="kbd">cmd+K</span>
+  </span>
+</div>`
+
+/* D · trilha de cota ao fundo
+   Igual a A na informacao, mas a cota vira uma trilha que atravessa a
+   barra inteira por tras do texto, com uma marca onde ela para. */
+const D_ = `
+<div class="bar d-bar">
+  <span class="trilha" style="width:${D.cinco}%"></span>
+  <span class="it"><span class="cam">${D.proj}</span></span>
+  <span class="sep"></span>
+  <span class="it"><span style="color:var(--green)">⎇ ${D.ramo}</span> <span class="mais">+${D.mais}</span> <span class="menos">−${D.menos}</span></span>
+  <span class="sep"></span>
+  <span class="it"><b class="ac">${D.contaN} ${D.conta}</b></span>
+  <span class="sep"></span>
+  <span class="it"><span class="rot">5h</span> <b>${D.cinco}%</b> <span class="rot">· reseta</span> <b>${D.reset}</b></span>
+  <span class="dir"></span>
+  <span class="it"><span class="rot">${D.abas} aba</span></span>
+  <span class="sep"></span>
+  <span class="it"><span class="kbd">cmd+K</span></span>
+</div>`
+
+const OPCOES = [
+  ['A · prompt de shell',
+   'A barra vira uma linha de comando: caminho, ramo, conta, cota, reset — tudo encostado a esquerda, com o atalho sozinho na ponta. E a leitura mais rapida e a mais parecida com o resto do painel; a personalidade vem do ❯ e do ⎇, nao de enfeite.', A],
+  ['B · a barra e o medidor',
+   'A cota de 5h vira o fundo da faixa inteira, e o texto flutua por cima. Some a barrinha separada: o preenchimento e o dado. Chama mais atencao — bom se a cota for a coisa mais importante, arriscado se voce olhar a barra o dia todo.', B],
+  ['C · zonas com peso',
+   'Tres faixas dividindo a largura: onde voce esta, qual conta, o sistema. Nada de espacador, porque as zonas esticam. A do meio ganha fundo proprio, entao a conta ativa se le de longe sem precisar de cor no texto.', C],
+  ['D · trilha ao fundo',
+   'A informacao da A, com a cota atravessando a barra inteira por tras do texto e uma marca fina onde ela para. O dado vira ambiente: da para ler sem olhar, so pelo tamanho da trilha.', D_],
+]
+
+document.getElementById('opcoes').innerHTML = OPCOES.map(([t,nota,bar])=>`
+  <div class="bloco">
+    <p class="cab">${t}</p>
+    <p class="nota">${nota}</p>
+    <div class="moldura"><div class="falso-corpo"></div>${bar}</div>
+  </div>`).join('')
+</script>
+</body>
+</html>
