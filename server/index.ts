@@ -11,6 +11,7 @@ import { readGitState } from './git.js'
 import { backupContentFor, readChanges } from './changes.js'
 import { lerFrota } from './fleet.js'
 import { lerHistorico } from './history.js'
+import { lerQuota } from './quota.js'
 import { listHunks, stageHunk, unstageHunk } from './hunks.js'
 import {
   checkoutFile,
@@ -335,6 +336,9 @@ app.get('/api/accounts', async (_req, res) => {
       accounts: await summarizeAccounts(),
       activeId: await getActiveAccountId(),
       periods: await periodosRecentes(),
+      // Cota real, quando o hook do statusline tiver escrito. E o unico
+      // numero do painel que sabe o proprio teto.
+      quota: await lerQuota(),
     })
   } catch (error) {
     res.status(500).json({ error: String(error) })

@@ -314,6 +314,78 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Cota da API ──────────────────────────────────────────────────────
+   A unica medida do painel que conhece o proprio teto, entao a unica que
+   pode dizer "esta acabando". Vem do JSON que o Claude Code entrega ao
+   statusline; todo o resto do painel conta tokens sem teto. */
+.cota {
+  flex: none;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+
+.cota__cols {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 5px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted-alt);
+}
+
+/* A leitura so troca quando alguma sessao desenha a barra de status; se
+   ficar velha, a idade aparece em vez de o numero fingir ser de agora. */
+.cota__velha {
+  margin-left: auto;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--warn);
+}
+
+.cota__linha { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.cota__k { width: 54px; flex: none; font-size: 11px; color: var(--color-muted-alt); }
+
+.cota__trilho {
+  position: relative;
+  flex: 1;
+  height: 10px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-muted) 20%, transparent) 0 6px,
+      transparent 6px 8px
+    );
+}
+
+.cota__fill { position: absolute; top: 0; left: 0; bottom: 0; }
+.cota__fill--baixo { background: repeating-linear-gradient(90deg, var(--green) 0 6px, transparent 6px 8px); }
+.cota__fill--medio { background: repeating-linear-gradient(90deg, var(--warn) 0 6px, transparent 6px 8px); }
+.cota__fill--alto { background: repeating-linear-gradient(90deg, var(--color-error) 0 6px, transparent 6px 8px); }
+
+.cota__v {
+  width: 40px;
+  flex: none;
+  text-align: right;
+  font-weight: 600;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cota__v--baixo { color: var(--green); }
+.cota__v--medio { color: var(--warn); }
+.cota__v--alto { color: var(--color-error); }
+
+.cota__reset {
+  width: 62px;
+  flex: none;
+  text-align: right;
+  font-size: 11px;
+  color: var(--color-muted-alt);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Regua de titulos, como a linha de cabecalho do `top`. */
 .acct__cols {
   flex: none;

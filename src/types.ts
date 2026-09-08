@@ -10,6 +10,26 @@ export interface Periodo {
   to: number | null
 }
 
+/** Um teto da API, com o quanto dele ja foi usado. */
+export interface Limite {
+  usadoPct: number
+  resetaEm: number | null
+}
+
+export interface QuotaDaSessao {
+  sessionId: string
+  lidaEm: number
+  cincoHoras: Limite | null
+  seteDias: Limite | null
+  contextoPct: number | null
+}
+
+export interface Quota {
+  atual: QuotaDaSessao | null
+  sessoes: QuotaDaSessao[]
+  disponivel: boolean
+}
+
 /** Quanto uma origem consumiu na janela: serve para modelo e para projeto. */
 export interface Fatia {
   nome: string

@@ -9,7 +9,7 @@ import {
   msUntilReset,
   ritmoDaJanela,
 } from '../../lib/format'
-import type { Account, Fatia } from '../../types'
+import type { Account, Fatia, Quota } from '../../types'
 
 const TOKEN_ISSUE: Record<string, string> = {
   missing: 'CLAUDE_TOKEN nao encontrado no arquivo',
@@ -20,7 +20,7 @@ const TOKEN_ISSUE: Record<string, string> = {
 // As animacoes ja tem interruptor global em [data-animations='false'], entao
 // o bloco nao precisa carregar a preferencia ate cada linha.
 export function AccountsView() {
-  const { accounts, switching, switchAccount } = useWorkspace()
+  const { accounts, switching, switchAccount, quota } = useWorkspace()
   const now = useNow()
 
   if (accounts.length === 0) {
@@ -37,6 +37,12 @@ export function AccountsView() {
   return (
     <div className="acct">
       <Total accounts={accounts} trabalho={trabalho} />
+
+      {/* A unica medida do painel que conhece o proprio teto. Todo o resto
+          conta tokens, e token sem teto nao diz quanto falta. Vem do JSON
+          que o Claude Code entrega ao statusline, guardado pelo hook em
+          ~/.claude/statusline-quota.sh. */}
+      <CotaReal quota={quota} agora={now} />
 
       <div className="acct__cols">
         <span className="acct__c-n">#</span>
@@ -118,6 +124,58 @@ function tomDoContador(ms: number): string {
   if (min <= 10) return 'quase'
   if (min <= 45) return 'perto'
   return 'longe'
+}
+
+/**
+ * Cota da API: os mesmos numeros do /usage.
+ *
+ * So aparece quando o hook do statusline ja escreveu alguma vez. E ele que
+ * define a frescura do dado: o valor so muda quando alguma sessao desenha
+ * a barra de status, entao a idade da leitura vai junto quando envelhece.
+ */
+function CotaReal({ quota, agora }: { quota: Quota | null; agora: number }) {
+  const q = quota?.atual
+  if (!q || (!q.cincoHoras && !q.seteDias)) return null
+
+  const idade = agora - q.lidaEm
+  const velha = idade > 5 * 60_000
+
+  return (
+    <div className="cota">
+      <div className="cota__cols">
+        <span>cota da api</span>
+        {velha && <span className="cota__velha">ha {formatAgo(idade)}</span>}
+      </div>
+      {q.cincoHoras && <Trilho k="5 horas" l={q.cincoHoras} agora={agora} />}
+      {q.seteDias && <Trilho k="7 dias" l={q.seteDias} agora={agora} />}
+    </div>
+  )
+}
+
+function Trilho({
+  k,
+  l,
+  agora,
+}: {
+  k: string
+  l: { usadoPct: number; resetaEm: number | null }
+  agora: number
+}) {
+  // Acima de 80% a barra muda de cor: e o unico lugar do painel onde da
+  // para dizer "esta acabando", porque e o unico com teto conhecido.
+  const tom = l.usadoPct >= 80 ? 'alto' : l.usadoPct >= 50 ? 'medio' : 'baixo'
+  const resta = l.resetaEm === null ? null : Math.max(0, l.resetaEm - agora)
+
+  return (
+    <div className="cota__linha">
+      <span className="cota__k">{k}</span>
+      <span className="cota__trilho">
+        <span className={`cota__fill cota__fill--${tom}`} style={{ width: `${l.usadoPct}%` }} />
+      </span>
+      <b className={`cota__v cota__v--${tom}`}>{Math.round(l.usadoPct)}%</b>
+      {resta !== null && <span className="cota__reset">{regressivo(resta)}</span>}
+    </div>
+  )
 }
 
 /** Horario local no formato 24h, que e como o Pedro le a hora. */

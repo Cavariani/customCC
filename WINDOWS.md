@@ -166,3 +166,23 @@ Nada no painel. As diferenças ficam todas na camada de baixo:
   `ONLOGON` do `schtasks` não faz isso — se o servidor morrer, só volta no
   próximo logon ou rodando `npm start` na mão
 - o `open` para abrir o navegador vira `start`
+
+## A cota real (o que o `/usage` mostra)
+
+O painel exibe a cota de 5h e de 7 dias com o teto de verdade, e esse dado
+não vem do transcript: ele chega num JSON que o Claude Code entrega ao
+comando de statusline. Para o painel enxergá-lo, um hook guarda esse JSON
+em disco.
+
+No Mac isso vive em dois arquivos **fora do repositório**:
+
+- `~/.claude/statusline-quota.sh` — recebe o JSON no stdin e o grava em
+  `~/.claude-multi-account/quota/<sessão>.json`
+- `~/.claude/settings.json` → `statusLine.command` — chama esse script
+  antes de desenhar a barra
+
+Ao migrar, os dois precisam ir junto (o caminho no Windows é
+`C:\Users\<você>\.claude\`). Sem eles o painel funciona igual, só que o
+bloco "cota da api" não aparece — nada mais depende dele.
+
+Se preferir não instalar o hook, o painel simplesmente omite esse bloco.

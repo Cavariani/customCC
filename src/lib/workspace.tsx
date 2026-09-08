@@ -11,6 +11,7 @@ import {
 import type {
   Account,
   AccountId,
+  Quota,
   ChangesResult,
   GitState,
   TerminalTab,
@@ -57,6 +58,8 @@ interface Workspace {
   /** Trocar de conta sozinho quando a ativa bate o limite. */
   autoSwitch: boolean
   setAutoSwitch: (enabled: boolean) => void
+  /** Cota real vinda do statusline; null enquanto o hook nao escrever. */
+  quota: Quota | null
   /** Recarrega git e diff depois de uma escrita feita fora deste contexto. */
   refreshGit: () => void
 
@@ -107,7 +110,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0]
   const cwdParam = activeTab?.cwd ? `?cwd=${encodeURIComponent(activeTab.cwd)}` : ''
 
-  const accountsPoll = usePolling<{ accounts: Account[]; activeId: AccountId }>(
+  const accountsPoll = usePolling<{ accounts: Account[]; activeId: AccountId; quota?: Quota }>(
     '/api/accounts',
     ACCOUNTS_POLL_MS,
   )
@@ -119,6 +122,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const accounts = accountsPoll.data?.accounts ?? []
   const activeAccountId = accountsPoll.data?.activeId ?? 1
+  const quota = accountsPoll.data?.quota ?? null
 
   const emit = useCallback((text: string, tabId: string | 'all' = 'all') => {
     seqRef.current += 1
@@ -364,6 +368,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       clearLimit,
       autoSwitch,
       setAutoSwitch,
+      quota,
       refreshGit,
       tabs,
       activeTabId,
@@ -398,6 +403,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       clearLimit,
       autoSwitch,
       setAutoSwitch,
+      quota,
       refreshGit,
       tabs,
       activeTabId,
