@@ -5,16 +5,17 @@ interface RailItem {
   view: ViewName
   label: string
   Icon: typeof Users
+  /** Cor propria da secao, no hover e quando aberta. */
+  color: string
 }
 
 const ITEMS: RailItem[] = [
-  // Sem cor por secao e sem vermelho: quatro icones em quatro cores era um
-  // codigo de identidade, e navegacao nao e alerta. Quem esta aberto usa a
-  // cor do texto do tema; o resto fica neutro.
-  { view: 'accounts', label: 'contas', Icon: Users },
-  { view: 'git', label: 'git', Icon: GitBranch },
-  { view: 'diff', label: 'mudancas', Icon: SquareStack },
-  { view: 'settings', label: 'ajustes', Icon: SlidersHorizontal },
+  // Contas em azul, e nao no vermelho do tema: vermelho num icone de
+  // navegacao le como alerta, e este fica aceso o tempo todo.
+  { view: 'accounts', label: 'contas', Icon: Users, color: 'var(--blue)' },
+  { view: 'git', label: 'git', Icon: GitBranch, color: 'var(--green)' },
+  { view: 'diff', label: 'mudancas', Icon: SquareStack, color: 'var(--warn)' },
+  { view: 'settings', label: 'ajustes', Icon: SlidersHorizontal, color: 'var(--hl-keyword)' },
 ]
 
 interface Props {
@@ -26,13 +27,14 @@ interface Props {
 export function Sidebar({ view, onView, badges }: Props) {
   return (
     <nav className="rail" aria-label="Secoes">
-      {ITEMS.map(({ view: v, label, Icon }) => {
+      {ITEMS.map(({ view: v, label, Icon, color }) => {
         const badge = badges[v]
         return (
           <button
             key={v}
             type="button"
             className={`rail__btn${view === v ? ' is-active' : ''}`}
+            style={{ '--item': color } as React.CSSProperties}
             aria-label={label}
             aria-current={view === v || undefined}
             onClick={() => onView(v)}

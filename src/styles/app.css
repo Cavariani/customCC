@@ -53,13 +53,11 @@
   transition: color 0.15s, background 0.15s;
 }
 
-.rail__btn:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 10%, transparent); }
+.rail__btn:hover { color: var(--item); background: color-mix(in srgb, var(--item) 12%, transparent); }
 
-/* Sem vermelho no rail: navegacao nao e alerta. Quem esta aberto usa a
-   cor do texto do tema, que ja destaca contra o cinza dos outros. */
 .rail__btn.is-active {
-  color: var(--fg);
-  background: color-mix(in srgb, var(--fg) 12%, transparent);
+  color: var(--item);
+  background: color-mix(in srgb, var(--item) 16%, transparent);
 }
 
 .rail__btn.is-active::before {
@@ -70,7 +68,7 @@
   bottom: 6px;
   width: 2px;
   border-radius: 0 2px 2px 0;
-  background: var(--fg);
+  background: var(--item);
 }
 
 /* Limite atingido nao pinta mais o icone. O estado ja aparece em dois
@@ -89,7 +87,7 @@
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--green);
+  background: var(--item);
   color: var(--panel);
   font-size: 9px;
   font-weight: 600;
