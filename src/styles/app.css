@@ -1103,17 +1103,26 @@ button.arow__acao--bloq:hover:not(:disabled) {
   gap: 7px;
   min-width: 0;
   padding: 0;
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-muted-alt);
+  /* O nome do projeto no acento do tema: e o que separa um grupo do outro
+     numa lista longa, e antes ele era o texto mais apagado da tela. */
+  color: var(--red);
   text-align: left;
-  transition: color 0.16s var(--ease);
+  transition: opacity 0.16s var(--ease);
 }
 
-.cvp__nome:hover { color: var(--fg); }
+.cvp__nome:hover { opacity: 0.75; }
 .cvp__seta { flex: none; font-size: 9px; }
-.cvp__n { flex: none; color: var(--fg); font-variant-numeric: tabular-nums; }
+.cvp__n {
+  flex: none;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-muted-alt);
+  font-variant-numeric: tabular-nums;
+}
 
 .cvp__novo {
   flex: none;
@@ -1132,6 +1141,9 @@ button.arow__acao--bloq:hover:not(:disabled) {
 .cvp__lista { list-style: none; margin: 0; padding: 0; }
 
 /* ── Uma conversa ─────────────────────────────────────────────────────── */
+
+/* A linha inteira e o alvo de abrir; o x fica por cima, na ponta. */
+.cvc { position: relative; }
 
 .cvc__btn {
   display: flex;
@@ -1167,6 +1179,51 @@ button.arow__acao--bloq:hover:not(:disabled) {
   color: var(--color-muted-alt);
   font-variant-numeric: tabular-nums;
 }
+
+/* Apagar so aparece com o ponteiro em cima — numa lista de quarenta
+   linhas, quarenta x visiveis competem com os titulos — mas quando
+   aparece precisa ser um alvo de verdade, e nao um risco de 11px. */
+.cvc__x {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--color-muted-alt);
+  background: var(--panel);
+  opacity: 0;
+  transition: opacity 0.14s var(--ease), color 0.14s var(--ease), background 0.14s var(--ease);
+}
+
+.cvc:hover .cvc__x,
+.cvc__x:focus-visible { opacity: 1; }
+
+.cvc__x:hover {
+  color: var(--panel);
+  background: var(--color-error);
+}
+
+/* Armada: o segundo toque manda para a lixeira, entao ela para de se
+   esconder e diz o que vai acontecer. */
+/* Armada: vira faixa larga com a palavra, porque o segundo toque manda
+   para a lixeira e um `x` sozinho nao avisa disso. */
+.cvc.is-armada .cvc__x {
+  width: auto;
+  padding: 0 12px;
+  opacity: 1;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--panel);
+  background: var(--color-error);
+}
+
+.cvc.is-armada .cvc__titulo { opacity: 0.5; }
 
 /* ── Historico de sessoes ─────────────────────────────────────────────
    A unica tela que olha para tras. O dado ja estava no disco, na linha

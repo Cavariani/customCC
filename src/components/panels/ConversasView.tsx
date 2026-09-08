@@ -30,6 +30,34 @@ export function ConversasView() {
   const [erro, setErro] = useState<string | null>(null)
   const [fechados, setFechados] = useState<Set<string>>(new Set())
   const [busca, setBusca] = useState('')
+  // Dois toques para apagar, como o reverter do painel de mudancas: a
+  // lista tem muita conversa de um clique so, e o alvo e pequeno.
+  const [armada, setArmada] = useState<string | null>(null)
+
+  const carregar = () =>
+    fetch('/api/conversas?dias=90')
+      .then(async (r) => {
+        const d = await r.json()
+        if (!r.ok) throw new Error(d.error ?? 'nao deu para ler as conversas')
+        return d.projetos as ProjetoComConversas[]
+      })
+      .then((p) => {
+        setProjetos(p)
+        setErro(null)
+      })
+      .catch((e) => setErro(String(e.message ?? e)))
+
+  async function apagar(sessionId: string) {
+    setArmada(null)
+    try {
+      const r = await fetch(`/api/conversas/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error ?? 'nao deu para apagar')
+      await carregar()
+    } catch (e) {
+      setErro(String((e as Error).message ?? e))
+    }
+  }
 
   useEffect(() => {
     let vivo = true
@@ -123,7 +151,16 @@ export function ConversasView() {
               {!fechado && (
                 <ul className="cvp__lista">
                   {p.conversas.map((c) => (
-                    <Conversa key={c.sessionId} c={c} cwd={p.cwd} agora={agora} onAbrir={openTab} />
+                    <Conversa
+                      key={c.sessionId}
+                      c={c}
+                      cwd={p.cwd}
+                      agora={agora}
+                      onAbrir={openTab}
+                      armada={armada === c.sessionId}
+                      onArmar={() => setArmada(armada === c.sessionId ? null : c.sessionId)}
+                      onApagar={() => void apagar(c.sessionId)}
+                    />
                   ))}
                 </ul>
               )}
@@ -140,14 +177,20 @@ function Conversa({
   cwd,
   agora,
   onAbrir,
+  armada,
+  onArmar,
+  onApagar,
 }: {
   c: ResumoDeSessao
   cwd: string
   agora: number
   onAbrir: (cwd?: string, conversa?: { id: string; titulo?: string | null }) => void
+  armada: boolean
+  onArmar: () => void
+  onApagar: () => void
 }) {
   return (
-    <li className="cvc">
+    <li className={`cvc${armada ? ' is-armada' : ''}`}>
       <button
         type="button"
         className="cvc__btn"
@@ -161,6 +204,18 @@ function Conversa({
           {c.titulo ?? <span className="cvc__sem">sem titulo</span>}
         </span>
         <span className="cvc__quando">{quando(c.atualizadaEm, agora)}</span>
+      </button>
+
+      {/* O segundo toque confirma. A conversa vai para a lixeira em
+          ~/.claude-multi-account/lixeira, e nao para o vazio: o transcript
+          e o unico registro dela e o que o --resume le. */}
+      <button
+        type="button"
+        className="cvc__x"
+        title={armada ? 'confirmar: manda para a lixeira' : 'apagar da lista'}
+        onClick={armada ? onApagar : onArmar}
+      >
+        {armada ? 'apagar?' : '×'}
       </button>
     </li>
   )

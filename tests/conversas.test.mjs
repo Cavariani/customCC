@@ -8,10 +8,19 @@
  */
 import { after, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { WebSocket } from 'ws'
-import { PORTA, derrubaServidor, get, limpa, pastaTemporaria, repo, sobeServidor } from './apoio.mjs'
+import {
+  BASE,
+  PORTA,
+  derrubaServidor,
+  get,
+  limpa,
+  pastaTemporaria,
+  repo,
+  sobeServidor,
+} from './apoio.mjs'
 
 const criados = []
 after(() => criados.forEach(limpa))
@@ -244,6 +253,122 @@ describe('retomar a conversa escolhida', () => {
       assert.doesNotMatch(saida, /--continue/, 'aba nova nao devia continuar nada')
     } finally {
       ws?.close()
+      await derrubaServidor(servidor)
+    }
+  })
+})
+
+describe('apagar uma conversa', () => {
+  /** HOME com dois transcripts prontos, e o servidor no ar. */
+  async function comDuas() {
+    const base = pastaTemporaria()
+    criados.push(base)
+    const projeto = repo(base, 'projeto')
+    const dir = join(base, '.claude', 'projects', '-tmp-p')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      join(dir, 'fica.jsonl'),
+      [cabecalho('/tmp/p', AGORA - MIN), titulo('fica'), assistant(AGORA - MIN)].join('\n') + '\n',
+      'utf8',
+    )
+    writeFileSync(
+      join(dir, 'some.jsonl'),
+      [cabecalho('/tmp/p', AGORA - 2 * MIN), titulo('some'), assistant(AGORA - 2 * MIN)].join('\n') + '\n',
+      'utf8',
+    )
+    const servidor = await sobeServidor({ cwd: projeto, home: base })
+    return { base, dir, servidor }
+  }
+
+  const apagar = async (id) =>
+    fetch(`${BASE}/api/conversas/${id}`, { method: 'DELETE' }).then(async (r) => ({
+      status: r.status,
+      json: await r.json(),
+    }))
+
+  it('some da lista e vai para a lixeira, sem sumir do disco', async () => {
+    const { base, dir, servidor } = await comDuas()
+    try {
+      const r = await apagar('some')
+      assert.equal(r.status, 200, JSON.stringify(r.json))
+
+      const { json } = await get('/api/conversas?dias=90')
+      const titulos = json.projetos.flatMap((p) => p.conversas.map((c) => c.titulo))
+      assert.deepEqual(titulos, ['fica'], 'a conversa apagada continua na lista')
+
+      // Saiu de projects, mas continua existindo: e o unico registro dela.
+      assert.throws(() => readFileSync(join(dir, 'some.jsonl')), /ENOENT/)
+      const naLixeira = readdirSync(join(base, '.claude-multi-account', 'lixeira'))
+      assert.equal(naLixeira.length, 1)
+      assert.match(naLixeira[0], /some\.jsonl$/)
+      // O nome guarda o projeto: na lixeira, so o id nao diz de onde veio.
+      assert.match(naLixeira[0], /^-tmp-p__/)
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+
+  it('recusa id que nao existe', async () => {
+    const { servidor } = await comDuas()
+    try {
+      const r = await apagar('nao-existe')
+      assert.equal(r.status, 400)
+      assert.match(r.json.error, /nao encontrada/)
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+
+  it('id com caminho dentro nao apaga nada', async () => {
+    const { dir, servidor } = await comDuas()
+    try {
+      for (const ruim of ['..%2F..%2Fetc%2Fpasswd', 'a%2Fb', '..', '.']) {
+        const r = await fetch(`${BASE}/api/conversas/${ruim}`, { method: 'DELETE' })
+        // Rota que nao casa devolve 404; id recusado devolve 400. As duas
+        // servem: o que nao pode e devolver 200.
+        assert.notEqual(r.status, 200, `aceitou ${ruim}`)
+      }
+      // E os dois transcripts continuam onde estavam.
+      assert.ok(readFileSync(join(dir, 'fica.jsonl'), 'utf8').length > 0)
+      assert.ok(readFileSync(join(dir, 'some.jsonl'), 'utf8').length > 0)
+    } finally {
+      await derrubaServidor(servidor)
+    }
+  })
+
+  it('recusa conversa que algum claude da maquina esta usando', async () => {
+    const base = pastaTemporaria()
+    criados.push(base)
+    const projeto = repo(base, 'projeto')
+    const dir = join(base, '.claude', 'projects', '-tmp-p')
+    mkdirSync(dir, { recursive: true })
+
+    const viva = 'sessao-viva'
+    writeFileSync(
+      join(dir, `${viva}.jsonl`),
+      [cabecalho('/tmp/p', AGORA - MIN), titulo('em uso'), assistant(AGORA - MIN)].join('\n') + '\n',
+      'utf8',
+    )
+
+    // O proprio Claude Code escreve um destes por processo vivo. Vale para
+    // sessao aberta fora do painel tambem — que e justamente o caso em que
+    // o painel nao teria como saber sozinho.
+    const sess = join(base, '.claude', 'sessions')
+    mkdirSync(sess, { recursive: true })
+    writeFileSync(
+      join(sess, '4242.json'),
+      JSON.stringify({ pid: 4242, sessionId: viva, status: 'busy', cwd: '/tmp/p' }),
+      'utf8',
+    )
+
+    const servidor = await sobeServidor({ cwd: projeto, home: base })
+    try {
+      const r = await apagar(viva)
+      assert.equal(r.status, 400, JSON.stringify(r.json))
+      assert.match(r.json.error, /aberta numa aba/)
+      // E o transcript continua no lugar.
+      assert.ok(readFileSync(join(dir, `${viva}.jsonl`), 'utf8').length > 0)
+    } finally {
       await derrubaServidor(servidor)
     }
   })

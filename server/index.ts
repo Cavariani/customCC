@@ -10,7 +10,7 @@ import { DEFAULT_CWD, PORT, expandHome, resolveClaudeBin } from './config.js'
 import { readGitState } from './git.js'
 import { backupContentFor, readChanges } from './changes.js'
 import { lerFrota } from './fleet.js'
-import { lerConversas, lerHistorico } from './history.js'
+import { apagarConversa, lerConversas, lerHistorico } from './history.js'
 import { listHunks, stageHunk, unstageHunk } from './hunks.js'
 import {
   checkoutFile,
@@ -338,6 +338,19 @@ app.get('/api/conversas', async (req, res) => {
     })
   } catch (error) {
     res.status(500).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/**
+ * Tira uma conversa da lista. O transcript vai para a lixeira em
+ * ~/.claude-multi-account/lixeira, e nao para o vazio.
+ */
+app.delete('/api/conversas/:id', async (req, res) => {
+  try {
+    const vivas = listSessions().map((s) => s.claudeSessionId)
+    res.json({ ok: true, ...(await apagarConversa(req.params.id, vivas)) })
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
   }
 })
 

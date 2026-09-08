@@ -1,9 +1,20 @@
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { nomeCurtoDoModelo } from './accounts.js'
+import { homedir } from 'node:os'
 import { CLAUDE_HOME } from './transcript.js'
 
 const PROJECTS_DIR = join(CLAUDE_HOME, 'projects')
+
+/**
+ * Para onde vai a conversa apagada.
+ *
+ * Mover, e nao remover: o transcript e o unico registro daquela conversa e
+ * e o que o proprio `claude --resume` le. Apagar de verdade tornaria o
+ * engano irreversivel, e a lista tem muita conversa de um clique so —
+ * exatamente onde a mao escorrega.
+ */
+const LIXEIRA = join(homedir(), '.claude-multi-account', 'lixeira')
 
 export interface ModeloDaSessao {
   nome: string
@@ -355,6 +366,84 @@ export async function lerConversas(dias = 90, porProjeto = 40): Promise<ProjetoC
   return [...mapa.values()]
     .map((g) => ({ ...g, conversas: g.conversas.slice(0, porProjeto) }))
     .sort((a, b) => b.atualizadoEm - a.atualizadoEm)
+}
+
+/**
+ * Ids de conversa que algum `claude` desta maquina esta usando agora.
+ *
+ * O painel sozinho nao basta: ele so conhece a sessao depois que a
+ * descoberta liga o id a aba, e ate la apagaria o transcript de uma
+ * conversa viva. Cada processo do Claude Code mantem o proprio arquivo em
+ * ~/.claude/sessions com o id dentro, inclusive os abertos fora daqui.
+ */
+async function sessoesVivasNaMaquina(): Promise<string[]> {
+  const dir = join(CLAUDE_HOME, 'sessions')
+  let nomes: string[]
+  try {
+    nomes = await readdir(dir)
+  } catch {
+    return []
+  }
+
+  const ids: string[] = []
+  for (const nome of nomes) {
+    if (!nome.endsWith('.json')) continue
+    try {
+      const bruto = JSON.parse(await readFile(join(dir, nome), 'utf8'))
+      if (ehObjeto(bruto) && typeof bruto.sessionId === 'string') ids.push(bruto.sessionId)
+    } catch {
+      /* arquivo pela metade ou de outro formato */
+    }
+  }
+  return ids
+}
+
+/**
+ * Tira uma conversa da lista, movendo o transcript para a lixeira.
+ *
+ * Recusa quando a conversa esta viva: o `claude` daquela aba ainda escreve
+ * naquele arquivo, e puxa-lo debaixo dele deixaria a sessao gravando num
+ * caminho que nao existe mais.
+ */
+export async function apagarConversa(
+  sessionId: string,
+  vivasDoPainel: (string | null)[],
+): Promise<{ movidoPara: string }> {
+  // `..` e `.` passam por um teste de caracteres permitidos e viram
+  // travessia de diretorio ao entrar num join.
+  if (!/^[A-Za-z0-9._-]+$/.test(sessionId) || sessionId === '.' || sessionId === '..') {
+    throw new Error('id de conversa invalido')
+  }
+
+  const vivas = new Set(
+    [...vivasDoPainel, ...(await sessoesVivasNaMaquina())].filter((x): x is string => Boolean(x)),
+  )
+  if (vivas.has(sessionId)) throw new Error('esta conversa esta aberta numa aba agora')
+
+  let pastas: string[]
+  try {
+    pastas = await readdir(PROJECTS_DIR)
+  } catch {
+    throw new Error('nao ha transcripts nesta maquina')
+  }
+
+  for (const pasta of pastas) {
+    const origem = join(PROJECTS_DIR, pasta, `${sessionId}.jsonl`)
+    try {
+      await stat(origem)
+    } catch {
+      continue
+    }
+
+    await mkdir(LIXEIRA, { recursive: true })
+    // O nome leva o projeto junto: na lixeira, so o id nao diz de onde veio.
+    const destino = join(LIXEIRA, `${pasta}__${sessionId}.jsonl`)
+    await rename(origem, destino)
+    cache.delete(origem)
+    return { movidoPara: destino }
+  }
+
+  throw new Error('conversa nao encontrada')
 }
 
 function zerado() {
