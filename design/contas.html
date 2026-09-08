@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>customCC · cinco arranjos para o painel de contas</title>
+<style>
+:root {
+  --bg: #282c34;
+  --fg: #9cdef2;
+  --panel: #111111;
+  --border: #355a66;
+  --red: #e06c75;
+  --green: #50fa7b;
+  --warn: #f0ad4e;
+  --color-error: #ff4444;
+  --color-muted: #828997;
+  --color-muted-alt: #6b7280;
+  --font-mono: 'Fira Code', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 20px;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.lede { margin: 0 0 20px; max-width: 100ch; font-size: 11.5px; line-height: 1.6; color: var(--color-muted); }
+.lede b { color: var(--fg); font-weight: 600; }
+
+.fila { display: flex; gap: 18px; align-items: flex-start; overflow-x: auto; padding-bottom: 16px; }
+.col { flex: none; width: 372px; }
+.col__cab { margin: 0 0 6px; font-size: 11px; font-weight: 600; color: var(--red); letter-spacing: .08em; text-transform: uppercase; }
+.col__nota { margin: 0 0 8px; font-size: 10.5px; line-height: 1.55; color: var(--color-muted-alt); min-height: 60px; }
+.dock { width: 372px; height: 720px; background: var(--panel); display: flex; flex-direction: column; overflow: hidden; }
+.dock__t { flex: none; height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--color-muted); border-bottom: 1px solid #1c2128; }
+.corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 14px 12px; }
+
+/* ── peças comuns ─────────────────────────────────────────────────── */
+.tot { flex: none; }
+.tot__l { display: flex; align-items: baseline; gap: 7px; }
+.tot__v { font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; }
+.tot__k { color: var(--color-muted); }
+.tot__s { display: flex; gap: 10px; margin-top: 3px; font-size: 10.5px; color: var(--color-muted-alt); }
+.tot__s b { font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
+
+.cols { flex: none; display: flex; align-items: baseline; margin-top: 9px; padding-bottom: 5px;
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-alt);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent); }
+.c-n { width: 30px; } .c-nome { flex: 1; } .c-v { width: 62px; text-align: right; }
+
+.linhas { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.l { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.l1 { display: flex; align-items: baseline; }
+.mk { width: 8px; color: transparent; }
+.l.on .mk { color: var(--red); }
+.n { width: 22px; color: var(--fg); font-variant-numeric: tabular-nums; }
+.l.on .n { color: var(--red); }
+.nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-muted); }
+.l.on .nome { color: var(--fg); }
+.est { margin-right: 9px; font-size: 10.5px; color: var(--color-muted-alt); }
+.l.on .est { color: var(--red); }
+.v { width: 62px; text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+.l.on .v { color: var(--red); }
+
+.bar { font-size: 11px; letter-spacing: .5px; white-space: nowrap; }
+.bar .f { color: var(--color-muted); }
+.bar .r { color: color-mix(in srgb, var(--color-muted) 22%, transparent); }
+.l.on .bar .f { color: var(--red); }
+
+.dim { color: var(--color-muted-alt); font-size: 10.5px; }
+.num { color: var(--fg); font-variant-numeric: tabular-nums; }
+.l.on .num { color: var(--red); }
+
+/* Rodapé com a MESMA altura em toda conta: a ativa mostra o estado no
+   lugar onde as outras mostram o botão. Sem isso as três linhas têm
+   alturas diferentes e a coluna inteira fica torta. */
+.rod { display: flex; align-items: center; height: 22px; margin-top: 2px; }
+.acao {
+  padding: 2px 12px; font: inherit; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent); cursor: pointer;
+}
+.acao:hover { background: color-mix(in srgb, var(--red) 22%, transparent); }
+.emuso { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--red);
+  border: 1px solid transparent; padding: 2px 0; }
+
+.sep { flex: none; height: 1px; margin: 8px 0; background: color-mix(in srgb, var(--color-muted) 16%, transparent); }
+.rodape { flex: none; }
+.rodape h5 { margin: 0 0 4px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-muted-alt); font-weight: 400; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; font-size: 10.5px; color: var(--color-muted-alt); }
+.kv b { font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<h1>customCC · cinco arranjos para o painel de contas</h1>
+<p class="lede">
+Todos mantêm a linguagem de terminal e usam os <b>dados reais</b> de agora:
+163.54M no total, <b>99,0% na conta 1</b>, 0,3% na 2 e 0,7% na 3. O gráfico de 30 fatias saiu de todos:
+ele tinha 11 fatias com dado numa conta e <b>1 de 30</b> nas outras, então 95% da área era trilho vazio.
+Em todos, o rodapé de cada conta tem a <b>mesma altura</b> — a ativa mostra o estado onde as outras mostram o botão —
+porque era isso que deixava as três linhas com alturas diferentes.
+O espaço que o gráfico ocupava vai para dado que hoje não aparece em lugar nenhum.
+</p>
+
+<div class="fila" id="fila"></div>
+
+<script>
+const CONTAS = [
+  { n:1, nome:'Pessoal',        est:'ativa',         on:true,  tokens:163_539_876, pct:.61, reset:'14:50',
+    entrada:894, saida:439_630, cache:163_099_352, ultimo:'4m', sessoes:3, pico:32_830_479, restaMs:6_900_000 },
+  { n:2, nome:'MLEGATE',        est:'janela em uso', on:false, tokens:470_222,     pct:.56, reset:'15:05',
+    entrada:10,  saida:4_000,   cache:466_222,     ultimo:'2h', sessoes:3, pico:470_222,    restaMs:7_800_000 },
+  { n:3, nome:'MLEGATE Backup', est:'janela em uso', on:false, tokens:1_101_114,   pct:.56, reset:'15:05',
+    entrada:14,  saida:9_300,   cache:1_091_814,   ultimo:'2h', sessoes:3, pico:1_101_114,  restaMs:7_800_000 },
+]
+const TOTAL = CONTAS.reduce((a,c)=>a+c.tokens,0)
+const fmt = v => v>=1e6 ? (v/1e6).toFixed(2)+'M' : v>=1e3 ? (v/1e3).toFixed(1)+'k' : String(v)
+const CEL = 24
+const barra = (p, cls='') => {
+  const f = Math.max(0, Math.min(CEL, Math.round(p*CEL)))
+  return `<span class="bar ${cls}"><span class="f">${'█'.repeat(f)}</span><span class="r">${'█'.repeat(CEL-f)}</span></span>`
+}
+const dur = ms => { const m=Math.round(ms/60000); return `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m` }
+
+const cabecalho = `
+  <div class="tot">
+    <div class="tot__l"><span class="tot__v">${fmt(TOTAL)}</span><span class="tot__k">tokens nas tres contas</span></div>
+    <div class="tot__s"><span>entrada <b>912</b></span><span>saida <b>453.0k</b></span><span>cache <b>100%</b></span></div>
+  </div>`
+
+const regua = `
+  <div class="cols"><span class="c-n">#</span><span class="c-nome">conta</span><span class="c-v">tokens</span></div>`
+
+const rodapeDe = c => c.on
+  ? `<div class="rod"><span class="emuso">em uso</span></div>`
+  : `<div class="rod"><button class="acao">ativar</button></div>`
+
+/* ─────────────────────────────────────────────────────────────────────
+   A · Tabela e destino
+   Zero desenho por conta. O espaço liberado vira o bloco de baixo, que
+   responde "para onde foi" — dado que hoje o painel calcula e esconde. */
+const A = `
+${cabecalho}${regua}
+<div class="linhas">
+  ${CONTAS.map(c=>`
+    <div class="l ${c.on?'on':''}">
+      <div class="l1"><span class="mk">▌</span><span class="n">${String(c.n).padStart(2,'0')}</span>
+        <span class="nome">${c.nome}</span><span class="est">${c.est}</span><span class="v">${fmt(c.tokens)}</span></div>
+      <div class="kv" style="margin-left:30px">
+        <span>janela</span><b>${Math.round(c.pct*100)}% · reinicia ${c.reset}</b>
+        <span>entrada / saida</span><b>${fmt(c.entrada)} / ${fmt(c.saida)}</b>
+        <span>cache</span><b>${fmt(c.cache)}</b>
+        <span>sessoes · ultimo uso</span><b>${c.sessoes} · ${c.ultimo}</b>
+      </div>
+      <div style="margin-left:30px">${rodapeDe(c)}</div>
+    </div>`).join('<div class="sep"></div>')}
+</div>
+<div class="sep"></div>
+<div class="rodape">
+  <h5>para onde foi</h5>
+  <div class="kv">
+    <span>customCC</span><b>${fmt(TOTAL)} · 100%</b>
+    <span>opus 5</span><b>${fmt(TOTAL)} · 100%</b>
+  </div>
+  <h5 style="margin-top:8px">ritmo</h5>
+  <div class="kv">
+    <span>agora</span><b>52.80M/h</b>
+    <span>projecao ate o reset</span><b>263.98M</b>
+  </div>
+</div>`
+
+/* ─────────────────────────────────────────────────────────────────────
+   B · Medidores pareados
+   Dois medidores por conta, sempre na mesma posição: quanto da janela
+   passou e quanto do consumo total é dela. A simetria é a própria
+   leitura — as barras de baixo comparam as contas entre si. */
+const B = `
+${cabecalho}${regua}
+<div class="linhas">
+  ${CONTAS.map(c=>`
+    <div class="l ${c.on?'on':''}">
+      <div class="l1"><span class="mk">▌</span><span class="n">${String(c.n).padStart(2,'0')}</span>
+        <span class="nome">${c.nome}</span><span class="est">${c.est}</span><span class="v">${fmt(c.tokens)}</span></div>
+      <div style="margin-left:30px">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span class="dim" style="width:52px">janela</span>${barra(c.pct)}
+          <span class="dim num">${Math.round(c.pct*100)}%</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px">
+          <span class="dim" style="width:52px">consumo</span>${barra(c.tokens/TOTAL)}
+          <span class="dim num">${(100*c.tokens/TOTAL).toFixed(1)}%</span>
+        </div>
+        <div class="kv" style="margin-top:4px">
+          <span>reinicia ${c.reset} · em ${dur(c.restaMs)}</span><b>${fmt(c.saida)} de saida</b>
+        </div>
+        ${rodapeDe(c)}
+      </div>
+    </div>`).join('<div class="sep"></div>')}
+</div>
+<div class="sep"></div>
+<div class="rodape">
+  <h5>ritmo da conta em uso</h5>
+  <div class="kv">
+    <span>agora</span><b>52.80M/h</b>
+    <span>projecao ate o reset</span><b>263.98M</b>
+    <span>maior fatia de 10 min</span><b>32.83M</b>
+  </div>
+</div>`
+
+/* ─────────────────────────────────────────────────────────────────────
+   C · Pista de tempo compartilhada
+   As três contas dividem UM eixo de 6h. Responde de imediato a pergunta
+   que o gráfico velho não respondia: qual libera primeiro. */
+const HORAS = 6
+const pista = c => {
+  const usado = c.pct*100, restante = (c.restaMs/(HORAS*3600_000))*100
+  return `
+    <div style="position:relative;height:16px;background:color-mix(in srgb,var(--fg) 5%,transparent)">
+      <span style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(usado, 100)}%;
+        background:color-mix(in srgb,var(--${c.on?'red':'color-muted'}) ${c.on?55:32}%,transparent)"></span>
+      <span style="position:absolute;left:${Math.min(usado,100)}%;top:0;bottom:0;width:2px;background:var(--fg);opacity:.55"></span>
+      <span style="position:absolute;right:6px;top:0;line-height:16px;font-size:9.5px;color:var(--color-muted-alt)">
+        ${c.reset}</span>
+    </div>`
+}
+const C = `
+${cabecalho}
+<div class="cols" style="margin-top:9px"><span class="c-n">#</span><span class="c-nome">quando libera</span><span class="c-v">tokens</span></div>
+<div class="linhas">
+  ${CONTAS.map(c=>`
+    <div class="l ${c.on?'on':''}">
+      <div class="l1"><span class="mk">▌</span><span class="n">${String(c.n).padStart(2,'0')}</span>
+        <span class="nome">${c.nome}</span><span class="est">${c.est}</span><span class="v">${fmt(c.tokens)}</span></div>
+      <div style="margin-left:30px">
+        ${pista(c)}
+        <div class="kv" style="margin-top:4px">
+          <span>livre em</span><b>${dur(c.restaMs)}</b>
+          <span>consumo · fatia do total</span><b>${fmt(c.tokens)} · ${(100*c.tokens/TOTAL).toFixed(1)}%</b>
+        </div>
+        ${rodapeDe(c)}
+      </div>
+    </div>`).join('<div class="sep"></div>')}
+</div>
+<div class="sep"></div>
+<div class="rodape">
+  <h5>eixo comum · proximas ${HORAS} horas</h5>
+  <div class="kv">
+    <span>primeira a liberar</span><b>conta 1 · ${dur(CONTAS[0].restaMs)}</b>
+    <span>ritmo agora</span><b>52.80M/h</b>
+  </div>
+</div>`
+
+/* ─────────────────────────────────────────────────────────────────────
+   D · Histórico numa linha
+   Mantém o histórico, mas como uma linha de blocos em vez de uma caixa
+   de 200px. O que sobra vira a comparação entre contas. */
+const SERIE = [0,0,3,7,4,2,0,0,0,0,0,1,0,0,5,2,8,6,0,0,0,0,0,0,0,0,0,0,0,0]
+const GL = ' ▁▂▃▄▅▆▇█'
+const faixa = s => { const mx=Math.max(...s,1)
+  return s.map(v=>GL[Math.min(8,Math.round((v/mx)*8))]).join('') }
+const D = `
+${cabecalho}${regua}
+<div class="linhas">
+  ${CONTAS.map((c,i)=>`
+    <div class="l ${c.on?'on':''}">
+      <div class="l1"><span class="mk">▌</span><span class="n">${String(c.n).padStart(2,'0')}</span>
+        <span class="nome">${c.nome}</span><span class="est">${c.est}</span><span class="v">${fmt(c.tokens)}</span></div>
+      <div style="margin-left:30px">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span class="dim" style="width:46px">janela</span>${barra(c.pct)}<span class="dim num">${Math.round(c.pct*100)}%</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px">
+          <span class="dim" style="width:46px">5h</span>
+          <span class="bar" style="letter-spacing:0;color:${c.on?'var(--red)':'var(--color-muted)'}">${
+            faixa(i===0?SERIE:SERIE.map((v,k)=>k<2?v:0))}</span>
+        </div>
+        <div class="kv" style="margin-top:4px">
+          <span>reinicia</span><b>${c.reset} · em ${dur(c.restaMs)}</b>
+          <span>saida · cache</span><b>${fmt(c.saida)} · ${fmt(c.cache)}</b>
+        </div>
+        ${rodapeDe(c)}
+      </div>
+    </div>`).join('<div class="sep"></div>')}
+</div>
+<div class="sep"></div>
+<div class="rodape">
+  <h5>comparacao</h5>
+  ${CONTAS.map(c=>`
+    <div style="display:flex;align-items:baseline;gap:8px;margin-top:2px">
+      <span class="dim" style="width:30px">${String(c.n).padStart(2,'0')}</span>
+      ${barra(c.tokens/TOTAL, c.on?'':'')}
+      <span class="dim num">${(100*c.tokens/TOTAL).toFixed(1)}%</span>
+    </div>`).join('')}
+</div>`
+
+/* ─────────────────────────────────────────────────────────────────────
+   E · Ficha em duas colunas
+   Cada conta é um bloco de pares rótulo/valor, com as colunas caindo no
+   mesmo lugar nas três. Nenhum desenho: só coluna alinhada. */
+const E = `
+${cabecalho}${regua}
+<div class="linhas">
+  ${CONTAS.map(c=>`
+    <div class="l ${c.on?'on':''}">
+      <div class="l1"><span class="mk">▌</span><span class="n">${String(c.n).padStart(2,'0')}</span>
+        <span class="nome">${c.nome}</span><span class="est">${c.est}</span><span class="v">${fmt(c.tokens)}</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px;margin:2px 0 0 30px">
+        <div class="kv"><span>janela</span><b>${Math.round(c.pct*100)}%</b></div>
+        <div class="kv"><span>reinicia</span><b>${c.reset}</b></div>
+        <div class="kv"><span>entrada</span><b>${fmt(c.entrada)}</b></div>
+        <div class="kv"><span>saida</span><b>${fmt(c.saida)}</b></div>
+        <div class="kv"><span>cache</span><b>${fmt(c.cache)}</b></div>
+        <div class="kv"><span>ultimo</span><b>${c.ultimo}</b></div>
+        <div class="kv"><span>sessoes</span><b>${c.sessoes}</b></div>
+        <div class="kv"><span>fatia</span><b>${(100*c.tokens/TOTAL).toFixed(1)}%</b></div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin:3px 0 0 30px">
+        ${barra(c.pct)}
+      </div>
+      <div style="margin-left:30px">${rodapeDe(c)}</div>
+    </div>`).join('<div class="sep"></div>')}
+</div>
+<div class="sep"></div>
+<div class="rodape">
+  <h5>destino e ritmo</h5>
+  <div class="kv">
+    <span>projeto</span><b>customCC · 100%</b>
+    <span>modelo</span><b>opus 5 · 100%</b>
+    <span>ritmo · projecao</span><b>52.80M/h → 263.98M</b>
+  </div>
+</div>`
+
+const VARIANTES = [
+  ['A · tabela e destino', 'Nenhum desenho por conta. Quatro pares alinhados em cada uma, e o espaco do grafico vira o bloco "para onde foi" — projeto, modelo e ritmo, que o painel ja calcula e nunca mostra.', A],
+  ['B · medidores pareados', 'Dois medidores por conta, sempre na mesma posicao: janela decorrida e fatia do consumo. A segunda barra compara as contas entre si, que e o que o grafico antigo nao fazia.', B],
+  ['C · pista compartilhada', 'As tres contas dividem um eixo de 6h. Responde na hora "qual libera primeiro", que e a pergunta real quando uma bate o limite.', C],
+  ['D · historico numa linha', 'Mantem o historico, mas como uma linha de blocos em vez de uma caixa de 200px. O espaco que sobra vira a comparacao entre as tres.', D],
+  ['E · ficha em duas colunas', 'Cada conta e uma grade de pares, com as colunas caindo no mesmo lugar nas tres. Densidade maxima, zero desenho, simetria por construcao.', E],
+]
+
+document.getElementById('fila').innerHTML = VARIANTES.map(([t,nota,html])=>`
+  <div class="col">
+    <p class="col__cab">${t}</p>
+    <p class="col__nota">${nota}</p>
+    <div class="dock"><div class="dock__t">contas</div><div class="corpo">${html}</div></div>
+  </div>`).join('')
+</script>
+</body>
+</html>
