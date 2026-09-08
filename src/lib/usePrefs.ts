@@ -8,6 +8,10 @@ export interface Prefs {
   grain: boolean
   /** Corpo da fonte do terminal, em px. */
   terminalFontSize: number
+  /** Entrelinha do terminal. O xterm nao centraliza o glifo na celula: a
+      sobra vai toda para baixo da base, entao valor alto le como texto
+      grudado no topo com um buraco embaixo. */
+  terminalLineHeight: number
   /** Avisar quando uma aba termina ou para esperando permissao. */
   notify: boolean
 }
@@ -20,6 +24,7 @@ const DEFAULTS: Prefs = {
   animations: true,
   grain: true,
   terminalFontSize: 12.5,
+  terminalLineHeight: 1.15,
   notify: false,
 }
 

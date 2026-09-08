@@ -12,6 +12,7 @@ interface Props {
   tab: TerminalTab
   visible: boolean
   fontSize: number
+  lineHeight: number
   theme: ThemeName
   notice: TerminalMessage | null
   onStatus: (tabId: string, status: PtyStatus) => void
@@ -27,6 +28,7 @@ export function TerminalPane({
   tab,
   visible,
   fontSize,
+  lineHeight,
   theme,
   notice,
   onStatus,
@@ -59,7 +61,7 @@ export function TerminalPane({
     const term = new Terminal({
       fontFamily: "'Fira Code', ui-monospace, Menlo, monospace",
       fontSize,
-      lineHeight: 1.25,
+      lineHeight,
       cursorBlink: true,
       scrollback: 10_000,
       allowProposedApi: true,
@@ -147,6 +149,15 @@ export function TerminalPane({
     term.options.fontSize = fontSize
     fitRef.current?.fit()
   }, [fontSize])
+
+  // Entrelinha: mesmo caminho do corpo da fonte, para o ajuste valer sem
+  // recriar o terminal e perder o que esta na tela.
+  useEffect(() => {
+    const term = termRef.current
+    if (!term || term.options.lineHeight === lineHeight) return
+    term.options.lineHeight = lineHeight
+    fitRef.current?.fit()
+  }, [lineHeight])
 
   // Tema trocado: repinta sem recriar o terminal, preservando o scrollback.
   useEffect(() => {

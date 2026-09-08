@@ -9,7 +9,15 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import { DEFAULT_CWD, PORT, expandHome, resolveClaudeBin } from './config.js'
 import { readGitState } from './git.js'
 import { backupContentFor, readChanges } from './changes.js'
-import { checkoutFile, commit, insideCwd, isTracked, stage, unstage } from './gitwrite.js'
+import {
+  checkoutFile,
+  commit,
+  insideCwd,
+  isConflicted,
+  isTracked,
+  stage,
+  unstage,
+} from './gitwrite.js'
 import {
   ACCOUNT_IDS,
   getActiveAccountId,
@@ -204,6 +212,16 @@ app.post('/api/changes/revert', async (req, res) => {
   }
 
   try {
+    // Num conflito aberto, o `checkout HEAD -- arquivo` nao reverte: ele
+    // escolhe o nosso lado e marca o conflito como resolvido, apagando o
+    // outro lado sem avisar. Medido no laboratorio: o arquivo voltava para
+    // a versao de HEAD, o status ficava limpo e o MERGE_HEAD seguia aberto.
+    if (await isConflicted(cwd, path)) {
+      return res.status(400).json({
+        error: 'arquivo em conflito: reverter aqui escolheria um lado e marcaria como resolvido',
+      })
+    }
+
     const backup = await backupContentFor(cwd, path)
     if (backup !== null) {
       // join, nao concatenacao: no Windows a barra invertida quebraria e um

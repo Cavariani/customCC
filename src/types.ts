@@ -39,7 +39,16 @@ export interface TerminalTab {
   cwd: string
 }
 
-export type GitFileStatus = 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked'
+export type GitFileStatus =
+  | 'modified'
+  | 'added'
+  | 'deleted'
+  | 'renamed'
+  | 'untracked'
+  | 'conflicted'
+
+/** Operacao do git deixada pela metade no diretorio. */
+export type GitOperation = 'merge' | 'rebase' | 'cherry-pick' | 'revert' | 'bisect'
 
 export interface GitFile {
   path: string
@@ -52,6 +61,14 @@ export interface GitFile {
 export interface GitState {
   repo: boolean
   branch: string
+  /** HEAD destacado: `branch` traz o hash curto, nao um nome de ramo. */
+  detached: boolean
+  /** Repo iniciado e ainda sem nenhum commit. */
+  unborn: boolean
+  /** Operacao pela metade, quando ha uma. */
+  operation: GitOperation | null
+  /** Tem .git, mas o git recusa ler. Diferente de nao ser repo. */
+  broken: string | null
   ahead: number
   behind: number
   files: GitFile[]

@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { readTranscript } from './transcript.js'
@@ -59,18 +59,65 @@ function blank(): AccountRecord {
 
 let cache: State | null = null
 
+/** Objeto de verdade: null e lista tambem passam pelo typeof 'object'. */
+function ehObjeto(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+function ehConta(v: unknown): v is AccountId {
+  return v === 1 || v === 2 || v === 3
+}
+
+/**
+ * O arquivo de estado e editado a mao de vez em quando e sobrevive a
+ * versoes diferentes do app, entao nada dentro dele pode ser tomado como
+ * certo. Um `activeAccountId` fora de 1..3 vazava ate a API e deixava o
+ * painel sem nenhuma conta ativa, porque nenhuma casava com o valor.
+ */
+function sanear(parsed: unknown): State {
+  if (!ehObjeto(parsed)) return structuredClone(EMPTY_STATE)
+
+  const contas = ehObjeto(parsed.accounts) ? parsed.accounts : {}
+  const saneadas = structuredClone(EMPTY_STATE.accounts)
+  for (const id of ACCOUNT_IDS) {
+    const bruta = contas[id] ?? contas[String(id)]
+    if (ehObjeto(bruta)) saneadas[id] = { ...blank(), ...(bruta as Partial<AccountRecord>) }
+  }
+
+  return {
+    activeAccountId: ehConta(parsed.activeAccountId) ? parsed.activeAccountId : 1,
+    accounts: saneadas,
+    // periods precisa ser lista: accountAt percorre por indice, e uma string
+    // aqui fazia o laco rodar sobre os caracteres dela.
+    periods: Array.isArray(parsed.periods) ? (parsed.periods as State['periods']) : [],
+    transcripts: ehObjeto(parsed.transcripts) ? (parsed.transcripts as State['transcripts']) : {},
+  }
+}
+
 export async function loadState(): Promise<State> {
   if (cache) return cache
+  let raw: string
   try {
-    const raw = await readFile(STATE_FILE, 'utf8')
-    const parsed = JSON.parse(raw) as Partial<State>
-    cache = {
-      activeAccountId: (parsed.activeAccountId ?? 1) as AccountId,
-      accounts: { ...EMPTY_STATE.accounts, ...(parsed.accounts ?? {}) },
-      periods: parsed.periods ?? [],
-      transcripts: parsed.transcripts ?? {},
-    }
+    raw = await readFile(STATE_FILE, 'utf8')
   } catch {
+    // Ainda nao existe: primeiro uso, nao e erro.
+    cache = structuredClone(EMPTY_STATE)
+    return cache
+  }
+
+  try {
+    cache = sanear(JSON.parse(raw))
+  } catch {
+    // O arquivo existe e nao e JSON. Comecar do zero em cima dele apagaria
+    // o historico de janelas na primeira gravacao, em silencio; guardamos a
+    // copia para dar chance de recuperar o que estava la.
+    const backup = `${STATE_FILE}.corrompido-${Date.now()}`
+    try {
+      await rename(STATE_FILE, backup)
+      console.error(`[customcc] state.json ilegivel; copia guardada em ${backup}`)
+    } catch (erro) {
+      console.error('[customcc] state.json ilegivel e nao foi possivel guardar copia:', erro)
+    }
     cache = structuredClone(EMPTY_STATE)
   }
   return cache

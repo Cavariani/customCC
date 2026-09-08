@@ -51,13 +51,43 @@ async function git(cwd: string, args: string[]): Promise<string> {
   }
 }
 
+/**
+ * Recusa cedo quando o diretorio nao e um repositorio. Sem isso o commit
+ * caia no `git diff --cached` fora de repo, que responde com a ajuda do
+ * `git diff --no-index` — uma tela de uso de comando no lugar de "aqui nao
+ * tem git".
+ */
+async function assertRepo(cwd: string): Promise<void> {
+  try {
+    await run('git', ['rev-parse', '--is-inside-work-tree'], { cwd })
+  } catch {
+    throw new Error('nao e um repositorio git')
+  }
+}
+
+/**
+ * Diz se o caminho esta num conflito ainda nao resolvido. O `ls-files -u`
+ * so lista entradas com mais de um estagio no indice, que e exatamente a
+ * definicao de nao resolvido.
+ */
+export async function isConflicted(cwd: string, path: string): Promise<boolean> {
+  try {
+    const out = await git(cwd, ['ls-files', '--unmerged', '--', path])
+    return out.trim().length > 0
+  } catch {
+    return false
+  }
+}
+
 export async function stage(cwd: string, paths: string[]): Promise<void> {
   assertPaths(cwd, paths)
+  await assertRepo(cwd)
   await git(cwd, ['add', '--', ...paths])
 }
 
 export async function unstage(cwd: string, paths: string[]): Promise<void> {
   assertPaths(cwd, paths)
+  await assertRepo(cwd)
   await git(cwd, ['restore', '--staged', '--', ...paths])
 }
 
@@ -75,6 +105,7 @@ export interface CommitResult {
 export async function commit(cwd: string, message: string, all: boolean): Promise<CommitResult> {
   const text = message.trim()
   if (!text) throw new Error('mensagem vazia')
+  await assertRepo(cwd)
 
   const staged = (await git(cwd, ['diff', '--cached', '--name-only'])).trim()
   if (!staged && !all) throw new Error('nada staged para commitar')

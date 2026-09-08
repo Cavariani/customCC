@@ -501,6 +501,26 @@
 
 .spin { animation: spin 0.9s linear infinite; }
 
+/* Marca ao lado do ramo: HEAD destacado, repo sem commits. */
+.hero__tag {
+  padding: 1px 6px;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warn);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+/* Operacao do git pela metade: merge, rebase, cherry-pick. */
+.view__aviso {
+  margin: 0 0 8px;
+  padding: 5px 9px;
+  font-size: 10.5px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border-left: 2px solid var(--warn);
+}
+
 /* ── Git ─────────────────────────────────────────────────────────────── */
 
 .branch {

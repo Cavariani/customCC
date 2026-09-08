@@ -8,11 +8,12 @@ import {
   FileSymlink,
   GitBranch,
   GitCommitHorizontal,
+  GitMerge,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useWorkspace } from '../../lib/workspace'
 import { Delta } from '../Delta'
-import type { GitFile, GitFileStatus } from '../../types'
+import type { GitFile, GitFileStatus, GitState } from '../../types'
 
 const META: Record<GitFileStatus, { Icon: typeof FilePen; color: string; tag: string }> = {
   modified: { Icon: FilePen, color: 'var(--warn)', tag: 'M' },
@@ -20,6 +21,18 @@ const META: Record<GitFileStatus, { Icon: typeof FilePen; color: string; tag: st
   deleted: { Icon: FileMinus2, color: 'var(--color-error)', tag: 'D' },
   renamed: { Icon: FileSymlink, color: 'var(--hl-function)', tag: 'R' },
   untracked: { Icon: FileQuestion, color: 'var(--color-muted)', tag: '?' },
+  // Conflito tem entrada propria: antes caia no fallback de "modificado" e
+  // aparecia como staged, o que convidava a commitar o arquivo com os
+  // marcadores <<<<<<< dentro.
+  conflicted: { Icon: GitMerge, color: 'var(--color-error)', tag: 'U' },
+}
+
+const OPERACAO: Record<NonNullable<GitState['operation']>, string> = {
+  merge: 'merge em andamento',
+  rebase: 'rebase em andamento',
+  'cherry-pick': 'cherry-pick em andamento',
+  revert: 'revert em andamento',
+  bisect: 'bisect em andamento',
 }
 
 export function GitView() {
@@ -43,10 +56,20 @@ export function GitView() {
 
   if (gitError) return <Empty warn>falha ao ler o git: {gitError}</Empty>
   if (!git) return <Empty>lendo o repositorio...</Empty>
+  // Repo quebrado nao pode se passar por pasta sem versionamento: sao
+  // problemas diferentes e so um deles pede conserto.
+  if (git.broken !== null) {
+    return (
+      <Empty warn>
+        {activeTab?.cwd} tem um .git que o git recusa ler: {git.broken}
+      </Empty>
+    )
+  }
   if (!git.repo) return <Empty>{activeTab?.cwd} nao esta dentro de um repositorio git.</Empty>
 
   const staged = git.files.filter((f) => f.staged)
   const unstaged = git.files.filter((f) => !f.staged)
+  const conflitados = git.files.filter((f) => f.status === 'conflicted')
   const totals = git.files.reduce(
     (acc, f) => ({ added: acc.added + f.added, removed: acc.removed + f.removed }),
     { added: 0, removed: 0 },
@@ -59,8 +82,16 @@ export function GitView() {
         <span className="hero__bracket hero__bracket--br" aria-hidden="true" />
 
         <div className="hero__main">
-          <GitBranch size={15} strokeWidth={2} style={{ color: 'var(--green)' }} />
+          <GitBranch
+            size={15}
+            strokeWidth={2}
+            style={{ color: git.detached ? 'var(--warn)' : 'var(--green)' }}
+          />
           <span className="hero__value">{git.branch}</span>
+          {/* Sem estas marcas, HEAD destacado aparecia como um ramo chamado
+              "HEAD" e repo sem commit derrubava a leitura inteira. */}
+          {git.detached && <span className="hero__tag">HEAD destacado</span>}
+          {git.unborn && <span className="hero__tag">sem commits ainda</span>}
         </div>
 
         <div className="hero__side">
@@ -74,7 +105,16 @@ export function GitView() {
         </div>
       </header>
 
-      {git.files.length === 0 && <Empty>nada mudou desde o ultimo commit.</Empty>}
+      {git.operation !== null && (
+        <p className="view__aviso">
+          {OPERACAO[git.operation]}
+          {conflitados.length > 0 && ` · ${conflitados.length} arquivo(s) em conflito`}
+        </p>
+      )}
+
+      {git.files.length === 0 && (
+        <Empty>{git.unborn ? 'repositorio novo, sem nada para commitar.' : 'nada mudou desde o ultimo commit.'}</Empty>
+      )}
 
       <Group
         title="staged"

@@ -92,6 +92,20 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
           />
         </div>
 
+        <div className="field">
+          <span className="field__label">
+            entrelinha do terminal <em>{prefs.terminalLineHeight}</em>
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={1.6}
+            step={0.05}
+            value={prefs.terminalLineHeight}
+            onChange={(e) => onPref('terminalLineHeight', Number(e.target.value))}
+          />
+        </div>
+
         <p className="view__note">painel recolhe e volta com cmd+B</p>
       </section>
 

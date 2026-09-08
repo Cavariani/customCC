@@ -156,6 +156,7 @@ export default function App() {
               tab={tab}
               visible={tab.id === activeTabId}
               fontSize={prefs.terminalFontSize}
+              lineHeight={prefs.terminalLineHeight}
               theme={theme}
               notice={notice}
               onStatus={setTabStatus}
