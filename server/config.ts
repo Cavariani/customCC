@@ -19,12 +19,23 @@ export function resolveClaudeBin(): string {
   if (process.env.CUSTOMCC_CLAUDE_BIN) return process.env.CUSTOMCC_CLAUDE_BIN
   try {
     // `where` e o equivalente do `which` no Windows e pode devolver varias
-    // linhas; a primeira e a que o shell usaria.
+    // linhas.
     const cmd = IS_WINDOWS ? 'where' : 'which'
     const out = execFileSync(cmd, ['claude'], { encoding: 'utf8', shell: IS_WINDOWS })
-    const first = out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)[0]
-    if (!first) throw new Error('vazio')
-    return first
+    const linhas = out
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (linhas.length === 0) throw new Error('vazio')
+    if (!IS_WINDOWS) return linhas[0]
+
+    // No Windows um npm global instala tres arquivos com o mesmo nome:
+    // `claude` (script sh, para Git Bash), `claude.cmd` e `claude.ps1`. O
+    // `where` lista os tres e o sem extensao costuma vir primeiro — que e
+    // justamente o unico que o ConPTY nao consegue executar. Preferimos o
+    // que o Windows sabe rodar sozinho.
+    const executavel = linhas.find((l) => /\.(cmd|bat|exe)$/i.test(l))
+    return executavel ?? linhas[0]
   } catch {
     throw new Error(
       'binario `claude` nao encontrado no PATH. Instale o Claude Code ou defina CUSTOMCC_CLAUDE_BIN.',
