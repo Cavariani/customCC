@@ -54,6 +54,33 @@ export function formatAgo(ms: number): string {
   return `${Math.floor(m / 60)}h`
 }
 
+export interface Ritmo {
+  /** Tokens por hora no que ja passou da janela. */
+  porHora: number
+  /** Total projetado ate o reset, mantido este ritmo. */
+  projetado: number
+}
+
+/**
+ * Ritmo de consumo da janela e a projecao ate o reset.
+ *
+ * Nao existe teto conhecido para comparar: o plano nao publica o numero e o
+ * app nunca fala com a API. Entao a projecao diz quanto vai ter gasto, e
+ * nao quando vai bater a parede — dizer a segunda coisa exigiria inventar
+ * um limite.
+ */
+export function ritmoDaJanela(account: Account, at: number): Ritmo | null {
+  if (account.windowStartedAt === null || account.tokensUsed === 0) return null
+  const decorrido = at - account.windowStartedAt
+  // Menos de um minuto de janela nao da ritmo: dividir por um numero quase
+  // zero produzia projecoes absurdas nos primeiros segundos.
+  if (decorrido < 60_000) return null
+
+  const porHora = (account.tokensUsed / decorrido) * 3_600_000
+  const restante = msUntilReset(account, at) ?? 0
+  return { porHora, projetado: account.tokensUsed + (porHora * restante) / 3_600_000 }
+}
+
 export function maskEmail(email: string): string {
   const [user, domain] = email.split('@')
   if (!domain) return email

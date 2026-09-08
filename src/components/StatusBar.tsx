@@ -1,7 +1,13 @@
 import { Cpu, GitBranch, TerminalSquare } from 'lucide-react'
 import { useWorkspace } from '../lib/workspace'
 import { useNow } from '../lib/useNow'
-import { formatDuration, formatTokens, msUntilReset, windowRatio } from '../lib/format'
+import {
+  formatDuration,
+  formatTokens,
+  msUntilReset,
+  ritmoDaJanela,
+  windowRatio,
+} from '../lib/format'
 import { WindowBars } from './WindowBars'
 import { Delta } from './Delta'
 import { useScramble } from '../lib/useScramble'
@@ -11,6 +17,7 @@ export function StatusBar({ animations }: { animations: boolean }) {
   const now = useNow()
   const active = accounts.find((a) => a.id === activeAccountId)
   const remaining = active ? msUntilReset(active, now) : null
+  const ritmo = active ? ritmoDaJanela(active, now) : null
   const label = useScramble(active ? `conta ${active.id} · ${active.label}` : '', {
     enabled: animations,
     skipFirst: true,
@@ -58,6 +65,16 @@ export function StatusBar({ animations }: { animations: boolean }) {
             />
           </span>
           <span className="status__item">{formatTokens(active.tokensUsed)} tokens</span>
+          {/* Ritmo e projecao: o total sozinho nao diz se a janela aguenta
+              o que falta. */}
+          {ritmo && (
+            <span
+              className="status__item status__item--muted"
+              title={`neste ritmo, ${formatTokens(Math.round(ritmo.projetado))} ate o reset`}
+            >
+              {formatTokens(Math.round(ritmo.porHora))}/h → {formatTokens(Math.round(ritmo.projetado))}
+            </span>
+          )}
           <span className="status__item status__item--muted">
             reset {remaining === null ? 'nao iniciado' : formatDuration(remaining)}
           </span>
