@@ -1164,7 +1164,9 @@
 
 /* O pico se marca por opacidade cheia. O box-shadow daqui era glow. */
 .bars__slot.is-peak .bars__fill { opacity: 1; }
-.bars__slot.is-future .bars__fill { display: none; }
+/* Some o balde sem consumo, passado ou futuro. Antes o criterio era o
+   futuro, e isso engolia barra com dado dentro. */
+.bars__slot.is-empty .bars__fill { display: none; }
 
 @keyframes bar-rise {
   from { transform: scaleY(0); opacity: 0; }

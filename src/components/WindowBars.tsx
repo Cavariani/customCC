@@ -24,12 +24,17 @@ export function WindowBars({ series, progress, accent, height }: Props) {
   return (
     <div className="bars" style={height ? { height, flex: 'none' } : undefined}>
       {series.map((value, i) => {
+        // `future` decide so a sombra do trilho. Quem some e o balde vazio,
+        // nao o futuro: com a janela recem-aberta o nowSlot e 0, entao todo
+        // balde caia como futuro e o consumo real ficava escondido — a conta
+        // mostrava 80k tokens sobre um grafico em branco.
         const future = i >= nowSlot
+        const vazio = value === 0
         const ratio = hasData ? value / max : 0
         return (
           <span
             key={i}
-            className={`bars__slot${future ? ' is-future' : ''}${i === peak && hasData ? ' is-peak' : ''}`}
+            className={`bars__slot${future ? ' is-future' : ''}${vazio ? ' is-empty' : ''}${i === peak && hasData ? ' is-peak' : ''}`}
             style={{ '--h': `${Math.max(ratio * 100, value > 0 ? 8 : 0)}%`, '--d': `${i * 14}ms` } as React.CSSProperties}
           >
             <span className="bars__fill" style={{ background: accent }} />
