@@ -169,20 +169,25 @@ Nada no painel. As diferenças ficam todas na camada de baixo:
 
 ## A cota real (o que o `/usage` mostra)
 
-O painel exibe a cota de 5h e de 7 dias com o teto de verdade, e esse dado
-não vem do transcript: ele chega num JSON que o Claude Code entrega ao
-comando de statusline. Para o painel enxergá-lo, um hook guarda esse JSON
-em disco.
+O painel mostra a cota de 5h e de 7 dias com o teto de verdade. Esse dado não
+vem do transcript: chega num JSON que o Claude Code entrega ao comando de
+statusline, e um hook o guarda em disco.
 
-No Mac isso vive em dois arquivos **fora do repositório**:
+**O `npm install` já instala o hook.** Não há nada a copiar do Mac — o script
+está no repositório, em `hooks/statusline-quota.mjs`, e é Node, então roda igual
+nos dois sistemas. Se quiser reinstalar depois:
 
-- `~/.claude/statusline-quota.sh` — recebe o JSON no stdin e o grava em
-  `~/.claude-multi-account/quota/<sessão>.json`
-- `~/.claude/settings.json` → `statusLine.command` — chama esse script
-  antes de desenhar a barra
+```powershell
+npm run hook
+```
 
-Ao migrar, os dois precisam ir junto (o caminho no Windows é
-`C:\Users\<você>\.claude\`). Sem eles o painel funciona igual, só que o
-bloco "cota da api" não aparece — nada mais depende dele.
+Se o `~/.claude` ainda não existir na máquina (o `claude` nunca rodou ali), o
+`npm install` avisa e não instala nada. Rode `claude` uma vez e depois
+`npm run hook`.
 
-Se preferir não instalar o hook, o painel simplesmente omite esse bloco.
+O instalador preserva a statusline que já existia: ele a guarda em
+`~/.claude/customcc-statusline.json` e o hook a chama, deixando a saída passar.
+A barra continua exatamente como estava. Há uma cópia do settings em
+`~/.claude/settings.json.antes-do-customcc`.
+
+Sem o hook o painel funciona igual, só que o bloco "cota da api" não aparece.
