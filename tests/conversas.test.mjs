@@ -8,12 +8,13 @@
  */
 import { after, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { WebSocket } from 'ws'
 import {
   BASE,
   PORTA,
+  claudeFalso,
   derrubaServidor,
   get,
   limpa,
@@ -170,13 +171,7 @@ describe('retomar a conversa escolhida', () => {
 
     // Um `claude` falso que so escreve os proprios argumentos: e assim que
     // da para provar que o --resume chegou, sem depender do binario real.
-    const falso = join(base, 'claude-falso')
-    writeFileSync(
-      falso,
-      '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "9.9.9"; exit 0; fi\necho "ARGS:$@"\nsleep 30\n',
-      'utf8',
-    )
-    chmodSync(falso, 0o755)
+    const falso = claudeFalso(base, { eco: 'ARGS:{args}' })
 
     const servidor = await sobeServidor({
       cwd: projeto,
@@ -218,13 +213,7 @@ describe('retomar a conversa escolhida', () => {
     const base = pastaTemporaria()
     criados.push(base)
     const projeto = repo(base, 'projeto')
-    const falso = join(base, 'claude-falso')
-    writeFileSync(
-      falso,
-      '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "9.9.9"; exit 0; fi\necho "ARGS:[$@]"\nsleep 30\n',
-      'utf8',
-    )
-    chmodSync(falso, 0o755)
+    const falso = claudeFalso(base, { eco: 'ARGS:[{args}]' })
 
     const servidor = await sobeServidor({
       cwd: projeto,

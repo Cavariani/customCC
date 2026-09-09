@@ -11,24 +11,26 @@
  */
 import { after, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { WebSocket } from 'ws'
-import { BASE, PORTA, derrubaServidor, get, limpa, pastaTemporaria, post, repo, sobeServidor } from './apoio.mjs'
+import {
+  BASE,
+  PORTA,
+  claudeFalso,
+  derrubaServidor,
+  get,
+  limpa,
+  pastaTemporaria,
+  post,
+  repo,
+  sobeServidor,
+} from './apoio.mjs'
 
 const criados = []
 after(() => criados.forEach(limpa))
 
 const TOKEN = 'sk-ant-oat' + 'y'.repeat(90)
-
-/** Falso `claude`: anuncia o limite e fica vivo, como a TUI ficaria. */
-const FALSO = `#!/bin/sh
-# O servidor pergunta a versao no boot, como faria ao binario real.
-if [ "$1" = "--version" ]; then echo "9.9.9 (Claude Code falso)"; exit 0; fi
-echo "Usage limit reached. Your limit resets at 11pm"
-# segura o processo para o pty nao morrer e o watcher ter tempo de ler
-sleep 60
-`
 
 function montaHome() {
   const base = pastaTemporaria()
@@ -48,9 +50,12 @@ function montaHome() {
     'utf8',
   )
 
-  const binario = join(base, 'claude-falso')
-  writeFileSync(binario, FALSO, 'utf8')
-  chmodSync(binario, 0o755)
+  // Falso `claude`: anuncia o limite e fica vivo, como a TUI ficaria.
+  const binario = claudeFalso(base, {
+    versao: '9.9.9 (Claude Code falso)',
+    eco: 'Usage limit reached. Your limit resets at 11pm',
+    segundos: 60,
+  })
 
   return { base, projeto, binario }
 }

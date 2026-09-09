@@ -12,7 +12,7 @@
  */
 import { spawn } from 'node:child_process'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -39,6 +39,65 @@ export function repo(base, nome) {
   git(dir, 'config', 'user.email', 'teste@customcc')
   git(dir, 'config', 'user.name', 'Teste')
   return dir
+}
+
+export const IS_WINDOWS = process.platform === 'win32'
+
+/**
+ * Escreve um `claude` falso e devolve o caminho, para entrar em
+ * `CUSTOMCC_CLAUDE_BIN`. E o unico jeito de exercitar o pty de verdade sem
+ * gastar quota nem tomar um 429.
+ *
+ * Precisa de duas versoes porque o ConPTY nao roda o script de shell: o
+ * CreateProcess so aceita executavel, e um arquivo sem extensao com shebang
+ * falha com "error code: 193" (nao e aplicativo Win32 valido). Com extensao
+ * `.cmd` o node-pty passa por cmd.exe e funciona.
+ *
+ * `eco` e a linha que o falso imprime; o trecho `{args}` nela vira a lista de
+ * argumentos recebidos, que e como os testes provam que o `--resume` chegou.
+ */
+export function claudeFalso(base, { versao = '9.9.9', eco, segundos = 30 }) {
+  const caminho = join(base, IS_WINDOWS ? 'claude-falso.cmd' : 'claude-falso')
+
+  if (IS_WINDOWS) {
+    // Sem bloco entre parenteses de proposito: o `echo` da versao tem
+    // parenteses no texto e fecharia o bloco no lugar errado. Com `goto` o
+    // cmd nunca precisa casar parenteses.
+    // O keep-alive e `ping` e nao `timeout`, que exige handle de console e
+    // aborta dentro do pty.
+    writeFileSync(
+      caminho,
+      [
+        '@echo off',
+        'if "%~1"=="--version" goto versao',
+        `echo ${eco.replace('{args}', '%*')}`,
+        `ping -n ${segundos + 1} 127.0.0.1 >nul`,
+        'exit /b 0',
+        ':versao',
+        `echo ${versao}`,
+        'exit /b 0',
+        '',
+      ].join('\r\n'),
+      'utf8',
+    )
+    return caminho
+  }
+
+  writeFileSync(
+    caminho,
+    [
+      '#!/bin/sh',
+      // O servidor pergunta a versao no boot, como faria ao binario real.
+      `if [ "$1" = "--version" ]; then echo "${versao}"; exit 0; fi`,
+      `echo "${eco.replace('{args}', '$@')}"`,
+      // Segura o processo para o pty nao morrer antes de o watcher ler.
+      `sleep ${segundos}`,
+      '',
+    ].join('\n'),
+    'utf8',
+  )
+  chmodSync(caminho, 0o755)
+  return caminho
 }
 
 export function escreve(dir, nome, conteudo) {
