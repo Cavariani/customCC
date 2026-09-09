@@ -47,12 +47,18 @@ if (!existsSync(join(root, 'dist', 'index.html'))) {
 }
 
 const entry = join(root, 'server', 'index.ts')
-const tsx = join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx')
 
-const child = spawn(tsx, [entry], {
+// `node --import tsx`, e nao o tsx.cmd com shell: true. Dois motivos, os dois
+// ja custaram bug no Windows:
+// - com shell: true o cmd recebe a linha concatenada e sem citacao, entao um
+//   caminho com espaco vira dois comandos: instalado em
+//   "D:\PEDRO\Projetos (CODE)\customCC" o painel morria com
+//   "'D:\PEDRO\Projetos' nao e reconhecido como um comando interno".
+// - o shell viraria um cmd.exe no meio, e o child.kill dos sinais mataria o
+//   wrapper deixando o servidor orfao segurando a porta.
+const child = spawn(process.execPath, ['--import', 'tsx', entry], {
   cwd: root,
   stdio: 'inherit',
-  shell: process.platform === 'win32',
   env: { ...process.env, CUSTOMCC_CWD: cwd, CUSTOMCC_PORT: String(port) },
 })
 
