@@ -15,6 +15,7 @@ import { FleetView } from './components/panels/FleetView'
 import { HistoryView } from './components/panels/HistoryView'
 import { SettingsView } from './components/panels/SettingsView'
 import { useWorkspace } from './lib/workspace'
+import { useFullscreen } from './lib/useFullscreen'
 import { useTheme } from './theme/useTheme'
 import { usePrefs } from './lib/usePrefs'
 import { useNotifier } from './lib/useNotifier'
@@ -38,6 +39,7 @@ const VIEW_TITLE: Record<ViewName, string> = {
 export default function App() {
   const { theme, setTheme } = useTheme()
   const { prefs, set, toggleDock } = usePrefs()
+  const { fullscreen, toggle: toggleFullscreen } = useFullscreen()
   const {
     tabs,
     activeTabId,
@@ -126,6 +128,7 @@ export default function App() {
       { id: 'ir-diff', group: 'ir para', label: 'mudancas', Icon: CMD_ICONS.GitCompare, run: () => setView('diff') },
       { id: 'ir-ajustes', group: 'ir para', label: 'ajustes', Icon: CMD_ICONS.SlidersHorizontal, run: () => setView('settings') },
       { id: 'painel', group: 'painel', label: prefs.dockCollapsed ? 'expandir painel' : 'recolher painel', hint: 'cmd+B', Icon: CMD_ICONS.PanelRightClose, run: toggleDock },
+      { id: 'tela-cheia', group: 'painel', label: fullscreen ? 'sair da tela cheia' : 'entrar em tela cheia', keywords: 'fullscreen maximizar janela', hint: 'F11', Icon: CMD_ICONS.Maximize2, run: toggleFullscreen },
       { id: 'anim', group: 'painel', label: prefs.animations ? 'desligar animacoes' : 'ligar animacoes', Icon: CMD_ICONS.SlidersHorizontal, run: () => set('animations', !prefs.animations) },
     )
 
@@ -142,7 +145,7 @@ export default function App() {
     }
 
     return lista
-  }, [accounts, tabs, activeTabId, prefs, theme, switchAccount, setActiveTabId, openTab, closeTab, toggleDock, set, setTheme])
+  }, [accounts, tabs, activeTabId, prefs, theme, fullscreen, switchAccount, setActiveTabId, openTab, closeTab, toggleDock, toggleFullscreen, set, setTheme])
 
   return (
     <div className="shell">

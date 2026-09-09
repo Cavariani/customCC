@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { FolderOpen, FolderSymlink, Plus, TerminalSquare, X } from 'lucide-react'
+import { FolderOpen, FolderSymlink, Maximize2, Minimize2, Plus, TerminalSquare, X } from 'lucide-react'
 import { useWorkspace } from '../lib/workspace'
+import { useFullscreen } from '../lib/useFullscreen'
 import { FolderPicker } from './FolderPicker'
 
 const ACTIVITY_LABEL: Record<string, string> = {
@@ -24,6 +25,7 @@ export function TabBar() {
   const [editing, setEditing] = useState<string | null>(null)
   // 'nova' abre outra aba; um id move aquela aba de pasta.
   const [picking, setPicking] = useState<'nova' | string | null>(null)
+  const { fullscreen, toggle: toggleFullscreen } = useFullscreen()
 
   return (
     <div className="tabbar" role="tablist" aria-label="Terminais">
@@ -111,6 +113,20 @@ export function TabBar() {
       </button>
 
       <span className="tabbar__hint">duplo clique renomeia</span>
+
+      <button
+        type="button"
+        className="tabbar__add"
+        onClick={toggleFullscreen}
+        aria-label={fullscreen ? 'Sair da tela cheia' : 'Entrar em tela cheia'}
+        title={fullscreen ? 'sair da tela cheia  F11' : 'tela cheia  F11'}
+      >
+        {fullscreen ? (
+          <Minimize2 size={14} strokeWidth={1.9} />
+        ) : (
+          <Maximize2 size={14} strokeWidth={1.9} />
+        )}
+      </button>
 
       {picking && (
         <FolderPicker

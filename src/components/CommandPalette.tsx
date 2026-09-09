@@ -5,6 +5,7 @@ import {
   FolderSymlink,
   GitBranch,
   GitCompare,
+  Maximize2,
   Palette,
   PanelRightClose,
   Pencil,
@@ -154,4 +155,5 @@ export const CMD_ICONS = {
   Zap,
   Palette,
   PanelRightClose,
+  Maximize2,
 }
