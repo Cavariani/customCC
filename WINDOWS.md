@@ -61,14 +61,50 @@ Abra <http://localhost:5181>. É o modo equivalente ao serviço do Mac.
 Não confunda: no Mac você se acostuma com o 5181 porque o serviço launchd
 já serve o build pronto. Rodando `npm run dev`, a página está no 5180.
 
-Para instalar como tarefa que sobe no login:
+## Uso diário: o atalho
+
+Para não depender de terminal nenhum no dia a dia:
 
 ```powershell
-node scripts/service.mjs
+npm run atalho
 ```
 
-Isso cria uma tarefa `customCC` no Agendador de Tarefas com gatilho de logon e
-privilégio limitado. Para remover: `node scripts/service.mjs uninstall`.
+Isso cria um atalho **customCC** na área de trabalho e no menu Iniciar. Um
+clique sobe o servidor, se ele ainda não estiver de pé, espera ficar pronto e
+abre o painel numa janela de aplicativo — sem barra de endereço, com ícone
+próprio na barra de tarefas. Clique com o direito no atalho para fixar.
+
+Medido nesta máquina: **3,3s** do clique até o painel no ar com tudo desligado,
+e **0,5s** quando o servidor já está rodando.
+
+O servidor fica de pé depois que você fecha a janela, de propósito: fechar o
+painel não pode matar um `claude` no meio de uma tarefa. Para encerrar:
+
+```powershell
+npm run parar
+```
+
+**Rode isso antes do `npm run dev`** — os dois disputam a porta 5181, e como o
+atalho sobe o servidor sem janela de console, não há Ctrl+C para dar.
+
+Para remover o atalho: `npm run atalho -- desinstalar`.
+
+Três peças, todas em `~/.claude-multi-account/`: o `.ico` (o mascote do painel,
+desenhado a partir da mesma grade que o favicon usa), o `abrir-customcc.vbs`
+e o `customcc.log`. O `.vbs` existe porque o atalho não pode chamar o Node
+direto: um processo de console pisca uma janela preta na tela a cada clique.
+
+### E a tarefa que sobe no login?
+
+`node scripts/service.mjs` deveria criar uma tarefa `customCC` no Agendador
+com gatilho de logon. **Nesta máquina ele falha com `Acesso negado`** — o
+`schtasks /Create` é recusado mesmo para tarefa do próprio usuário, o que
+costuma ser política de máquina corporativa.
+
+O atalho acima não depende disso: é um arquivo comum, sem permissão especial.
+Se num PC pessoal o serviço funcionar, ele continua valendo — mas o atalho
+sozinho já resolve, e tem a vantagem de não deixar o painel rodando nas horas
+em que você não está usando.
 
 ## Segurança: o `.env` fica em texto puro
 
@@ -161,10 +197,11 @@ Nada no painel. As diferenças ficam todas na camada de baixo:
 - o pty usa **ConPTY**, e o tipo de terminal informado a ele vira `xterm-color`
   em vez de `xterm-256color` (a variável `TERM` do processo segue
   `xterm-256color` nos dois sistemas)
-- o serviço é uma tarefa do **Agendador**, não um `launchd`. Uma diferença real:
-  o `launchd` tem `KeepAlive` e reergue o processo se ele cair; o gatilho
-  `ONLOGON` do `schtasks` não faz isso — se o servidor morrer, só volta no
-  próximo logon ou rodando `npm start` na mão
+- não há equivalente do `launchd`. O caminho do Windows é o **atalho**
+  (`npm run atalho`), que sobe o painel sob demanda em vez de mantê-lo ligado
+  o dia inteiro. A tarefa do Agendador existe no código mas foi recusada com
+  `Acesso negado` na máquina testada; e mesmo funcionando ela não teria o
+  `KeepAlive` do `launchd` — o gatilho `ONLOGON` não reergue processo caído
 - o `open` para abrir o navegador vira `start`
 
 ## A cota real (o que o `/usage` mostra)

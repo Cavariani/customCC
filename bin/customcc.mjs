@@ -59,6 +59,13 @@ const entry = join(root, 'server', 'index.ts')
 const child = spawn(process.execPath, ['--import', 'tsx', entry], {
   cwd: root,
   stdio: 'inherit',
+  // windowsHide: quando o atalho sobe o painel, ninguem na cadeia tem
+  // console — e o Windows ALOCA um para todo programa de console que nao
+  // herdou nenhum. Era essa a janela preta que aparecia junto do painel, e
+  // fecha-la matava o servidor com as sessoes dentro. Rodando pelo terminal
+  // a bandeira nao faz nada: ela so impede criar console novo, nunca
+  // esconde o que ja existe.
+  windowsHide: true,
   env: { ...process.env, CUSTOMCC_CWD: cwd, CUSTOMCC_PORT: String(port) },
 })
 

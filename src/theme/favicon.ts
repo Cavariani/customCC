@@ -6,8 +6,14 @@
  * o vermelho de um tema enquanto o app inteiro estivesse noutro.
  */
 
-/** Grade de 16x16. Cada '#' e um pixel aceso; '.' fica transparente. */
-const PIXELS = [
+/**
+ * Grade de 16x16. Cada '#' e um pixel aceso; '.' fica transparente.
+ *
+ * Exportada porque o atalho do Windows desenha o mesmo mascote no .ico
+ * (`scripts/instalar-atalho.mjs`). Duplicar a grade la deixaria os dois
+ * desenhos livres para divergir na primeira vez que um fosse ajustado.
+ */
+export const PIXELS = [
   '................',
   '................',
   '..############..',
