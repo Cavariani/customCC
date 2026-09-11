@@ -116,10 +116,38 @@ export async function findActiveSession(cwd: string) {
   return latest ?? null
 }
 
+/**
+ * Transcripts ja lidos, guardados por tamanho e carimbo do arquivo.
+ *
+ * O painel pede /api/changes a cada 4s, e cada pedido reparseava o .jsonl
+ * inteiro — 6 MB na pasta de trabalho medida aqui — so para chegar no mesmo
+ * resultado. Enquanto o `claude` nao escreve, o arquivo nao muda, e o parse
+ * era desperdicio puro na unica thread que tambem carrega o terminal.
+ *
+ * Chave por mtime + tamanho, e nao so mtime: o carimbo do NTFS tem
+ * granularidade grossa, e duas escritas no mesmo instante trariam o
+ * transcript velho de volta.
+ */
+const cacheDeTranscript = new Map<string, { mtimeMs: number; size: number; data: TranscriptData }>()
+/** Uma entrada por sessao aberta; acima disso e sessao que ninguem ve mais. */
+const TRANSCRIPT_CACHE_MAX = 40
+
 export async function readTranscript(
   file: string,
   sessionId: string,
 ): Promise<TranscriptData | null> {
+  let assinatura: { mtimeMs: number; size: number } | null = null
+  try {
+    const info = await stat(file)
+    assinatura = { mtimeMs: info.mtimeMs, size: info.size }
+    const guardado = cacheDeTranscript.get(file)
+    if (guardado && guardado.mtimeMs === assinatura.mtimeMs && guardado.size === assinatura.size) {
+      return guardado.data
+    }
+  } catch {
+    // Sem stat seguimos para a leitura, que devolve null se o arquivo sumiu.
+  }
+
   let raw: string
   try {
     raw = await readFile(file, 'utf8')
@@ -164,6 +192,10 @@ export async function readTranscript(
     collectBackups(entry, data)
   }
 
+  if (assinatura) {
+    if (cacheDeTranscript.size >= TRANSCRIPT_CACHE_MAX) cacheDeTranscript.clear()
+    cacheDeTranscript.set(file, { ...assinatura, data })
+  }
   return data
 }
 
