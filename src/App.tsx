@@ -11,6 +11,8 @@ import { AccountsView } from './components/panels/AccountsView'
 import { GitView } from './components/panels/GitView'
 import { DiffView } from './components/panels/DiffView'
 import { ConversasView } from './components/panels/ConversasView'
+import { ArquivosView } from './components/panels/ArquivosView'
+import { LeitorDeArquivo } from './components/LeitorDeArquivo'
 import { FleetView } from './components/panels/FleetView'
 import { HistoryView } from './components/panels/HistoryView'
 import { SettingsView } from './components/panels/SettingsView'
@@ -29,6 +31,7 @@ import type { ViewName } from './types'
 const VIEW_TITLE: Record<ViewName, string> = {
   accounts: 'contas',
   conversas: 'conversas',
+  arquivos: 'arquivos',
   fleet: 'frota',
   git: 'git',
   diff: 'mudancas',
@@ -48,6 +51,7 @@ export default function App() {
     git,
     changes,
     accounts,
+    activeTab,
     setTabStatus,
     setTabActivity,
     tabActivity,
@@ -57,6 +61,9 @@ export default function App() {
     moveTab,
   } = useWorkspace()
   const [palette, setPalette] = useState(false)
+  // Arquivo aberto no leitor. Vive aqui, e nao dentro do painel, porque o
+  // leitor cobre a area do terminal e o painel e so quem escolhe.
+  const [lendo, setLendo] = useState<string | null>(null)
   const [pickingFor, setPickingFor] = useState<'nova' | string | null>(null)
   // A secao aberta vive no hash: recarregar a pagina volta para onde estava,
   // e da para deixar o painel de git como bookmark.
@@ -124,6 +131,7 @@ export default function App() {
       { id: 'aba-mover', group: 'aba', label: 'mover esta aba para outra pasta', keywords: 'projeto diretorio', Icon: CMD_ICONS.FolderSymlink, run: () => setPickingFor(activeTabId) },
       { id: 'aba-fechar', group: 'aba', label: 'fechar esta aba', Icon: CMD_ICONS.X, run: () => closeTab(activeTabId) },
       { id: 'ir-contas', group: 'ir para', label: 'contas', Icon: CMD_ICONS.Users, run: () => setView('accounts') },
+      { id: 'ir-arquivos', group: 'ir para', label: 'arquivos', keywords: 'pasta codigo ler', Icon: CMD_ICONS.FolderOpen, run: () => setView('arquivos') },
       { id: 'ir-git', group: 'ir para', label: 'git', Icon: CMD_ICONS.GitBranch, run: () => setView('git') },
       { id: 'ir-diff', group: 'ir para', label: 'mudancas', Icon: CMD_ICONS.GitCompare, run: () => setView('diff') },
       { id: 'ir-ajustes', group: 'ir para', label: 'ajustes', Icon: CMD_ICONS.SlidersHorizontal, run: () => setView('settings') },
@@ -167,12 +175,17 @@ export default function App() {
               fontSize={prefs.terminalFontSize}
               lineHeight={prefs.terminalLineHeight}
               theme={theme}
+              copiarAoSelecionar={prefs.copiarAoSelecionar}
               notice={notice}
               onStatus={setTabStatus}
               onActivity={setTabActivity}
             />
             </ErrorBoundary>
           ))}
+
+          {lendo && activeTab?.cwd && (
+            <LeitorDeArquivo cwd={activeTab.cwd} caminho={lendo} onFechar={() => setLendo(null)} />
+          )}
         </div>
       </main>
 
@@ -206,6 +219,7 @@ export default function App() {
             <ErrorBoundary area={`painel de ${VIEW_TITLE[view]}`}>
               {view === 'accounts' && <AccountsView />}
               {view === 'conversas' && <ConversasView />}
+              {view === 'arquivos' && <ArquivosView onAbrir={setLendo} />}
               {view === 'fleet' && <FleetView />}
               {view === 'git' && <GitView />}
               {view === 'diff' && <DiffView />}

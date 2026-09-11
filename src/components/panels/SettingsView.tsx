@@ -2,6 +2,7 @@ import { FlaskConical } from 'lucide-react'
 import { pedirPermissaoDeAviso } from '../../lib/useNotifier'
 import { THEMES, type ThemeName } from '../../theme/themes'
 import { useWorkspace } from '../../lib/workspace'
+import { PromptGlobal } from './PromptGlobal'
 import type { Prefs } from '../../lib/usePrefs'
 
 interface Props {
@@ -29,6 +30,8 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
 
   return (
     <div className="view">
+      <PromptGlobal />
+
       <section className="group">
         <h4 className="group__title">tema</h4>
         <div className="swatches">
@@ -76,6 +79,13 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
           }}
         />
 
+        <Toggle
+          label="selecionar ja copia"
+          hint="arrastar sobre o texto do terminal copia; ctrl+c com selecao tambem"
+          on={prefs.copiarAoSelecionar}
+          onToggle={() => onPref('copiarAoSelecionar', !prefs.copiarAoSelecionar)}
+        />
+
         <div className="field">
           <span className="field__label">
             corpo do terminal <em>{prefs.terminalFontSize}px</em>
@@ -106,6 +116,11 @@ export function SettingsView({ theme, onTheme, prefs, onPref }: Props) {
           />
         </div>
 
+        <p className="view__note">
+          no terminal: shift+enter quebra linha · ctrl+c copia a selecao e interrompe quando nao ha
+          nenhuma · ctrl+shift+v cola · arrastar ou colar imagem anexa com miniatura. se o `claude`
+          estiver usando o mouse, segure shift para selecionar.
+        </p>
         <p className="view__note">painel recolhe e volta com cmd+B</p>
       </section>
 

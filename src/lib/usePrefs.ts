@@ -12,6 +12,8 @@ export interface Prefs {
   terminalLineHeight: number
   /** Avisar quando uma aba termina ou para esperando permissao. */
   notify: boolean
+  /** Selecionar com o mouse no terminal ja copia, como num terminal nativo. */
+  copiarAoSelecionar: boolean
 }
 
 const KEY = 'customcc-prefs'
@@ -22,6 +24,7 @@ const DEFAULTS: Prefs = {
   terminalFontSize: 12.5,
   terminalLineHeight: 1.15,
   notify: false,
+  copiarAoSelecionar: true,
 }
 
 function load(): Prefs {

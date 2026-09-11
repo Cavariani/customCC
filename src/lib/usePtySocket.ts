@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Terminal } from '@xterm/xterm'
 
 export type PtyStatus = 'connecting' | 'live' | 'exited' | 'error'
@@ -97,5 +97,19 @@ export function usePtySocket({ sessionId, cwd, resumeId, getTerm, enabled, onAct
     }
   }, [sessionId, cwd, enabled, getTerm, onActivity])
 
-  return { status }
+  /**
+   * Escreve no pty sem passar pelo xterm. Existe para as teclas que a casca
+   * intercepta antes do terminal — shift+enter, por exemplo, que precisa
+   * virar ESC+CR em vez do CR que enviaria a mensagem.
+   */
+  const send = useCallback((data: string) => {
+    const socket = socketRef.current
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ t: 'input', data }))
+      return true
+    }
+    return false
+  }, [])
+
+  return { status, send }
 }

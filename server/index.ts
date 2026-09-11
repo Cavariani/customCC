@@ -44,6 +44,9 @@ import {
 } from './accounts.js'
 import { resolveNow, startDiscovery, stopDiscovery } from './discovery.js'
 import { listRecentProjects } from './projects.js'
+import { lerArquivo, listarPasta } from './arquivos.js'
+import { gravarPromptGlobal, lerPromptGlobal, LIMITE_DE_TEXTO } from './prompt.js'
+import { ANEXOS_DIR, extensaoDe, nomeSeguro, salvarAnexo } from './anexos.js'
 import { onLimitEvent, watchSession } from './watcher.js'
 import { SILENCIO_MS, detectActivity } from './activity.js'
 import {
@@ -128,6 +131,91 @@ app.get('/api/resolve-path', (req, res) => {
   if (!existsSync(cwd)) return res.json({ ok: false, cwd, reason: 'nao existe' })
   if (!statSync(cwd).isDirectory()) return res.json({ ok: false, cwd, reason: 'nao e uma pasta' })
   res.json({ ok: true, cwd, name: cwd.split(/[/\\]/).filter(Boolean).pop() ?? cwd })
+})
+
+/**
+ * Conteudo da pasta da aba, para a secao "arquivos". O `cwd` manda: tudo
+ * que a rota entrega precisa estar dentro dele, e quem confere e o
+ * `arquivos.ts`, nao esta rota.
+ */
+app.get('/api/arquivos', async (req, res) => {
+  const cwd = typeof req.query.cwd === 'string' ? expandHome(req.query.cwd) : DEFAULT_CWD
+  const path = typeof req.query.path === 'string' ? req.query.path : ''
+  try {
+    res.json(await listarPasta(cwd, path))
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+app.get('/api/arquivo', async (req, res) => {
+  const cwd = typeof req.query.cwd === 'string' ? expandHome(req.query.cwd) : DEFAULT_CWD
+  const path = typeof req.query.path === 'string' ? req.query.path : ''
+  if (!path) return res.status(400).json({ error: 'caminho vazio' })
+  try {
+    res.json(await lerArquivo(cwd, path))
+  } catch (error) {
+    res.status(400).json({ error: String(error instanceof Error ? error.message : error) })
+  }
+})
+
+/** Instrucao que vale para toda sessao, guardada em ~/.claude/CLAUDE.md. */
+app.get('/api/prompt-global', async (_req, res) => {
+  try {
+    res.json(await lerPromptGlobal())
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+app.post('/api/prompt-global', async (req, res) => {
+  if (typeof req.body?.texto !== 'string') {
+    return res.status(400).json({ error: 'texto precisa ser string' })
+  }
+  if (req.body.texto.length > LIMITE_DE_TEXTO) {
+    return res.status(400).json({ error: `texto acima de ${LIMITE_DE_TEXTO} caracteres` })
+  }
+  try {
+    res.json(await gravarPromptGlobal(req.body.texto))
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+/**
+ * Imagem colada ou arrastada no terminal. Chega como corpo cru porque o
+ * navegador ja tem o blob: passar por multipart custaria uma dependencia e
+ * um parser a mais para transportar exatamente os mesmos bytes.
+ */
+app.post(
+  '/api/anexos',
+  express.raw({ type: 'image/*', limit: '25mb' }),
+  async (req, res) => {
+    const mime = req.header('content-type') ?? ''
+    if (!extensaoDe(mime)) return res.status(415).json({ error: `tipo nao aceito: ${mime}` })
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return res.status(400).json({ error: 'corpo vazio' })
+    }
+    try {
+      res.json(await salvarAnexo(req.body, mime))
+    } catch (error) {
+      res.status(500).json({ error: String(error instanceof Error ? error.message : error) })
+    }
+  },
+)
+
+// Serve a miniatura de volta. So nome simples: qualquer coisa com barra ou
+// ponto-ponto sairia da pasta de anexos.
+app.get('/api/anexos/:arquivo', (req, res) => {
+  const nome = req.params.arquivo
+  if (!nomeSeguro(nome)) return res.status(400).json({ error: 'nome invalido' })
+  const alvo = join(ANEXOS_DIR, nome)
+  if (!existsSync(alvo)) return res.status(404).json({ error: 'anexo nao encontrado' })
+  // `dotfiles: 'allow'` nao e folga de seguranca: o nome ja passou pelo
+  // filtro acima. E que a pasta de anexos fica dentro de
+  // ~/.claude-multi-account, e o padrao do `send` e 404 em qualquer caminho
+  // com segmento comecando por ponto — a miniatura nunca carregava.
+  res.sendFile(alvo, { dotfiles: 'allow' })
 })
 
 app.get('/api/git', async (req, res) => {
@@ -541,6 +629,28 @@ app.post('/api/sessions/:id/cwd', async (req, res) => {
   stopDiscovery(req.params.id)
   killSession(req.params.id)
   res.json({ ok: true, cwd })
+})
+
+/**
+ * Reinicia o `claude` desta aba retomando a mesma conversa. Existe para o
+ * prompt global: o CLAUDE.md do usuario e lido no inicio da sessao, entao
+ * um processo que ja esta de pe nao ve o texto novo ate renascer.
+ *
+ * Usa a mesma maquina da troca de conta, que ja resolve o dificil: descobre
+ * o id da conversa antes de derrubar e sobe com `--resume`.
+ */
+app.post('/api/sessions/:id/reiniciar', async (req, res) => {
+  const session = getSession(req.params.id)
+  if (!session) return res.status(404).json({ error: 'sessao nao encontrada' })
+
+  if (!session.claudeSessionId) await resolveNow(req.params.id)
+  const token = await tokenFor(await getActiveAccountId())
+  const notice =
+    typeof req.body?.notice === 'string' ? req.body.notice : 'sessao recarregada'
+  const nova = await restartSession(req.params.id, { token, notice })
+  if (!nova) return res.status(500).json({ error: 'nao foi possivel reiniciar' })
+  if (!nova.claudeSessionId) void startDiscovery(nova.id, nova.cwd, nova.startedAt)
+  res.json({ ok: true, resumed: Boolean(nova.claudeSessionId) })
 })
 
 // Fechar a aba no navegador encerra de proposito o `claude` daquela sessao.

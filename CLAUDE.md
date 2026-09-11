@@ -10,11 +10,15 @@ o binário oficial `claude` dentro de um pty. Ver `COMO-FUNCIONA.md`.
 npm install     # instala e liga o hook de cota (ver abaixo)
 npm run dev     # backend em 5181 + vite em 5180 → abre http://localhost:5180
 npm start       # modo único: compila e serve tudo em 5181
-npm test        # 138 casos, ~30s
+npm test        # 153 casos, ~2min
 ```
 
-`npm run dev` e o serviço launchd disputam a porta 5181. Antes de subir o dev,
-pare o serviço: `launchctl bootout gui/$(id -u)/com.pedrocavariani.customcc`.
+`npm run dev` disputa a porta 5181 com o painel que ja estiver de pe. Antes de
+subir o dev, pare o outro: `npm run parar` (Windows e macOS), ou
+`launchctl bootout gui/$(id -u)/com.pedrocavariani.customcc` para o servico do Mac.
+
+No Windows o uso diario e por atalho, e nao por terminal: `npm run atalho` cria
+o icone que sobe o painel e abre a janela. Ver `WINDOWS.md`.
 
 ## Máquina nova: a ordem que funciona
 
@@ -76,6 +80,8 @@ só que o bloco "cota da api" não aparece — nada mais depende dele.
 | `~/.claude-multi-account/state.json` | conta ativa, janelas, períodos, cota guardada |
 | `~/.claude-multi-account/quota/` | o que o hook captura |
 | `~/.claude-multi-account/lixeira/` | conversas apagadas, recuperáveis |
+| `~/.claude-multi-account/anexos/` | imagens coladas no terminal; some sozinho em 7 dias |
+| `~/.claude/CLAUDE.md` | memória do usuário; o **prompt global** vive num bloco marcado dentro dele |
 
 ## Regras deste projeto
 
@@ -93,6 +99,12 @@ de ambiente e não entra no argv.
 saída de terminal — colunas alinhadas, medidor segmentado, ação como faixa de
 largura total. Cor carrega estado, nunca identidade. Nada de texto abaixo de
 11px, e valor numérico nunca em cinza apagado.
+
+A única exceção à regra da cor é a **cor da aba**, escolhida a mão para separar
+projetos abertos ao mesmo tempo. Ela só funciona porque ocupa outro lugar: a
+identidade fica na barra vertical da esquerda e no ícone, e o estado continua no
+anel da direita e na faixa de baixo. Se as duas pintassem a mesma coisa, uma aba
+verde por escolha seria lida como uma aba que acabou de responder.
 
 **Não construir porque o dado existe.** Duas telas foram feitas e removidas por
 isso (um gráfico de 30 fatias e uma linha do tempo de contas): tinham dado

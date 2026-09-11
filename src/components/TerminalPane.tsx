@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ImagePlus, X } from 'lucide-react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
@@ -6,6 +7,7 @@ import { THEMES, xtermTheme, type ThemeName } from '../theme/themes'
 import { usePtySocket, type Activity, type PtyStatus } from '../lib/usePtySocket'
 import type { TerminalTab } from '../types'
 import type { TerminalMessage } from '../lib/workspace'
+import { copiarTexto, enviarImagem, imagensDe, lerTexto } from '../lib/areaDeTransferencia'
 import '@xterm/xterm/css/xterm.css'
 
 interface Props {
@@ -14,6 +16,8 @@ interface Props {
   fontSize: number
   lineHeight: number
   theme: ThemeName
+  /** Copiar sozinho o que for selecionado com o mouse. */
+  copiarAoSelecionar: boolean
   notice: TerminalMessage | null
   onStatus: (tabId: string, status: PtyStatus) => void
   onActivity: (tabId: string, state: Activity) => void
@@ -30,6 +34,7 @@ export function TerminalPane({
   fontSize,
   lineHeight,
   theme,
+  copiarAoSelecionar,
   notice,
   onStatus,
   onActivity,
@@ -39,10 +44,24 @@ export function TerminalPane({
   const fitRef = useRef<FitAddon | null>(null)
   const lastSeqRef = useRef(0)
   const [ready, setReady] = useState(false)
+  // Aviso curto de "copiado" / "imagem anexada". Dizer que deu certo importa
+  // aqui: copiar do terminal nao muda nada na tela, entao sem retorno a
+  // duvida e se a tecla funcionou.
+  const [aviso, setAviso] = useState<string | null>(null)
+  const [anexos, setAnexos] = useState<{ arquivo: string; caminho: string }[]>([])
+  const [arrastandoImagem, setArrastandoImagem] = useState(false)
 
   const getTerm = useCallback(() => termRef.current, [])
-  const report = useCallback((state: Activity) => onActivity(tab.id, state), [onActivity, tab.id])
-  const { status } = usePtySocket({
+  const report = useCallback(
+    (state: Activity) => {
+      // Comecou a trabalhar: o prompt partiu, e as miniaturas descreviam
+      // justamente o que foi junto com ele.
+      if (state === 'working') setAnexos((prev) => (prev.length ? [] : prev))
+      onActivity(tab.id, state)
+    },
+    [onActivity, tab.id],
+  )
+  const { status, send } = usePtySocket({
     sessionId: tab.id,
     cwd: tab.cwd,
     resumeId: tab.resumeId,
@@ -54,6 +73,39 @@ export function TerminalPane({
   useEffect(() => {
     onStatus(tab.id, status)
   }, [status, tab.id, onStatus])
+
+  // O terminal e montado uma unica vez, com dependencias vazias, entao tudo
+  // que ele precisa e que muda depois entra por ref: fechar sobre o valor
+  // da primeira renderizacao deixaria o atalho preso na preferencia antiga.
+  const sendRef = useRef(send)
+  sendRef.current = send
+  const selecionarCopiaRef = useRef(copiarAoSelecionar)
+  selecionarCopiaRef.current = copiarAoSelecionar
+
+  const piscar = useCallback((texto: string) => {
+    setAviso(texto)
+    window.setTimeout(() => setAviso((atual) => (atual === texto ? null : atual)), 1400)
+  }, [])
+
+  /** Salva a imagem e escreve o caminho no prompt do `claude`. */
+  const anexarImagens = useCallback(
+    async (arquivos: File[]) => {
+      for (const arquivo of arquivos) {
+        try {
+          const salvo = await enviarImagem(arquivo)
+          // O caminho entra no prompt seguido de espaco: o `claude` le a
+          // imagem do disco, e a miniatura aqui em cima e o preview que o
+          // alt+v nunca deu.
+          sendRef.current(`${salvo.caminho} `)
+          setAnexos((prev) => [...prev.slice(-5), salvo])
+          piscar('imagem anexada')
+        } catch (erro) {
+          piscar(`falhou: ${erro instanceof Error ? erro.message : erro}`)
+        }
+      }
+    },
+    [piscar],
+  )
 
   useEffect(() => {
     const container = containerRef.current
@@ -112,6 +164,59 @@ export function TerminalPane({
       webgl = null
     }
 
+    /**
+     * Teclas que a casca resolve antes do terminal.
+     *
+     * shift+enter: o xterm manda CR, que para o `claude` e "enviar". A
+     * quebra de linha que ele entende e ESC+CR — a mesma sequencia que o
+     * `/terminal-setup` grava no iTerm2 e no VS Code.
+     *
+     * ctrl+c: so vira copiar quando ha selecao. Sem selecao continua sendo
+     * a interrupcao, que e o uso mais frequente da tecla num terminal e
+     * nao pode ser sequestrado.
+     */
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.type !== 'keydown') return true
+      const mod = e.ctrlKey || e.metaKey
+
+      if (e.key === 'Enter' && e.shiftKey && !mod && !e.altKey) {
+        sendRef.current('\x1b\r')
+        return false
+      }
+
+      if (mod && (e.key === 'c' || e.key === 'C') && (term.hasSelection() || e.shiftKey)) {
+        const texto = term.getSelection()
+        if (!texto) return !e.shiftKey
+        void copiarTexto(texto).then((ok) => piscar(ok ? 'copiado' : 'nao deu para copiar'))
+        term.clearSelection()
+        return false
+      }
+
+      // ctrl+shift+v e o colar de terminal; o ctrl+v continua indo para o
+      // xterm, que ja trata o evento de colar do navegador sozinho.
+      if (mod && e.shiftKey && (e.key === 'v' || e.key === 'V')) {
+        void lerTexto().then((texto) => {
+          if (texto) sendRef.current(texto)
+        })
+        return false
+      }
+
+      return true
+    })
+
+    // Selecionar com o mouse ja copia, como num terminal de verdade. Copiar
+    // a cada mudanca da selecao encheria a area de transferencia de
+    // fragmentos durante o arrasto, entao o gatilho e soltar o botao.
+    const aoSoltar = () => {
+      if (!selecionarCopiaRef.current) return
+      const texto = term.getSelection()
+      if (!texto.trim()) return
+      void copiarTexto(texto).then((ok) => {
+        if (ok) piscar('copiado')
+      })
+    }
+    container.addEventListener('mouseup', aoSoltar)
+
     fit.fit()
     termRef.current = term
     fitRef.current = fit
@@ -124,6 +229,7 @@ export function TerminalPane({
 
     return () => {
       setReady(false)
+      container.removeEventListener('mouseup', aoSoltar)
       observer.disconnect()
       webgl?.dispose()
       term.dispose()
@@ -183,8 +289,66 @@ export function TerminalPane({
   }, [notice, tab.id])
 
   return (
-    <div className="pane" hidden={!visible}>
+    <div
+      className={`pane${arrastandoImagem ? ' is-dropping' : ''}`}
+      hidden={!visible}
+      // Colar e arrastar sao ouvidos na fase de captura, antes do xterm:
+      // imagem nos tratamos aqui, e texto segue para o terminal intacto.
+      onPasteCapture={(e) => {
+        const imagens = imagensDe(e.clipboardData)
+        if (imagens.length === 0) return
+        e.preventDefault()
+        void anexarImagens(imagens)
+      }}
+      onDragOver={(e) => {
+        if (![...e.dataTransfer.types].includes('Files')) return
+        e.preventDefault()
+        setArrastandoImagem(true)
+      }}
+      onDragLeave={(e) => {
+        // O dragleave dispara tambem ao passar por cima de um filho; so a
+        // saida real da area interessa.
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
+        setArrastandoImagem(false)
+      }}
+      onDrop={(e) => {
+        const imagens = imagensDe(e.dataTransfer)
+        setArrastandoImagem(false)
+        if (imagens.length === 0) return
+        e.preventDefault()
+        void anexarImagens(imagens)
+      }}
+    >
       <div className="pane__surface" ref={containerRef} />
+
+      {anexos.length > 0 && (
+        <div className="anexos" aria-label="imagens anexadas a esta mensagem">
+          {anexos.map((anexo) => (
+            <figure key={anexo.arquivo} className="anexos__item" title={anexo.caminho}>
+              <img src={`/api/anexos/${anexo.arquivo}`} alt={anexo.arquivo} />
+              <button
+                type="button"
+                className="anexos__x"
+                aria-label="tirar esta miniatura"
+                // Tira so a miniatura: o caminho ja foi escrito no prompt, e
+                // apagar texto que o Pedro talvez tenha editado seria pior.
+                onClick={() => setAnexos((prev) => prev.filter((a) => a.arquivo !== anexo.arquivo))}
+              >
+                <X size={10} strokeWidth={2.4} />
+              </button>
+            </figure>
+          ))}
+        </div>
+      )}
+
+      {arrastandoImagem && (
+        <div className="pane__solte">
+          <ImagePlus size={18} strokeWidth={1.8} />
+          solte a imagem
+        </div>
+      )}
+
+      {aviso && <div className="pane__aviso">{aviso}</div>}
     </div>
   )
 }

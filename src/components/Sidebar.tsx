@@ -1,4 +1,5 @@
 import {
+  FolderTree,
   GitBranch,
   History,
   MessagesSquare,
@@ -22,6 +23,7 @@ const ITEMS: RailItem[] = [
   // navegacao le como alerta, e este fica aceso o tempo todo.
   { view: 'accounts', label: 'contas', Icon: Users, color: 'var(--blue)' },
   { view: 'conversas', label: 'conversas', Icon: MessagesSquare, color: 'var(--hl-string)' },
+  { view: 'arquivos', label: 'arquivos', Icon: FolderTree, color: 'var(--hl-keyword)' },
   { view: 'fleet', label: 'frota', Icon: Radio, color: 'var(--hl-function)' },
   { view: 'git', label: 'git', Icon: GitBranch, color: 'var(--green)' },
   { view: 'diff', label: 'mudancas', Icon: SquareStack, color: 'var(--warn)' },

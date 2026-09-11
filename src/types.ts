@@ -70,6 +70,8 @@ export interface TerminalTab {
   id: string
   title: string
   cwd: string
+  /** Cor escolhida a mao para separar projetos na barra. */
+  cor?: string
   /**
    * Conversa que esta aba deve retomar ao nascer, escolhida na lista.
    * Vale so na primeira conexao: depois disso a aba tem vida propria.
@@ -142,6 +144,7 @@ export interface ChangesResult {
 export type ViewName =
   | 'accounts'
   | 'conversas'
+  | 'arquivos'
   | 'fleet'
   | 'git'
   | 'diff'

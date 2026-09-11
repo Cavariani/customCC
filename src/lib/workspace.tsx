@@ -17,6 +17,14 @@ import type {
 } from '../types'
 import type { Activity, PtyStatus } from './usePtySocket'
 import { usePolling } from './usePolling'
+import {
+  aplicarOrdem,
+  corValida,
+  gravarCampo,
+  gravarOrdem,
+  lerMeta,
+  type CorDeAba,
+} from './tabMeta'
 
 export interface ServerInfo {
   defaultCwd: string
@@ -31,16 +39,6 @@ export interface TerminalMessage {
 }
 
 const FIRST_TAB: TerminalTab = { id: 'tab-1', title: 'terminal 1', cwd: '' }
-const TITLES_KEY = 'customcc-tab-titles'
-
-/** Nomes que o Pedro deu as abas, guardados entre reloads. */
-function storedTitles(): Record<string, string> {
-  try {
-    return JSON.parse(localStorage.getItem(TITLES_KEY) ?? '{}')
-  } catch {
-    return {}
-  }
-}
 
 /** Git e diff mudam a cada edicao; conta muda devagar. */
 const GIT_POLL_MS = 4000
@@ -67,6 +65,12 @@ interface Workspace {
   openTab: (cwd?: string, conversa?: { id: string; titulo?: string | null }) => void
   closeTab: (id: string) => void
   renameTab: (id: string, title: string) => void
+  /** Cor da aba; null tira a cor. */
+  colorTab: (id: string, cor: CorDeAba | null) => void
+  /** Move a aba arrastada para a posicao da aba de destino. */
+  reorderTab: (arrastada: string, alvo: string) => void
+  /** Derruba e sobe o `claude` da aba retomando a mesma conversa. */
+  restartTab: (id: string, notice?: string) => Promise<void>
 
   git: GitState | null
   gitError: string | null
@@ -87,6 +91,12 @@ interface Workspace {
   /** Em que pe cada aba esta: trabalhando, esperando voce, ou parada. */
   tabActivity: Record<string, Activity>
   setTabActivity: (tabId: string, state: Activity) => void
+  /**
+   * Aba que terminou de trabalhar e ainda nao foi vista. E o aviso que o
+   * ponto de atividade sozinho nao da: "parado" e igual para quem nunca
+   * rodou nada e para quem acabou de entregar a resposta.
+   */
+  tabDone: Record<string, boolean>
 
   notice: TerminalMessage | null
 }
@@ -99,6 +109,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [info, setInfo] = useState<ServerInfo | null>(null)
   const [tabStatus, setTabStatusState] = useState<Record<string, PtyStatus>>({})
   const [tabActivity, setTabActivityState] = useState<Record<string, Activity>>({})
+  const [tabDone, setTabDone] = useState<Record<string, boolean>>({})
   const [notice, setNotice] = useState<TerminalMessage | null>(null)
   const [switching, setSwitching] = useState(false)
   const seqRef = useRef(0)
@@ -140,12 +151,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       .then(([data, live]) => {
         if (!alive) return
         setInfo(data)
-        const titles = storedTitles()
+        const meta = lerMeta()
+        const guardado = (id: string) => {
+          const m = meta.abas[id]
+          return { titulo: m?.titulo, cor: corValida(m?.cor) ? m.cor : undefined }
+        }
         const nameOf = (cwd: string) => cwd.split(/[/\\]/).filter(Boolean).pop() ?? 'terminal'
 
-        const restored = live.sessions
-          .filter((s) => !s.exited)
-          .map((s) => ({ id: s.id, cwd: s.cwd, title: titles[s.id] ?? nameOf(s.cwd) }))
+        const restored = aplicarOrdem(
+          live.sessions
+            .filter((s) => !s.exited)
+            .map((s) => {
+              const m = guardado(s.id)
+              return { id: s.id, cwd: s.cwd, title: m.titulo ?? nameOf(s.cwd), cor: m.cor }
+            }),
+          meta.ordem,
+        )
 
         if (restored.length > 0) {
           setTabs(restored)
@@ -160,9 +181,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           }, 0)
         } else {
           setTabs((prev) =>
-            prev.map((t) =>
-              t.cwd ? t : { ...t, cwd: data.defaultCwd, title: titles[t.id] ?? nameOf(data.defaultCwd) },
-            ),
+            prev.map((t) => {
+              if (t.cwd) return t
+              const m = guardado(t.id)
+              return {
+                ...t,
+                cwd: data.defaultCwd,
+                title: m.titulo ?? nameOf(data.defaultCwd),
+                cor: m.cor,
+              }
+            }),
           )
         }
       })
@@ -177,9 +205,64 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setTabStatusState((prev) => (prev[tabId] === status ? prev : { ...prev, [tabId]: status }))
   }, [])
 
+  // O marcador de "terminou" precisa saber qual aba esta na frente, e ler
+  // isso do estado dentro do callback prenderia a funcao a cada troca de
+  // aba — com a funcao nova, o efeito que reporta atividade rodaria de novo
+  // e o WebSocket do terminal seria refeito a cada clique na barra.
+  const activeRef = useRef(activeTabId)
+  activeRef.current = activeTabId
+
   const setTabActivity = useCallback((tabId: string, state: Activity) => {
-    setTabActivityState((prev) => (prev[tabId] === state ? prev : { ...prev, [tabId]: state }))
+    setTabActivityState((prev) => {
+      if (prev[tabId] === state) return prev
+      // Trabalhando -> parado numa aba que voce nao esta vendo e o unico
+      // momento em que ha resposta nova esperando por voce. Chegar em
+      // "esperando" tem sinal proprio e nao precisa deste.
+      if (prev[tabId] === 'working' && state === 'idle' && tabId !== activeRef.current) {
+        setTabDone((feito) => ({ ...feito, [tabId]: true }))
+      }
+      return { ...prev, [tabId]: state }
+    })
   }, [])
+
+  // Olhar a aba e o que apaga o aviso de terminado.
+  useEffect(() => {
+    setTabDone((prev) => (prev[activeTabId] ? { ...prev, [activeTabId]: false } : prev))
+  }, [activeTabId])
+
+  const colorTab = useCallback((id: string, cor: CorDeAba | null) => {
+    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, cor: cor ?? undefined } : t)))
+    gravarCampo(id, { cor: cor ?? undefined })
+  }, [])
+
+  const reorderTab = useCallback((arrastada: string, alvo: string) => {
+    if (arrastada === alvo) return
+    setTabs((prev) => {
+      const de = prev.findIndex((t) => t.id === arrastada)
+      const para = prev.findIndex((t) => t.id === alvo)
+      if (de === -1 || para === -1) return prev
+      const proxima = [...prev]
+      const [movida] = proxima.splice(de, 1)
+      proxima.splice(para, 0, movida)
+      gravarOrdem(proxima.map((t) => t.id))
+      return proxima
+    })
+  }, [])
+
+  const restartTab = useCallback(
+    async (id: string, notice?: string) => {
+      const resposta = await fetch(`/api/sessions/${id}/reiniciar`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ notice }),
+      })
+      if (!resposta.ok) {
+        const dado = await resposta.json().catch(() => ({}))
+        throw new Error(dado.error ?? `HTTP ${resposta.status}`)
+      }
+    },
+    [],
+  )
 
   const switchAccount = useCallback(
     (id: AccountId) => {
@@ -326,7 +409,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // Vindo da lista de conversas, a aba se chama como a conversa; o nome
       // da pasta ali seria repetido em todas as abas do mesmo projeto.
       const name = conversa?.titulo?.trim() || pasta
-      setTabs((prev) => [...prev, { id, title: name, cwd: folder, resumeId: conversa?.id }])
+      setTabs((prev) => {
+        const proxima = [...prev, { id, title: name, cwd: folder, resumeId: conversa?.id }]
+        gravarOrdem(proxima.map((t) => t.id))
+        return proxima
+      })
       setActiveTabId(id)
     },
     [info],
@@ -337,12 +424,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (!clean) return
     setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, title: clean } : t)))
     // Sobrevive ao reload; a sessao do pty tambem sobrevive.
-    try {
-      const stored = JSON.parse(localStorage.getItem(TITLES_KEY) ?? '{}')
-      localStorage.setItem(TITLES_KEY, JSON.stringify({ ...stored, [id]: clean }))
-    } catch {
-      /* storage indisponivel nao pode quebrar o rename */
-    }
+    gravarCampo(id, { titulo: clean })
   }, [])
 
   const closeTab = useCallback((id: string) => {
@@ -375,6 +457,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       openTab,
       closeTab,
       renameTab,
+      colorTab,
+      reorderTab,
+      restartTab,
       git: gitPoll.data,
       gitError: gitPoll.error,
       online: accountsPoll.error === null,
@@ -390,6 +475,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setTabStatus,
       tabActivity,
       setTabActivity,
+      tabDone,
       notice,
     }),
     [
@@ -408,6 +494,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       openTab,
       closeTab,
       renameTab,
+      colorTab,
+      reorderTab,
+      restartTab,
       gitPoll.data,
       gitPoll.error,
       accountsPoll.error,
@@ -423,6 +512,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setTabStatus,
       tabActivity,
       setTabActivity,
+      tabDone,
       notice,
     ],
   )

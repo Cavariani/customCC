@@ -1907,20 +1907,6 @@ button.arow__acao--bloq:hover:not(:disabled) {
 .toast__action:hover:not(:disabled) { filter: brightness(1.12); }
 .toast__action:disabled { opacity: 0.6; cursor: default; }
 
-/* Indicador de sessao de pty por aba. */
-.tab__status {
-  flex: none;
-  width: 5px;
-  height: 5px;
-  margin-left: 2px;
-  border-radius: 50%;
-  background: var(--color-muted);
-}
-
-.tab__status--live { background: var(--green); }
-.tab__status--connecting { background: var(--warn); animation: pulse-dot 1.2s ease-in-out infinite; }
-.tab__status--exited { background: var(--color-muted); }
-.tab__status--error { background: var(--color-error); }
 
 /* Lista chave/valor dos ajustes. */
 .kv { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
@@ -2886,3 +2872,399 @@ button.arow__acao--bloq:hover:not(:disabled) {
     radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.5), transparent) top / 100% 10px no-repeat scroll,
     radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.5), transparent) bottom / 100% 10px no-repeat scroll;
 }
+
+/* ── Estado da aba: anel em vez de ponto ─────────────────────────────────
+   O ponto de 5px dizia o estado para quem ja estava olhando para ele. Com
+   seis abas abertas, o que se precisa e ver de longe qual esta pensando, e
+   e por isso que o sinal cresceu para 14px e ganhou movimento em um unico
+   estado: se tudo se mexesse, nada chamaria atencao. */
+
+.tabring {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+}
+
+.tabring svg { display: block; overflow: visible; }
+
+.tabring__trilho {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-muted) 26%, transparent);
+  stroke-width: 1.4;
+}
+
+.tabring__miolo { fill: var(--color-muted); }
+.tabring__arco {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  transform-origin: 7px 7px;
+  animation: tabring-gira 0.9s linear infinite;
+}
+
+@keyframes tabring-gira {
+  to { transform: rotate(360deg); }
+}
+
+/* Pensando: o arco laranja gira e o trilho acende junto, senao o arco
+   sozinho parece um ponto piscando fora de lugar. */
+.tabring--working .tabring__trilho { stroke: color-mix(in srgb, var(--red) 28%, transparent); }
+
+.tabring--waiting .tabring__miolo { fill: var(--warn); }
+.tabring--waiting .tabring__trilho { stroke: color-mix(in srgb, var(--warn) 55%, transparent); }
+.tabring--done .tabring__miolo { fill: var(--green); }
+.tabring--done .tabring__trilho { stroke: color-mix(in srgb, var(--green) 55%, transparent); }
+.tabring--error .tabring__miolo { fill: var(--color-error); }
+.tabring--exited .tabring__miolo { fill: var(--color-muted-alt); }
+.tabring--connecting .tabring__miolo { fill: var(--warn); animation: pulse-dot 1.2s ease-in-out infinite; }
+
+/* A aba inteira responde ao estado, e nao so o anel: com a barra cheia, a
+   diferenca entre "esta pensando" e "quer sua permissao" precisa ser vista
+   sem ler o nome de nenhuma delas. A faixa fica no topo, onde a aba ativa
+   ja desenha a sua — mesma gramatica, cores diferentes. */
+.tab { position: relative; }
+
+.tab--working, .tab--waiting, .tab--done { color: var(--fg); }
+
+.tab--working::after, .tab--waiting::after, .tab--done::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 2px;
+  margin-top: 0;
+}
+
+.tab--working::after { background: var(--red); animation: tab-varre 1.6s ease-in-out infinite; }
+.tab--waiting::after { background: var(--warn); animation: pulse-dot 1s ease-in-out infinite; }
+.tab--done::after { background: var(--green); }
+
+/* Terminou e voce ainda nao olhou: o nome tambem vai para o verde. E o
+   unico estado que se apaga sozinho — abrir a aba limpa o aviso. */
+.tab--done .tab__title { color: var(--green); }
+.tab--waiting .tab__title { color: var(--warn); }
+
+@keyframes tab-varre {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+/* Animacoes desligadas nos ajustes valem aqui tambem. */
+html[data-animations='false'] .tabring__arco,
+html[data-animations='false'] .tab--working::after,
+html[data-animations='false'] .tab--waiting::after { animation: none; }
+
+/* ── Cor da aba: identidade, nao estado ──────────────────────────────────
+   A regra da casa e que cor carrega estado. Esta e a excecao pedida, e ela
+   so funciona porque ocupa outro lugar: a identidade fica na barra vertical
+   da esquerda e no icone, e o estado continua no anel e na faixa de baixo.
+   Assim uma aba verde-por-escolha nunca e confundida com uma que acabou de
+   responder. */
+.tab.has-cor { border-left: 2px solid var(--cor-da-aba); border-radius: 3px 6px 0 0; }
+.tab.has-cor .tab__main > svg { color: var(--cor-da-aba); }
+.tab.has-cor.is-active { background: color-mix(in srgb, var(--cor-da-aba) 9%, var(--bg)); }
+.tab.has-cor:not(.is-active):hover { background: color-mix(in srgb, var(--cor-da-aba) 12%, transparent); }
+
+.tab[draggable='true'] { cursor: grab; }
+
+/* Menu do botao direito na aba. */
+.tabmenu {
+  position: fixed;
+  z-index: 60;
+  min-width: 166px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tabmenu__cores {
+  display: flex;
+  gap: 5px;
+  padding: 3px 4px 7px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+
+.tabmenu__cor {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--cor);
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.tabmenu__cor.is-active { border-color: var(--fg); }
+.tabmenu__cor--nenhuma {
+  background: transparent;
+  border: 1px dashed var(--color-muted);
+}
+.tabmenu__cor--nenhuma.is-active { border: 2px solid var(--fg); }
+
+.tabmenu__item {
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 11px;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.tabmenu__item:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 8%, transparent); }
+.tabmenu__item--perigo:hover { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+
+/* ── Imagens e copia dentro do terminal ─────────────────────────────────── */
+
+.pane.is-dropping .pane__surface { opacity: 0.35; }
+
+.pane__solte {
+  position: absolute;
+  inset: 14px;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  justify-items: center;
+  font-size: 11.5px;
+  color: var(--red);
+  border: 1px dashed var(--red);
+  pointer-events: none;
+}
+
+/* Aviso de "copiado": vive um segundo e meio no canto, longe do cursor. */
+.pane__aviso {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--panel);
+  background: var(--fg);
+  pointer-events: none;
+}
+
+/* Miniaturas do que foi anexado a mensagem que ainda nao partiu. */
+.anexos {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.anexos__item {
+  position: relative;
+  margin: 0;
+  width: 54px;
+  height: 40px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.anexos__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.anexos__x {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  color: var(--panel);
+  background: var(--fg);
+  cursor: pointer;
+}
+
+.anexos__x:hover { background: var(--red); }
+
+/* ── Arvore de arquivos ──────────────────────────────────────────────────
+   Mesma gramatica da lista de conversas: linha inteira clicavel, sem
+   cartao, com a indentacao sendo a unica hierarquia visivel. */
+
+.view--flush { padding: 0; gap: 0; }
+
+.arv__topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-muted) 18%, transparent);
+}
+
+.arv__raiz {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--fg);
+}
+
+.arv__recarregar { flex: none; color: var(--color-muted); cursor: pointer; }
+.arv__recarregar:hover { color: var(--red); }
+
+.arv { padding: 4px 0 12px; }
+
+.arv__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: 8px;
+  font-size: 11px;
+  color: var(--color-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.arv__item:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.arv__item--pasta { color: var(--color-muted-alt); }
+.arv__item--pasta:hover { color: var(--fg); }
+/* node_modules e .git aparecem, mas apagados: estao ali quando voce
+   precisa e nao competem com o codigo do projeto. */
+.arv__item--pesada { opacity: 0.45; }
+.arv__vazio { width: 11px; flex: none; }
+.arv__nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arv__tam { flex: none; font-size: 11px; color: var(--color-muted-alt); }
+
+/* ── Leitor de arquivo, por cima do terminal ─────────────────────────── */
+
+.leitor {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+}
+
+.leitor__topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.leitor__caminho {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--fg);
+}
+
+.leitor__meta { flex: none; font-size: 11px; color: var(--color-muted-alt); }
+
+.leitor__acao {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--color-muted);
+  border: 1px solid color-mix(in srgb, var(--color-muted) 26%, transparent);
+  cursor: pointer;
+}
+
+.leitor__acao:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.leitor__acao:disabled { opacity: 0.5; cursor: not-allowed; }
+.leitor__x { flex: none; color: var(--color-muted); cursor: pointer; }
+.leitor__x:hover { color: var(--red); }
+
+.leitor__corpo { flex: 1; min-height: 0; overflow: auto; padding: 12px 14px 40px; }
+
+.codigo {
+  margin: 0;
+  font-family: 'Fira Code', ui-monospace, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.codigo__linha { display: flex; }
+
+.codigo__n {
+  flex: none;
+  width: 44px;
+  padding-right: 12px;
+  text-align: right;
+  color: var(--color-muted-alt);
+  user-select: none;
+}
+
+.codigo__txt { flex: 1; min-width: 0; color: var(--fg); }
+
+.tk--comentario { color: var(--color-muted-alt); font-style: italic; }
+.tk--texto { color: var(--hl-string); }
+.tk--numero { color: var(--warn); }
+.tk--palavra { color: var(--hl-keyword); }
+
+/* Markdown renderizado: escala de titulo contida, porque isto e leitura
+   dentro de um painel e nao uma pagina. */
+.md { font-size: 12px; line-height: 1.65; color: var(--fg); max-width: 78ch; }
+.md p { margin: 0 0 10px; }
+.md__h { font-weight: 600; margin: 16px 0 8px; color: var(--fg); }
+.md__h--1 { font-size: 16px; }
+.md__h--2 { font-size: 14px; }
+.md__h--3 { font-size: 12.5px; }
+.md__h--4, .md__h--5, .md__h--6 { font-size: 12px; color: var(--color-muted); }
+.md__li { display: flex; gap: 8px; margin-bottom: 4px; }
+.md__bullet { flex: none; color: var(--red); }
+.md__quote {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+  color: var(--color-muted);
+}
+.md hr { margin: 14px 0; border: 0; border-top: 1px solid var(--border); }
+.md code {
+  font-family: 'Fira Code', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--hl-string);
+}
+.md__link { color: var(--blue); text-decoration: underline dotted; }
+.md__code {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.md__codeline { display: block; white-space: pre; }
+
+/* ── Prompt global ──────────────────────────────────────────────────── */
+
+.promptbox {
+  width: 100%;
+  padding: 8px 9px;
+  font-family: 'Fira Code', ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  resize: vertical;
+}
+
+.promptbox:focus { outline: none; border-color: var(--red); }
+.promptbox::placeholder { color: var(--color-muted-alt); }
+.promptbox__acoes { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+
+.view__note--erro { color: var(--color-error); }
